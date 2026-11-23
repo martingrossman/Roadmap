@@ -870,6 +870,18 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
 @media print{
  .board-card .card-stream,.data-table .stream-tag,.milestone-date-block,.canvas-increment-chip,.progress-fill{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
+
+/* Stacked milestone names (see layoutMilestoneLabels). */
+.ms-stacked>.canvas-milestone-flat:not(.canvas-milestone-on-bar){top:var(--ms-marker-top,15px)!important}
+.ms-stacked>.canvas-milestone-flat:not(.canvas-milestone-on-bar)>.canvas-milestone-copy{left:var(--ms-label-left,0)!important;right:auto!important;top:auto!important;bottom:calc(100% + 4px + var(--ms-raise,0px))!important;transform:none!important;width:var(--ms-label-width,auto)!important;min-width:0!important;max-width:none!important;flex-direction:row!important;align-items:baseline;justify-content:center;gap:6px;text-align:center!important;padding:1px 4px;border-radius:3px;background:var(--ms-bg,#fff);box-shadow:none!important;z-index:2;line-height:18px}
+.ms-stacked>.canvas-milestone-flat:not(.canvas-milestone-on-bar)>.canvas-milestone-copy>[data-title]{flex:0 1 auto;min-width:0;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.ms-stacked>.canvas-milestone-flat:not(.canvas-milestone-on-bar)>.canvas-milestone-copy>small{flex:0 0 auto;white-space:nowrap}
+.ms-stacked>.canvas-milestone-flat:not(.canvas-milestone-on-bar)>.canvas-milestone-copy>.canvas-milestone-increment{flex:0 1 auto;min-width:0}
+.ms-stacked>.canvas-milestone-flat:not(.canvas-milestone-on-bar)::after{content:"";position:absolute;left:11.5px;bottom:100%;width:1px;height:calc(4px + var(--ms-raise,0px));background:var(--milestone-guide,var(--milestone-color));opacity:.55;pointer-events:none}
+.ms-stacked>.canvas-milestone-flat:not(.canvas-milestone-on-bar):is(:hover,:focus-within,.canvas-selected)>.canvas-milestone-copy{width:max-content!important;max-width:min(420px,calc(100vw - 24px))!important;box-shadow:0 1px 6px #0002!important;z-index:5}
+.ms-stacked>.canvas-milestone-flat:not(.canvas-milestone-on-bar):is(:hover,:focus-within,.canvas-selected)>.canvas-milestone-copy>[data-title]{overflow:visible!important;text-overflow:clip!important}
+.ms-measuring>.canvas-milestone-flat>.canvas-milestone-copy{width:max-content!important;max-width:none!important}
+.ms-measuring>.canvas-milestone-flat>.canvas-milestone-copy>[data-title]{overflow:visible!important}
 </style>
 </head>
 <body>
@@ -1302,6 +1314,33 @@ License: Apache-2.0
       text(`${date(increment.start)} - ${date(increment.end)}`,x,y+21,{size:6.5,fill:muted,width:w});
       return{x,w,tone,centerY:y+9};
     }
+    function stackedMilestones(source,y){
+      // Same rule as the canvas: names sit above their markers on one line with
+      // the date; a name that would overlap the previous one drops a row lower.
+      const ROW=13,GAP=6,MAXW=190,ordered=source.slice().sort((a,b)=>day(a.date)-day(b.date)||String(a.id).localeCompare(String(b.id)));
+      if(new Set(ordered.map(m=>day(m.date))).size<ordered.length)coincidentMilestones=true;
+      const ends=[];
+      const items=ordered.map(m=>{
+        const caption=milestoneCaption(m),capW=measure(caption.text,6.6),full=clean(m.title);
+        const titleW=Math.min(measure(full,8.2,true),Math.max(30,MAXW-capW-5));
+        const title=fit(full,titleW+0.5,8.2,true);if(title!==full)truncatedLabels++;
+        const w=measure(title,8.2,true)+5+capW,center=(day(m.date)-range.start)/(range.end-range.start)*trackW;
+        const start=Math.max(0,Math.min(center-w/2,trackW-w));
+        let tier=ends.findIndex(end=>start>=end+GAP);if(tier<0){tier=ends.length;ends.push(0);}ends[tier]=start+w;
+        return {m,caption,title,titleW:measure(title,8.2,true),w,center,start,tier};
+      });
+      const rows=Math.max(1,ends.length),labelTop=y+6,symbolY=labelTop+rows*ROW+11,h=symbolY-y+13;
+      return {items,rows,h,draw(){
+        items.forEach(v=>stroke(trackX+v.center,labelTop+v.tier*ROW+10,trackX+v.center,symbolY-7,theme({color:v.m.color||'amber'}).guide,.65));
+        items.forEach(v=>{
+          const ty=labelTop+v.tier*ROW,x=trackX+v.start;
+          rect(x-2,ty-1.5,v.w+4,ROW-1,'#f4f6f7');
+          text(v.title,x,ty,{size:8.2,bold:true});
+          text(v.caption.text,x+v.titleW+5,ty+1.4,{size:6.6,fill:v.caption.outside?OUTSIDE_INCREMENT_COLOR:muted});
+        });
+        items.forEach(v=>{const x=trackX+v.center;page.drawCircle({x,y:H-symbolY,size:7.3,color:color(white)});milestoneSymbol(v.m,x,symbolY,5.5);});
+      }};
+    }
     function flatMilestones(layout,labelY,symbolY,increment=null){
       layout.forEach(v=>stroke(trackX+v.center,labelY+21,trackX+v.center,symbolY-7,theme({color:v.m.color||'amber'}).guide,.65));
       layout.forEach(v=>{
@@ -1433,11 +1472,12 @@ License: Apache-2.0
     }
     const standaloneMilestones=milestones.filter(m=>!incrementIndex.has(m.increment));
     if(standaloneMilestones.length){
-      const h=56,layout=milestoneLayout(standaloneMilestones);
-      if(top+h>chartBottom)newChartPage();
+      let stacked=stackedMilestones(standaloneMilestones,top);
+      if(top+stacked.h>chartBottom){newChartPage();stacked=stackedMilestones(standaloneMilestones,top);}
+      const h=stacked.h;
       labelBlock('Milestones',`${standaloneMilestones.length} CHECKPOINT${standaloneMilestones.length===1?'':'S'}`,top,h,theme({color:'slate'}));
       rect(trackX,top,trackW,h,'#f4f6f7');grid(top,h);reference(top,h);
-      flatMilestones(layout,top+5,top+39);
+      stacked.draw();
       top+=h+6;
     }
     for(const stream of workstreams){
@@ -2099,7 +2139,7 @@ function render(){
  $('#dependenciesBtn').classList.toggle('is-active',state.dependencies);$('#dependenciesBtn').setAttribute('aria-pressed',String(state.dependencies));$('#dependenciesBtn').title=state.dependencies?'Hide dependencies':'Show dependencies';$('#dependenciesBtn').setAttribute('aria-label',$('#dependenciesBtn').title);
  if(state.section==='outcomes')renderOutcomes();else if(state.section==='milestones')renderMilestones();else if(state.section==='initiatives'||state.view==='table')renderTable();else if(state.view==='board')renderBoard();else if(state.view==='swimlane')renderSwimlanes();else renderTimeline();
  $('#undoBtn').disabled=!state.undo.length;$('#redoBtn').disabled=!state.redo.length;
- document.title=`${p.name} — Arc`;document.body.classList.toggle('swimlane-mode',state.section==='roadmap'&&state.view==='swimlane');hydrateIcons();ArcCanvas.afterRender();requestAnimationFrame(drawDependencies);
+ document.title=`${p.name} — Arc`;document.body.classList.toggle('swimlane-mode',state.section==='roadmap'&&state.view==='swimlane');hydrateIcons();ArcCanvas.afterRender();layoutMilestoneLabels();requestAnimationFrame(drawDependencies);
  scrollState.forEach(s=>{const el=$(s.selector);if(el){el.scrollLeft=s.left;el.scrollTop=s.top;}});ArcFreeze.afterRender();ArcWorkstreams.sync();
 }
 function timelineRange(){const month=state.range==='year'?0:Number(state.range)*3,endMonth=state.range==='year'?12:month+3;return{start:Date.UTC(state.year,month,1)/DAY,end:Date.UTC(state.year,endMonth,1)/DAY,month,endMonth};}
@@ -2342,6 +2382,44 @@ function canvasMilestoneShape(m,dragHandle=false){
  const paint=swimlaneColor(m.color||'amber'),shapes={star:'<path d="m12 1.6 3.1 6.3 7 .9-5.1 5 1.2 7-6.2-3.3-6.2 3.3 1.2-7-5.1-5 7-.9Z"/>',diamond:'<path d="m12 2 10 10-10 10L2 12Z"/>',circle:'<circle cx="12" cy="12" r="9"/>',flag:'<path d="M6 3h13l-3 5 3 5H6Z"/><path class="canvas-milestone-flag-stem" d="M6 3v18" fill="none" stroke="currentColor" stroke-width="2"/>',square:'<rect x="3" y="3" width="18" height="18" rx="2"/>'};
  return `<svg class="canvas-milestone-symbol" ${dragHandle?'data-drag-handle':''} viewBox="0 0 24 24" aria-hidden="true" style="--milestone-color:${paint.solid};--milestone-guide:${paint.guide||paint.solid};--milestone-outline:${paint.outline||'none'}">${shapes[m.shape]||shapes.star}</svg>`;
 }
+/* Milestone names sit above their markers. Labels that would overlap drop one
+ * row lower (greedy, left to right), so every name stays readable and the band
+ * only grows by the rows it actually needs. Runs after each render and resize. */
+function layoutMilestoneLabels(){
+ const ROW=22,GAP=10,TOP=6,MARK=24,BOTTOM=8,MAXW=260,sel='.canvas-milestone-flat:not(.canvas-milestone-on-bar)';
+ const tracks=new Set();
+ document.querySelectorAll(sel).forEach(el=>{if(!el.closest('#freezeDock'))tracks.add(el.parentElement);});
+ tracks.forEach(track=>{
+  const items=[...track.children].filter(el=>el.matches(sel)),W=track.clientWidth;
+  if(!W||!items.length)return;
+  track.classList.add('ms-stacked','ms-measuring');
+  const data=items.map(el=>{const copy=el.querySelector('.canvas-milestone-copy');return{el,w:Math.min(MAXW,Math.ceil(copy?copy.scrollWidth:0)+8),x:parseFloat(el.style.left)/100*W};});
+  track.classList.remove('ms-measuring');
+  data.sort((a,b)=>a.x-b.x);
+  const ends=[];
+  data.forEach(d=>{
+   d.start=Math.max(0,Math.min(d.x-d.w/2,W-d.w));
+   let tier=ends.findIndex(end=>d.start>=end+GAP);
+   if(tier<0){tier=ends.length;ends.push(0);}
+   ends[tier]=d.start+d.w;d.tier=tier;
+  });
+  const rows=Math.max(1,ends.length),markerTop=TOP+rows*ROW+4,bg=getComputedStyle(track).backgroundColor;
+  track.style.setProperty('--ms-marker-top',markerTop+'px');
+  track.style.setProperty('--ms-bg',!bg||bg==='rgba(0, 0, 0, 0)'||bg==='transparent'?'#fff':bg);
+  data.forEach(d=>{
+   // The marker box starts 12px left of its date (translateX(-12px)).
+   d.el.style.setProperty('--ms-label-left',(d.start-(d.x-12))+'px');
+   d.el.style.setProperty('--ms-label-width',d.w+'px');
+   d.el.style.setProperty('--ms-raise',((rows-1-d.tier)*ROW)+'px');
+  });
+  const height=markerTop+MARK+BOTTOM,band=track.closest('.swimlane-milestone-band'),row=track.closest('.milestone-row');
+  if(band)band.style.minHeight=height+'px';
+  if(row)row.style.height=height+'px';
+ });
+}
+let milestoneLabelTimer=0;
+window.addEventListener('resize',()=>{clearTimeout(milestoneLabelTimer);milestoneLabelTimer=setTimeout(layoutMilestoneLabels,80);},{passive:true});
+window.addEventListener('beforeprint',layoutMilestoneLabels);
 function canvasMilestoneMarker(m,r,row=0,swimlane=false,onBar=null,flat=onBar){
  const left=(day(m.date)-r.start)/(r.end-r.start)*100,placement=flat||canvasFlatMilestoneLayout([m],r).placed[0],increment=m.increment&&getIncrement(m.increment),outside=increment&&(m.date<increment.start||m.date>increment.end),paint=swimlaneColor(m.color||'amber'),color=paint.solid;
  const details=`${fmtDate(m.date,true)}${increment?' · Increment: '+increment.title:''}${outside?' · Outside increment dates':''}${m.done?' · Achieved':''}`;

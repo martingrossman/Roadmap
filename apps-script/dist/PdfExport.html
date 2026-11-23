@@ -262,6 +262,33 @@
       text(`${date(increment.start)} - ${date(increment.end)}`,x,y+21,{size:6.5,fill:muted,width:w});
       return{x,w,tone,centerY:y+9};
     }
+    function stackedMilestones(source,y){
+      // Same rule as the canvas: names sit above their markers on one line with
+      // the date; a name that would overlap the previous one drops a row lower.
+      const ROW=13,GAP=6,MAXW=190,ordered=source.slice().sort((a,b)=>day(a.date)-day(b.date)||String(a.id).localeCompare(String(b.id)));
+      if(new Set(ordered.map(m=>day(m.date))).size<ordered.length)coincidentMilestones=true;
+      const ends=[];
+      const items=ordered.map(m=>{
+        const caption=milestoneCaption(m),capW=measure(caption.text,6.6),full=clean(m.title);
+        const titleW=Math.min(measure(full,8.2,true),Math.max(30,MAXW-capW-5));
+        const title=fit(full,titleW+0.5,8.2,true);if(title!==full)truncatedLabels++;
+        const w=measure(title,8.2,true)+5+capW,center=(day(m.date)-range.start)/(range.end-range.start)*trackW;
+        const start=Math.max(0,Math.min(center-w/2,trackW-w));
+        let tier=ends.findIndex(end=>start>=end+GAP);if(tier<0){tier=ends.length;ends.push(0);}ends[tier]=start+w;
+        return {m,caption,title,titleW:measure(title,8.2,true),w,center,start,tier};
+      });
+      const rows=Math.max(1,ends.length),labelTop=y+6,symbolY=labelTop+rows*ROW+11,h=symbolY-y+13;
+      return {items,rows,h,draw(){
+        items.forEach(v=>stroke(trackX+v.center,labelTop+v.tier*ROW+10,trackX+v.center,symbolY-7,theme({color:v.m.color||'amber'}).guide,.65));
+        items.forEach(v=>{
+          const ty=labelTop+v.tier*ROW,x=trackX+v.start;
+          rect(x-2,ty-1.5,v.w+4,ROW-1,'#f4f6f7');
+          text(v.title,x,ty,{size:8.2,bold:true});
+          text(v.caption.text,x+v.titleW+5,ty+1.4,{size:6.6,fill:v.caption.outside?OUTSIDE_INCREMENT_COLOR:muted});
+        });
+        items.forEach(v=>{const x=trackX+v.center;page.drawCircle({x,y:H-symbolY,size:7.3,color:color(white)});milestoneSymbol(v.m,x,symbolY,5.5);});
+      }};
+    }
     function flatMilestones(layout,labelY,symbolY,increment=null){
       layout.forEach(v=>stroke(trackX+v.center,labelY+21,trackX+v.center,symbolY-7,theme({color:v.m.color||'amber'}).guide,.65));
       layout.forEach(v=>{
@@ -393,11 +420,12 @@
     }
     const standaloneMilestones=milestones.filter(m=>!incrementIndex.has(m.increment));
     if(standaloneMilestones.length){
-      const h=56,layout=milestoneLayout(standaloneMilestones);
-      if(top+h>chartBottom)newChartPage();
+      let stacked=stackedMilestones(standaloneMilestones,top);
+      if(top+stacked.h>chartBottom){newChartPage();stacked=stackedMilestones(standaloneMilestones,top);}
+      const h=stacked.h;
       labelBlock('Milestones',`${standaloneMilestones.length} CHECKPOINT${standaloneMilestones.length===1?'':'S'}`,top,h,theme({color:'slate'}));
       rect(trackX,top,trackW,h,'#f4f6f7');grid(top,h);reference(top,h);
-      flatMilestones(layout,top+5,top+39);
+      stacked.draw();
       top+=h+6;
     }
     for(const stream of workstreams){
