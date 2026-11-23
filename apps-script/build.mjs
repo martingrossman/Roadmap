@@ -66,7 +66,12 @@ html = replaceOnce(html,
 // 4. Write the project.
 mkdirSync(dist, { recursive: true });
 writeFileSync(join(dist, 'Index.html'), html);
-for (const [name, code] of Object.entries(pdfParts)) writeFileSync(join(dist, name + '.html'), code);
+// Apps Script parses every .html file, so raw JavaScript is rejected as "Malformed HTML".
+// Wrapping each part in <script> makes it valid HTML; getPdfEngine() strips the wrapper again.
+for (const [name, code] of Object.entries(pdfParts)) {
+  if (code.includes('</script')) throw new Error(name + ' must not contain "</script".');
+  writeFileSync(join(dist, name + '.html'), '<script>\n' + code + '\n</script>\n');
+}
 copyFileSync(join(src, 'Code.gs'), join(dist, 'Code.gs'));
 // `clasp clone` downloads Google's starter Code.js; with our Code.gs it makes clasp report "Conflicting files".
 const starter = join(dist, 'Code.js');

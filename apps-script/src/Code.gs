@@ -233,7 +233,9 @@ function savePlan(json, baseRevision, force) {
 /** PDF export code, loaded by the planner only when someone exports a PDF. */
 function getPdfEngine() {
   return ['PdfVendor', 'PdfFonts', 'PdfExport']
-    .map(name => HtmlService.createHtmlOutputFromFile(name).getContent())
+    // Each file is <script>…</script> so Apps Script accepts it as HTML; return just the code.
+    .map(name => HtmlService.createHtmlOutputFromFile(name).getContent()
+      .replace(/^\s*<script[^>]*>/i, '').replace(/<\/script>\s*$/i, ''))
     .join('\n;\n');
 }
 
