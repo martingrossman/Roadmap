@@ -1,0 +1,518 @@
+/* Arc PDF export. Offline vector roadmaps with embedded Open Sans.
+ * Dependencies: arc-pdf-vendor.js, before this script.
+ * API: await ArcPDF.export({plan,tasks,increments,milestones,range,options,palette}) -> Uint8Array.
+ * range.start/end are UTC epoch days, with exclusive end.
+ * Unsupported font characters use a browser-canvas fallback; no user text is discarded.
+ */
+(function (global) {
+  'use strict';
+  const DAY=86400000;
+  const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const STATUS={planned:'Planned',discovery:'Discovery',building:'Building',review:'In review',done:'Done'};
+  // Match the app's semantic markers independently of project category colors.
+  const STATUS_MARKS={planned:'#9EAC96',discovery:'#B39CD7',building:'#6A9BCF',review:'#D8B36A',done:'#7DAC8B'};
+  const ATTENTION_COLOR='#AE8355',OUTSIDE_INCREMENT_COLOR='#A56429';
+  const SOLID={violet:{solid:'#6652B2',text:'#ffffff'},blue:{solid:'#0875C9',text:'#ffffff'},teal:{solid:'#008673',text:'#ffffff'},amber:{solid:'#FFB529',text:'#332300'},rose:{solid:'#D93B32',text:'#ffffff'},slate:{solid:'#57788E',text:'#ffffff'}};
+  const day=s=>Date.parse(s+'T00:00:00Z')/DAY;
+  const clamp=(n,a,b)=>Math.min(b,Math.max(a,n));
+  const clean=s=>String(s??'').normalize('NFC').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g,'').replace(/\t/g,' ');
+  const date=s=>{const d=new Date(s+'T00:00:00Z');return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;};
+  const fromDay=d=>new Date(d*DAY).toISOString().slice(0,10);
+  const overlaps=(task,r)=>day(task.end)>=r.start&&day(task.start)<r.end;
+  function pack(tasks,range,gapDays=0) {
+    const rows=[];
+    tasks.filter(t=>overlaps(t,range)).slice().sort((a,b)=>day(a.start)-day(b.start)||day(a.end)-day(b.end)||String(a.id).localeCompare(String(b.id))).forEach(t=>{
+      const start=Math.max(range.start,day(t.start)),end=Math.min(range.end,day(t.end)+1);
+      let row=rows.find(r=>r.end+gapDays<=start);
+      if(!row){row={end:range.start,items:[]};rows.push(row);}
+      row.items.push({task:t,start,end});row.end=end;
+    });
+    return rows.map(r=>r.items);
+  }
+  function fontAdapter(asset) {
+    const cmap=asset.cmap,widths=asset.widths;
+    const glyph=cp=>({id:cmap[cp]||0,advanceWidth:widths[cmap[cp]||0],codePoints:[cp]});
+    return {
+      characterSet:Object.keys(cmap).map(Number),unitsPerEm:asset.units,postscriptName:asset.name,
+      ascent:asset.ascent,descent:asset.descent,capHeight:asset.capHeight,xHeight:asset.units*.5,italicAngle:0,
+      bbox:{minX:asset.bbox[0],minY:asset.bbox[1],maxX:asset.bbox[2],maxY:asset.bbox[3]},
+      post:{isFixedPitch:false},head:{macStyle:{italic:false}},'OS/2':{sFamilyClass:0},
+      glyphForCodePoint:glyph,layout:s=>({glyphs:Array.from(s).map(c=>glyph(c.codePointAt(0)))})
+    };
+  }
+  function bytes64(s) {
+    if(typeof atob==='function')return Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+    if(typeof Buffer!=='undefined')return new Uint8Array(Buffer.from(s,'base64'));
+    throw Error('This browser cannot decode the embedded PDF font.');
+  }
+  async function exportRoadmap(input) {
+    const lib=global.PDFLib,assets=global.ArcPDFFonts;
+    if(!lib||!assets)throw Error('The PDF exporter is unavailable. Reload the planner and try again.');
+    const {PDFDocument,rgb}=lib;
+    const plan=input.plan;
+    if(!plan||!input.range||!Number.isFinite(input.range.start)||!(input.range.end>input.range.start))throw Error('Choose a valid roadmap period.');
+    const range={...input.range},opts={paper:'A4',orientation:'landscape',view:'roadmap',increments:true,milestones:true,includeDetails:false,...input.options};
+    opts.view=['roadmap','gantt','board'].includes(opts.view)?opts.view:'roadmap';
+    const viewLabel={roadmap:'Roadmap',gantt:'Gantt',board:'Board'}[opts.view],isBoard=opts.view==='board',isGantt=opts.view==='gantt';
+    const tasks=(input.tasks||plan.initiatives||[]).filter(t=>overlaps(t,range));
+    const selectedIncrementIDs=new Set(tasks.map(t=>t.increment).filter(Boolean));
+    // An explicit selection without filter metadata is treated conservatively.
+    // The caller normally supplies the already-filtered increment array.
+    const restrictIncrementFallback=opts.hasFilters===true||(opts.hasFilters!==false&&Array.isArray(input.tasks));
+    const incrementSource=Array.isArray(input.increments)?input.increments:(plan.increments||[]).filter(i=>!restrictIncrementFallback||selectedIncrementIDs.has(i.id));
+    const milestones=opts.milestones&&!isBoard?(input.milestones||plan.milestones||[]).filter(m=>day(m.date)>=range.start&&day(m.date)<range.end).slice().sort((a,b)=>day(a.date)-day(b.date)||String(a.id).localeCompare(String(b.id))):[];
+    const increments=opts.increments?incrementSource.filter(i=>isBoard?selectedIncrementIDs.has(i.id):overlaps(i,range)||milestones.some(m=>m.increment===i.id)).slice().sort((a,b)=>day(a.start)-day(b.start)||day(a.end)-day(b.end)||String(a.id).localeCompare(String(b.id))):[];
+    const workstreams=(plan.workstreams||[]).filter(s=>tasks.some(t=>t.stream===s.id));
+    const taskIndex=new Map();const ordered=[];
+    workstreams.forEach(s=>{const items=tasks.filter(t=>t.stream===s.id);if(!isGantt&&!isBoard)items.sort((a,b)=>a.start.localeCompare(b.start)||a.title.localeCompare(b.title));items.forEach(t=>{ordered.push(t);taskIndex.set(t.id,String(ordered.length).padStart(2,'0'));});});
+    const incrementIndex=new Map(increments.map((i,n)=>[i.id,'I'+String(n+1).padStart(2,'0')]));
+    const entityRefs=new Map();
+    ordered.forEach(t=>entityRefs.set('initiative:'+t.id,`${taskIndex.get(t.id)} · ${t.title}`));
+    increments.forEach(i=>entityRefs.set('increment:'+i.id,`Increment ${incrementIndex.get(i.id)} · ${i.title}`));
+    milestones.forEach(m=>entityRefs.set('milestone:'+m.id,`Milestone · ${m.title}`));
+    const incoming=new Map();
+    for(const connection of plan.connections||[]){
+      if(!['initiative','increment','milestone'].includes(connection.fromType)||!['initiative','increment','milestone'].includes(connection.toType))continue;
+      const key=connection.toType+':'+connection.to;
+      if(!incoming.has(key))incoming.set(key,[]);
+      incoming.get(key).push({type:connection.fromType,id:connection.from});
+    }
+    function dependencyReferences(type,id,legacy=[]){
+      const refs=new Map();
+      [...legacy.map(id=>({type:'initiative',id})),...(incoming.get(type+':'+id)||[])].forEach(ref=>refs.set(ref.type+':'+ref.id,ref));
+      const names=[],outside=[];
+      for(const [key,ref] of refs){if(entityRefs.has(key))names.push(entityRefs.get(key));else outside.push(ref);}
+      if(outside.length){const noun=outside.every(ref=>ref.type==='initiative')?'initiative':'item';names.push(`${outside.length} linked ${noun}${outside.length===1?'':'s'} outside this export`);}
+      return names.join('; ');
+    }
+    const pdf=await PDFDocument.create();
+    pdf.setTitle(`${clean(plan.name)} - ${viewLabel}`);pdf.setSubject(`${opts.periodLabel||date(fromDay(range.start))+' - '+date(fromDay(range.end-1))}; ${clean(opts.scopeLabel||'Selected initiatives')}`);pdf.setCreator('Arc product planner');pdf.setProducer('Arc product planner / pdf-lib');pdf.setLanguage('en');
+    const fonts={};
+    for(const type of ['regular','bold']){
+      pdf.registerFontkit({create:()=>fontAdapter(assets[type])});
+      fonts[type]=await pdf.embedFont(bytes64(assets[type].data),{subset:false,customName:assets[type].name});
+    }
+    const paper=opts.paper==='A3'?[841.89,1190.55]:[595.28,841.89];
+    const [W,H]=opts.orientation==='portrait'?paper:[paper[1],paper[0]];
+    const M=opts.paper==='A3'?38:32,CW=W-M*2;
+    const labelW=isGantt?(opts.orientation==='portrait'?Math.min(152,CW*.3):Math.min(194,CW*.27)):(opts.orientation==='portrait'?Math.min(116,CW*.24):Math.min(136,CW*.19));
+    const gap=8,trackX=M+labelW+gap,trackW=CW-labelW-gap;
+    const ink='#253c43',muted='#63777e',line='#dce4e7',stripe='#f1f4f5',white='#ffffff';
+    const pending=[],fallbackCache=new Map();let page=null,top=0,chartPages=0,truncatedLabels=0,coincidentMilestones=false;
+    const pagesMeta=[];
+    const color=hex=>{const n=parseInt(String(hex).replace('#','').slice(0,6),16);return rgb(((n>>16)&255)/255,((n>>8)&255)/255,(n&255)/255);};
+    const customTones=new Map();
+    function customTone(hex){
+      if(customTones.has(hex))return customTones.get(hex);
+      const shared=typeof ArcColors!=='undefined'?ArcColors:global.ArcColors;
+      if(shared?.tone){const value=shared.tone(hex);customTones.set(hex,value);return value;}
+      // Standalone exports use the same contrast policy as the app's color tool.
+      const channels=value=>[1,3,5].map(i=>parseInt(value.slice(i,i+2),16));
+      const luminance=value=>channels(value).map(v=>{v/=255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4;}).reduce((sum,v,i)=>sum+v*[.2126,.7152,.0722][i],0);
+      const contrast=(a,b)=>(Math.max(luminance(a),luminance(b))+.05)/(Math.min(luminance(a),luminance(b))+.05);
+      const blend=(a,b,w)=>'#'+channels(a).map((v,i)=>Math.round(v*(1-w)+channels(b)[i]*w).toString(16).padStart(2,'0')).join('').toUpperCase();
+      const solid=hex.toUpperCase(),preferred=contrast(solid,'#FFFFFF')>=contrast(solid,'#172A32')?'#FFFFFF':'#172A32';
+      // Guides and outlines are non-text marks; label text still targets 4.5:1.
+      let guide=solid;if(contrast(solid,'#FFFFFF')<3)for(let n=0;contrast(guide,'#FFFFFF')<3&&n<14;n++)guide=blend(guide,'#172A32',.14);
+      const value={solid,text:contrast(solid,preferred)>=4.5?preferred:'#000000',guide,outline:contrast(solid,'#FFFFFF')<2?guide:'none'};customTones.set(hex,value);return value;
+    }
+    function theme(s){const extra=/^#[0-9a-f]{6}$/i.test(s?.customColor||'')?customTone(s.customColor):input.palette?.[s.color]||{};const d=SOLID[s.color]||SOLID.slate,solid=extra.solid||extra.fill||d.solid,outline=extra.outline&&extra.outline!=='none'?extra.outline:null;return {solid,text:extra.text||extra.ink||d.text,outline,guide:extra.guide||outline||solid};}
+    const milestoneTone=m=>theme({color:m.color||'amber'}).solid;
+    function tint(hex,amount=.82){const n=parseInt(String(hex).replace('#',''),16);return '#'+[n>>16&255,n>>8&255,n&255].map(v=>Math.round(v+(255-v)*amount).toString(16).padStart(2,'0')).join('');}
+    const unsupported=(s,type)=>Array.from(s).some(c=>!assets[type].cmap[c.codePointAt(0)]);
+    function canvasForText(s,size,bold){
+      if(typeof document==='undefined')throw Error('This text needs the browser font fallback. Export it from the planner: '+s);
+      const canvas=document.createElement('canvas');const c=canvas.getContext('2d');if(!c)throw Error('This browser cannot render the font fallback.');
+      c.font=`${bold?600:400} ${size}px Arial, sans-serif`;
+      return {canvas,c,width:c.measureText(s).width};
+    }
+    function measure(s,size=10,bold=false){s=clean(s);const type=bold?'bold':'regular';if(unsupported(s,type))return canvasForText(s,size,bold).width;return fonts[type].widthOfTextAtSize(s,size);}
+    function fit(s,width,size=10,bold=false){s=clean(s).replace(/\s+/g,' ').trim();if(width<=0)return '';if(measure(s,size,bold)<=width)return s;let chars=Array.from(s);while(chars.length&&measure(chars.join('')+'…',size,bold)>width)chars.pop();return chars.length?chars.join('').trimEnd()+'…':'';}
+    function wrap(s,width,size=10,bold=false){
+      const result=[];
+      for(const paragraph of clean(s).split(/\r?\n/)){
+        let current='';const words=paragraph.trim().split(/\s+/).filter(Boolean);
+        if(!words.length){result.push('');continue;}
+        for(const word of words){
+          if(measure(current?current+' '+word:word,size,bold)<=width){current=current?current+' '+word:word;continue;}
+          if(current){result.push(current);current='';}
+          if(measure(word,size,bold)<=width){current=word;continue;}
+          let part='';for(const c of Array.from(word)){if(part&&measure(part+c,size,bold)>width){result.push(part);part='';}part+=c;}current=part;
+        }
+        if(current)result.push(current);
+      }
+      return result.length?result:[''];
+    }
+    function rect(x,y,w,h,fill,border=null,borderWidth=.6){page.drawRectangle({x,y:H-y-h,width:Math.max(.01,w),height:Math.max(.01,h),color:color(fill),...(border?{borderColor:color(border),borderWidth}:{} )});}
+    function stroke(x1,y1,x2,y2,c=line,width=.6,dash){page.drawLine({start:{x:x1,y:H-y1},end:{x:x2,y:H-y2},color:color(c),thickness:width,...(dash?{dashArray:dash}:{})});}
+    function text(s,x,y,{size=10,bold=false,fill=ink,width=null,align='left'}={}){
+      s=clean(s).replace(/\r?\n/g,' ');if(!s)return;
+      if(width!==null)s=fit(s,width,size,bold);if(!s)return;
+      const tw=measure(s,size,bold);if(align==='right')x-=tw;else if(align==='center')x-=tw/2;
+      const type=bold?'bold':'regular';
+      if(unsupported(s,type)){
+        const cacheKey=JSON.stringify([s,size,bold,fill]);let entry=fallbackCache.get(cacheKey);
+        if(!entry){
+          const scale=3,pad=3;const {canvas,c}=canvasForText(s,size*scale,bold);canvas.width=Math.ceil(tw*scale+pad*2);canvas.height=Math.ceil(size*scale*1.6+pad*2);c.font=`${bold?600:400} ${size*scale}px Arial, sans-serif`;c.fillStyle=fill;c.textBaseline='alphabetic';c.fillText(s,pad,pad+size*scale);
+          entry={promise:pdf.embedPng(canvas.toDataURL('image/png')),w:canvas.width/scale,h:canvas.height/scale,pad:pad/scale};fallbackCache.set(cacheKey,entry);
+        }
+        const target=page;pending.push(entry.promise.then(img=>target.drawImage(img,{x:x-entry.pad,y:H-y-entry.h+entry.pad,width:entry.w,height:entry.h})));
+      }else page.drawText(s,{x,y:H-y-size,size,font:fonts[type],color:color(fill)});
+    }
+    function lines(ss,x,y,options={}){const leading=options.leading||((options.size||10)*1.35);ss.forEach((s,i)=>text(s,x,y+i*leading,options));return ss.length*leading;}
+    function star(x,y,r=6,fill='#efb128',outline=null){
+      const points=[];for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rr=i%2?r*.44:r;points.push({x:x+Math.cos(a)*rr,y:y+Math.sin(a)*rr});}
+      const path=points.map((p,i)=>`${i?'L':'M'} ${p.x} ${p.y}`).join(' ')+' Z';
+      page.drawSvgPath(path,{x:0,y:H,color:color(fill),...(outline?{borderColor:color(outline),borderWidth:.8}:{})});
+    }
+    function milestoneSymbol(m,x,y,r=6){
+      const tone=theme({color:m.color||'amber'}),fill=tone.solid,shape=m.shape||'star',edge=tone.outline?{borderColor:color(tone.outline),borderWidth:.8}:{};
+      if(shape==='circle'){page.drawCircle({x,y:H-y,size:r,color:color(fill),...edge});return;}
+      if(shape==='square'){rect(x-r,y-r,r*2,r*2,fill,tone.outline,.8);return;}
+      if(shape==='diamond'){page.drawSvgPath(`M ${x} ${y-r} L ${x+r} ${y} L ${x} ${y+r} L ${x-r} ${y} Z`,{x:0,y:H,color:color(fill),...edge});return;}
+      if(shape==='flag'){stroke(x-r*.65,y-r,x-r*.65,y+r,tone.outline||fill,1.2);page.drawSvgPath(`M ${x-r*.65} ${y-r} L ${x+r} ${y-r} L ${x+r*.45} ${y-r*.1} L ${x+r} ${y+r*.55} L ${x-r*.65} ${y+r*.55} Z`,{x:0,y:H,color:color(fill),...edge});return;}
+      star(x,y,r,fill,tone.outline);
+    }
+    function markDone(x,y,fill){stroke(x,y+3,x+3,y+6,fill,1.2);stroke(x+3,y+6,x+8,y,fill,1.2);}
+    const periodLabel=clean(opts.periodLabel||`${date(fromDay(range.start))} - ${date(fromDay(range.end-1))}`);
+    const filterSummary=clean(opts.filterSummary||opts.scopeLabel||'All work in this period');
+    function newPage(kind='Roadmap'){
+      page=pdf.addPage([W,H]);pagesMeta.push({page,kind});
+      const kindW=Math.min(150,CW*.28);
+      text(plan.name||'Product plan',M,28,{size:20,bold:true,width:CW-kindW-12});
+      text(kind.toUpperCase(),W-M,35,{size:8,bold:true,fill:muted,align:'right',width:kindW});
+      const counts=[`${tasks.length} initiative${tasks.length===1?'':'s'}`];
+      if(!isBoard){if(increments.length)counts.push(`${increments.length} increment${increments.length===1?'':'s'}`);if(milestones.length)counts.push(`${milestones.length} milestone${milestones.length===1?'':'s'}`);}
+      text(`${periodLabel} · ${counts.join(' · ')}`,M,57,{size:8.5,fill:muted,width:CW});
+      const showFilter=!['All work in this period','All workstreams and statuses','All initiatives'].includes(filterSummary);
+      if(showFilter)text(filterSummary,M,72,{size:8,fill:muted,width:CW});
+      top=showFilter?94:80;return page;
+    }
+    function axis(){
+      const axisTop=top,year=new Date(range.start*DAY).getUTCFullYear(),axisTone=theme({color:'blue'});
+      text(isGantt?'INITIATIVE':'WORKSTREAM',M,axisTop+7,{size:8,bold:true,fill:muted});text(increments.length?'INCREMENTS / DELIVERY':'INITIATIVES / MILESTONES',M,axisTop+22,{size:6.4,fill:muted});
+      const begin=new Date(range.start*DAY),end=new Date((range.end-1)*DAY);let ym=begin.getUTCFullYear(),m=begin.getUTCMonth();
+      const months=[];while(ym<end.getUTCFullYear()||(ym===end.getUTCFullYear()&&m<=end.getUTCMonth())){
+        const a=Math.max(range.start,Date.UTC(ym,m,1)/DAY),b=Math.min(range.end,Date.UTC(ym,m+1,1)/DAY);months.push({year:ym,month:m,start:a,end:b});m++;if(m===12){m=0;ym++;}
+      }
+      const quarters=[];months.forEach(mo=>{const q=Math.floor(mo.month/3);let last=quarters[quarters.length-1];if(!last||last.q!==q||last.year!==mo.year)quarters.push(last={q,year:mo.year,start:mo.start,end:mo.end});else last.end=mo.end;});
+      quarters.forEach(q=>{const x=trackX+(q.start-range.start)/(range.end-range.start)*trackW,w=(q.end-q.start)/(range.end-range.start)*trackW;rect(x,axisTop,w,19,axisTone.solid,axisTone.outline,.7);text(`${q.year} Q${q.q+1}`,x+w/2,axisTop+4,{size:8.5,bold:true,fill:axisTone.text,align:'center',width:w-8});stroke(x,axisTop+3,x,axisTop+16,tint(axisTone.guide,.52),.5);});
+      months.forEach(mo=>{const x=trackX+(mo.start-range.start)/(range.end-range.start)*trackW,w=(mo.end-mo.start)/(range.end-range.start)*trackW;text(MONTHS[mo.month],x+w/2,axisTop+23,{size:7,fill:muted,align:'center',width:w-4});stroke(x,axisTop+20,x,axisTop+33,line,.5);});
+      top+=38;return months;
+    }
+    let axisMonths=[],chartStart=0;
+    function finishChartGuides(){if(page&&top<chartBottom)rect(trackX,top,trackW,chartBottom-top,white);}
+    function newChartPage(){if(chartPages)finishChartGuides();newPage(viewLabel);axisMonths=axis();chartStart=top;chartPages++;milestoneLines(top,H-67-top);}
+    function grid(y,h){axisMonths.forEach(m=>{const x=trackX+(m.start-range.start)/(range.end-range.start)*trackW;stroke(x,y,x,y+h,line,m.month%3===0?.8:.35);});stroke(trackX+trackW,y,trackX+trackW,y+h,line,.5);}
+    function milestoneLines(y,h){milestones.filter(m=>m.showLine===true).forEach(m=>{const x=trackX+(day(m.date)-range.start)/(range.end-range.start)*trackW;stroke(x,y,x,y+h,theme({color:m.color||'amber'}).guide,.7,[4,3]);});}
+    function reference(y,h){const d=day(plan.reviewDate);if(d>=range.start&&d<range.end){const x=trackX+(d-range.start)/(range.end-range.start)*trackW;stroke(x,y,x,y+h,theme({color:'teal'}).guide,.65,[2,3]);}milestoneLines(y,h);}
+    function labelBlock(title,count,y,h,tone,continued=false){
+      rect(M,y,labelW,h,tone.solid,tone.outline,.7);const titleLines=wrap(title,labelW-22,11.1,true);const max=Math.max(1,Math.floor((h-24)/13.5));let shown=titleLines.slice(0,max);if(titleLines.length>max)shown[shown.length-1]=fit(shown[shown.length-1]+'…',labelW-22,11.1,true);
+      lines(shown,M+11,y+Math.max(10,(h-shown.length*13.5-18)/2),{size:11.1,bold:true,fill:tone.text,leading:13.5});text(continued?'CONTINUED':count,M+11,y+h-17,{size:7.2,bold:true,fill:tone.text,width:labelW-22});
+    }
+    function milestoneCaption(m,increment=null){
+      const outside=increment&&(m.date<increment.start||m.date>increment.end);
+      return {outside,text:`${date(m.date)}${outside?' · Outside window':m.done?' · Achieved':''}`};
+    }
+    function milestoneLayout(source=milestones,increment=null){
+      // Match the canvas: one fixed marker line, with labels clipped to cells
+      // bounded by the midpoints between distinct dates. Dates never move.
+      const ordered=source.slice().sort((a,b)=>day(a.date)-day(b.date)||String(a.id).localeCompare(String(b.id)));
+      const dates=[...new Set(ordered.map(m=>day(m.date)))];
+      if(dates.length<ordered.length)coincidentMilestones=true;
+      const centers=dates.map(d=>(d-range.start)/(range.end-range.start)*trackW),cells=new Map();
+      dates.forEach((d,i)=>{
+        const left=i?(centers[i-1]+centers[i])/2:0,right=i+1<dates.length?(centers[i]+centers[i+1])/2:trackW;
+        const inset=Math.min(3,(right-left)/4);
+        cells.set(d,{center:centers[i],left:left+inset,right:right-inset});
+      });
+      return ordered.map(m=>{
+        const cell=cells.get(day(m.date)),caption=milestoneCaption(m,increment);
+        const wanted=Math.min(152,Math.max(76,measure(m.title,8.2,true)+8,measure(caption.text,6.6)+4));
+        const face=increment?'center':cell.center<trackW*.2?'right':cell.center>trackW*.8?'left':cell.right-cell.center>=cell.center-cell.left?'right':'left';
+        const left=face==='right'?Math.max(cell.left,cell.center):cell.left,right=face==='left'?Math.min(cell.right,cell.center):cell.right;
+        const width=Math.max(0,Math.min(wanted,right-left));
+        const labelLeft=face==='right'?left:face==='left'?right-width:clamp(cell.center-width/2,left,Math.max(left,right-width));
+        return {m,...cell,labelLeft,width};
+      });
+    }
+    function incrementBar(increment,y,markers=[]){
+      const start=Math.max(range.start,day(increment.start)),end=Math.min(range.end,day(increment.end)+1);
+      const tone=theme(increment),x=trackX+(start-range.start)/(range.end-range.start)*trackW,w=(end-start)/(range.end-range.start)*trackW;
+      if(end<=start){
+        // A visible checkpoint can belong to a window outside the selected period.
+        // Keep its group and true date without drawing a fictitious in-range bar.
+        text(`${date(increment.start)} - ${date(increment.end)} · Increment window outside this view`,trackX+5,y+21,{size:6.5,fill:muted,width:trackW-10});
+        return{x:trackX,w:0,tone,centerY:y+9};
+      }
+      rect(x,y,Math.max(.5,w),18,tone.solid,tone.outline,.7);
+      const clippedLeft=day(increment.start)<range.start,clippedRight=day(increment.end)+1>range.end;
+      if(clippedLeft&&w>14){stroke(x+7,y+4,x+3,y+9,tone.text,.8);stroke(x+3,y+9,x+7,y+14,tone.text,.8);}
+      if(clippedRight&&w>14){stroke(x+w-7,y+4,x+w-3,y+9,tone.text,.8);stroke(x+w-3,y+9,x+w-7,y+14,tone.text,.8);}
+      // Put the title in the largest clear segment so a checkpoint never masks it.
+      const startLabel=x+7+(clippedLeft?4:0),endLabel=x+w-7-(clippedRight?4:0),slots=[];
+      let cursor=startLabel;
+      markers.map(v=>trackX+v.center).filter(px=>px>=x-8&&px<=x+w+8).sort((a,b)=>a-b).forEach(px=>{if(px-11>cursor)slots.push({x:cursor,w:px-11-cursor});cursor=Math.max(cursor,px+11);});
+      if(endLabel>cursor)slots.push({x:cursor,w:endLabel-cursor});
+      const slot=slots.sort((a,b)=>b.w-a.w)[0]||{x:startLabel,w:0};
+      const full=`${incrementIndex.get(increment.id)} ${clean(increment.title).replace(/\s+/g,' ').trim()}`,shown=fit(full,slot.w,8.2,true);
+      if(shown!==full)truncatedLabels++;
+      if(shown)text(shown,slot.x+slot.w/2,y+4,{size:8.2,bold:true,fill:tone.text,align:'center'});
+      text(`${date(increment.start)} - ${date(increment.end)}`,x,y+21,{size:6.5,fill:muted,width:w});
+      return{x,w,tone,centerY:y+9};
+    }
+    function flatMilestones(layout,labelY,symbolY,increment=null){
+      layout.forEach(v=>stroke(trackX+v.center,labelY+21,trackX+v.center,symbolY-7,theme({color:v.m.color||'amber'}).guide,.65));
+      layout.forEach(v=>{
+        const caption=milestoneCaption(v.m,increment);
+        // Coincident items intentionally share their position in stable date/ID
+        // order, just as on the canvas. The register retains every individual.
+        rect(trackX+v.left,labelY-1,v.right-v.left,22,'#f4f6f7');
+        const full=clean(v.m.title),label=fit(full,v.width,8.2,true);if(label!==full)truncatedLabels++;
+        const captionLabel=fit(caption.text,v.width,6.6);if(captionLabel!==caption.text)truncatedLabels++;
+        text(label,trackX+v.labelLeft,labelY,{size:8.2,bold:true});
+        text(captionLabel,trackX+v.labelLeft,labelY+12,{size:6.6,fill:caption.outside?OUTSIDE_INCREMENT_COLOR:muted});
+      });
+      layout.forEach(v=>{
+        const x=trackX+v.center;
+        page.drawCircle({x,y:H-symbolY,size:7.3,color:color(white)});
+        milestoneSymbol(v.m,x,symbolY,5.5);
+      });
+    }
+    function limitedLines(value,width,size,bold,max){
+      const rows=wrap(value,width,size,bold);if(rows.length<=max)return rows;
+      truncatedLabels++;const shown=rows.slice(0,max);shown[max-1]=fit(shown[max-1]+'…',width,size,bold);return shown;
+    }
+    function boardCardData(task,width){
+      const stream=plan.workstreams.find(s=>s.id===task.stream),tone=theme(stream||{color:'slate'}),inner=width-20;
+      const title=limitedLines(task.title,inner,8.8,true,6),description=task.description?limitedLines(task.description,inner,7.2,false,3):[];
+      const increment=opts.increments?(plan.increments||[]).find(i=>i.id===task.increment):null;
+      const assignment=increment?limitedLines('Increment · '+increment.title,inner,6.8,false,2):[];
+      const incrementTone=increment?theme(increment):null;
+      const priority=String(task.priority||'medium').replace(/^./,c=>c.toUpperCase())+' priority';
+      const owner=limitedLines(priority+' · '+(task.owner||'Unassigned'),inner,6.8,false,2);
+      const dates=wrap(date(task.start)+' - '+date(task.end),inner,6.7),attention=task.health==='blocked'?'Blocked':task.health==='at_risk'?'At risk':'';
+      const h=22+title.length*11.5+5+(description.length?description.length*10+5:0)+(assignment.length?assignment.length*9+5:0)+(attention?11:0)+owner.length*9+4+dates.length*9+22;
+      return{task,stream,tone,title,description,assignment,incrementTone,owner,dates,attention,h};
+    }
+    function boardCard(card,x,y,w){
+      const {task,stream,tone}=card;rect(x,y,w,card.h,white,line,.6);rect(x,y,w,3,tone.solid,tone.outline,.5);
+      page.drawCircle({x:x+12,y:H-y-13,size:2.5,color:color(tone.solid),...(tone.outline?{borderColor:color(tone.outline),borderWidth:.5}:{})});
+      text(stream?.name||'Workstream',x+19,y+8,{size:6.8,bold:true,fill:muted,width:w-29});
+      let cy=y+22;lines(card.title,x+10,cy,{size:8.8,bold:true,leading:11.5});cy+=card.title.length*11.5+5;
+      if(card.description.length){lines(card.description,x+10,cy,{size:7.2,fill:muted,leading:10});cy+=card.description.length*10+5;}
+      if(card.assignment.length){
+        const incrementTone=card.incrementTone;
+        page.drawCircle({x:x+6,y:H-cy-3.5,size:1.8,color:color(incrementTone.solid),...(incrementTone.outline?{borderColor:color(incrementTone.outline),borderWidth:.4}:{})});
+        lines(card.assignment,x+10,cy,{size:6.8,fill:ink,leading:9});cy+=card.assignment.length*9+5;
+      }
+      if(card.attention){text(card.attention,x+10,cy,{size:6.8,bold:true,fill:ATTENTION_COLOR});cy+=11;}
+      lines(card.owner,x+10,cy,{size:6.8,fill:muted,leading:9});cy+=card.owner.length*9+4;
+      lines(card.dates,x+10,cy,{size:6.7,fill:muted,leading:9});cy+=card.dates.length*9;
+      const progress=clamp(Number(task.progress)||0,0,100),progressW=Math.max(8,w-49);
+      rect(x+10,cy+9,progressW,3,'#e2e9eb');if(progress)rect(x+10,cy+9,progressW*progress/100,3,tone.solid,tone.outline,.4);
+      text(progress+'%',x+w-10,cy+4,{size:6.8,fill:muted,align:'right'});
+    }
+    function boardPages(){
+      const gap=10,columnW=(CW-gap*4)/5;
+      const columns=Object.entries(STATUS).map(([key,label])=>({key,label,items:tasks.filter(t=>t.status===key).map(t=>boardCardData(t,columnW-12)),offset:0}));
+      let first=true;
+      while(first||columns.some(c=>c.offset<c.items.length)){
+        newPage(first?'Board':'Board · continued');chartPages++;
+        const headerY=top;
+        columns.forEach((column,i)=>{
+          const x=M+i*(columnW+gap);
+          rect(x,headerY,columnW,chartBottom-headerY,'#f3f6f7',line,.5);rect(x,headerY,columnW,3,STATUS_MARKS[column.key]);
+          text(column.label,x+8,headerY+11,{size:8.5,bold:true,width:columnW-35});text(String(column.items.length),x+columnW-8,headerY+11,{size:8,bold:true,fill:muted,align:'right'});
+          let y=headerY+34,shown=0;
+          while(column.offset<column.items.length){const card=column.items[column.offset];if(y+card.h>chartBottom-6)break;boardCard(card,x+6,y,columnW-12);y+=card.h+8;column.offset++;shown++;}
+          if(!shown)text(column.items.length?'All cards shown':'No initiatives',x+columnW/2,headerY+47,{size:7,fill:muted,align:'center',width:columnW-16});
+        });
+        first=false;
+      }
+    }
+    function ganttStream(stream){
+      const items=tasks.filter(t=>t.stream===stream.id),tone=theme(stream);let offset=0;
+      const rowData=task=>{const title=limitedLines(task.title,labelW-18,8.4,true,5),dates=wrap(date(task.start)+' - '+date(task.end),labelW-18,6.6);return{task,title,dates,h:Math.max(36,12+title.length*10.5+dates.length*9)};};
+      const rows=items.map(rowData);
+      while(offset<rows.length){
+        if(top+22+rows[offset].h>chartBottom)newChartPage();
+        rect(M,top,CW,22,tint(tone.solid,.9));rect(M,top,3,22,tone.solid,tone.outline,.5);
+        text(`${stream.name} · ${items.length}${offset?' · continued':''}`,M+9,top+5,{size:8.5,bold:true,width:CW-18});top+=22;
+        while(offset<rows.length&&top+rows[offset].h<=chartBottom){
+          const row=rows[offset],task=row.task,y=top;
+          rect(M,y,CW,row.h,offset%2?'#f8fafb':white);grid(y,row.h);reference(y,row.h);stroke(M,y+row.h,M+CW,y+row.h,line,.4);
+          lines(row.title,M+8,y+6,{size:8.4,bold:true,leading:10.5});lines(row.dates,M+8,y+6+row.title.length*10.5,{size:6.6,fill:muted,leading:9});
+          const start=Math.max(range.start,day(task.start)),end=Math.min(range.end,day(task.end)+1),x=trackX+(start-range.start)/(range.end-range.start)*trackW,w=(end-start)/(range.end-range.start)*trackW,barY=y+(row.h-18)/2;
+          rect(x,barY,Math.max(.5,w),18,tone.solid,tone.outline,.7);
+          const clippedLeft=day(task.start)<range.start,clippedRight=day(task.end)+1>range.end;
+          if(clippedLeft&&w>12){stroke(x+6,barY+4,x+2,barY+9,tone.text,.75);stroke(x+2,barY+9,x+6,barY+14,tone.text,.75);}
+          if(clippedRight&&w>12){stroke(x+w-6,barY+4,x+w-2,barY+9,tone.text,.75);stroke(x+w-2,barY+9,x+w-6,barY+14,tone.text,.75);}
+          const progress=clamp(Number(task.progress)||0,0,100);
+          if(progress){rect(x,barY+16,Math.max(.2,w*progress/100),2,tone.text);if(w>30)text(progress+'%',x+w/2,barY+4,{size:7.1,bold:true,fill:tone.text,align:'center',width:w-12});}
+          top+=row.h;offset++;
+        }
+        if(offset<rows.length)newChartPage();
+      }
+      top+=6;
+    }
+    const chartBottom=H-67;
+    if(isBoard){boardPages();}else{
+    newChartPage();
+    if(!tasks.length&&!increments.length&&!milestones.length){
+      rect(M,top+24,CW,120,'#f4f7f7',line);text('No work in this view',M+24,top+50,{size:18,bold:true});text('Choose a wider period or different filters to include initiatives.',M+24,top+82,{size:10,fill:muted,width:CW-48});top+=170;
+    }
+    const groupedMilestones=milestones.filter(m=>incrementIndex.has(m.increment));
+    if(groupedMilestones.length){
+      // A group always has one marker line, regardless of checkpoint proximity.
+      for(const increment of increments){
+        const assigned=groupedMilestones.filter(m=>m.increment===increment.id),layout=milestoneLayout(assigned,increment);
+        const h=assigned.length?64:40,tone=theme(increment);
+        if(top+h>chartBottom)newChartPage();
+        const barY=top+(assigned.length?30:6);
+        labelBlock(overlaps(increment,range)?'Increments':increment.title,`${incrementIndex.get(increment.id)} · ${assigned.length} CHECKPOINT${assigned.length===1?'':'S'}`,top,h,tone);
+        rect(trackX,top,trackW,h,'#f4f6f7');grid(top,h);reference(top,h);
+        incrementBar(increment,barY,layout);
+        flatMilestones(layout,top+5,barY+9,increment);
+        top+=h+6;
+      }
+    }else{
+    const incrementRows=pack(increments,range,0);let incrementOffset=0;
+    while(incrementOffset<incrementRows.length){
+      const rowH=32;let count=Math.min(incrementRows.length-incrementOffset,Math.floor((chartBottom-top-14)/rowH));
+      if(count<1){newChartPage();continue;}
+      const h=count*rowH+12;
+      labelBlock('Increments',`${increments.length} DATE WINDOW${increments.length===1?'':'S'}`,top,h,theme({color:'slate'}),incrementOffset>0);
+      for(let k=0;k<count;k++){
+        const y=top+6+k*rowH;rect(trackX,y,trackW,rowH,k%2?'#f7f9fa':stripe);grid(y,rowH);reference(y,rowH);
+        incrementRows[incrementOffset+k].forEach(({task:increment})=>incrementBar(increment,y));
+      }
+      top+=h+6;incrementOffset+=count;
+    }
+    }
+    const standaloneMilestones=milestones.filter(m=>!incrementIndex.has(m.increment));
+    if(standaloneMilestones.length){
+      const h=56,layout=milestoneLayout(standaloneMilestones);
+      if(top+h>chartBottom)newChartPage();
+      labelBlock('Milestones',`${standaloneMilestones.length} CHECKPOINT${standaloneMilestones.length===1?'':'S'}`,top,h,theme({color:'slate'}));
+      rect(trackX,top,trackW,h,'#f4f6f7');grid(top,h);reference(top,h);
+      flatMilestones(layout,top+5,top+39);
+      top+=h+6;
+    }
+    for(const stream of workstreams){
+      if(isGantt){ganttStream(stream);continue;}
+      const rows=pack(tasks.filter(t=>t.stream===stream.id),range,0);const tone=theme(stream);let offset=0;
+      const minLabelH=wrap(stream.name,labelW-22,11.1,true).length*13.5+30;
+      while(offset<rows.length){
+        let count=Math.min(rows.length-offset,Math.floor((chartBottom-top-14)/26));
+        if(count<1||chartBottom-top<Math.min(minLabelH,120)){newChartPage();continue;}
+        const entireH=Math.max(minLabelH,(rows.length-offset)*26+14);
+        if(offset===0&&entireH<=chartBottom-chartStart&&entireH>chartBottom-top){newChartPage();continue;}
+        let h=Math.max(Math.min(minLabelH,chartBottom-top),count*26+14);if(h>chartBottom-top){count=Math.max(1,count-1);h=Math.max(minLabelH,count*26+14);}
+        labelBlock(stream.name,`${tasks.filter(t=>t.stream===stream.id).length} INITIATIVE${tasks.filter(t=>t.stream===stream.id).length===1?'':'S'}`,top,h,tone,offset>0);
+        const baseY=top+(h-count*26)/2;
+        for(let k=0;k<count;k++){
+          const y=baseY+k*26;rect(trackX,y,trackW,26,k%2?'#f7f9fa':stripe);grid(y,26);reference(y,26);
+          rows[offset+k].forEach(({task,start,end})=>{
+            const x=trackX+(start-range.start)/(range.end-range.start)*trackW,w=(end-start)/(range.end-range.start)*trackW;
+            rect(x,y+3,Math.max(.5,w),20,tone.solid,tone.outline,.7);
+            const clippedLeft=day(task.start)<range.start,clippedRight=day(task.end)+1>range.end;
+            if(clippedLeft&&w>12){stroke(x+6,y+8,x+2,y+13,tone.text,.75);stroke(x+2,y+13,x+6,y+18,tone.text,.75);}
+            if(clippedRight&&w>12){stroke(x+w-6,y+8,x+w-2,y+13,tone.text,.75);stroke(x+w-2,y+13,x+w-6,y+18,tone.text,.75);}
+            const pad=6+(clippedLeft?3:0),label=`${taskIndex.get(task.id)} ${clean(task.title).replace(/\s+/g,' ').trim()}`,available=w-pad-6-(clippedRight?3:0),shown=fit(label,available,8.2,true);
+            if(shown!==label)truncatedLabels++;if(shown)text(shown,x+pad,y+8,{size:8.2,bold:true,fill:tone.text});
+            if(task.progress>0)rect(x,y+21,Math.max(.2,w*clamp(task.progress,0,100)/100),2,tone.text);
+          });
+        }
+        top+=h+6;offset+=count;
+      }
+    }
+    finishChartGuides();
+    if(top+24<chartBottom){text(milestones.some(m=>m.showLine)?'Bars show scheduled dates. Dashed lines mark milestone dates; the fine dotted line is the plan reference.':'Bars show scheduled dates. Bottom strokes show delivery progress. Dotted line: plan reference date.',M,top+3,{size:7.1,fill:muted,width:CW});}
+    }
+    const detailBottom=H-62;
+    function registerPage(subtitle){newPage(subtitle);text('Full titles and exact dates for the exported view.',M,top,{size:9,fill:muted,width:CW});top+=26;}
+    function tableHeader(){rect(M,top,CW,24,'#eaf0f1');text('INITIATIVE',M+9,top+7,{size:8,bold:true});text('DATES / STATUS',M+CW*.66,top+7,{size:8,bold:true});top+=30;}
+    function paragraphRows(s,width,size=9){return wrap(s,width,size);}
+    function detailPage(){registerPage('Initiative register');tableHeader();}
+    if(opts.includeDetails&&increments.length){
+      registerPage('Increment register');
+      for(const increment of increments){
+        const tone=theme(increment),titleLines=wrap(`${incrementIndex.get(increment.id)}  ${increment.title}`,CW-28,11,true);
+        const assigned=tasks.filter(t=>t.increment===increment.id).length;
+        const references=dependencyReferences('increment',increment.id);
+        const detailLines=[`${date(increment.start)} - ${date(increment.end)}`,`${assigned} selected initiative${assigned===1?'':'s'} assigned to this increment`];
+        const checkpoints=milestones.filter(m=>m.increment===increment.id);
+        if(checkpoints.length)detailLines.push('Milestones: '+checkpoints.map(m=>`${m.title} (${date(m.date)})`).join('; '));
+        if(increment.description)detailLines.push('Purpose: '+increment.description);
+        if(references)detailLines.push('Depends on: '+references);
+        if(top+titleLines.length*15+38>detailBottom)registerPage('Increment register');
+        rect(M,top+2,4,Math.max(23,titleLines.length*15),tone.solid,tone.outline,.6);
+        lines(titleLines,M+14,top,{size:11,bold:true,leading:15});top+=titleLines.length*15+8;
+        for(const item of detailLines){
+          for(const s of wrap(item,CW-28,9)){
+            if(top+14>detailBottom){registerPage('Increment register');text(fit(`${incrementIndex.get(increment.id)} ${increment.title} — continued`,CW-28,9,true),M+14,top,{size:9,bold:true});top+=20;}
+            text(s,M+14,top,{size:9,fill:muted});top+=13;
+          }
+          top+=3;
+        }
+        top+=9;stroke(M,top,M+CW,top,line,.5);top+=17;
+      }
+    }
+    if(opts.includeDetails&&ordered.length){
+      detailPage();
+      const leftW=CW*.62-17,rightX=M+CW*.66,rightW=CW*.34-10;
+      for(const task of ordered){
+        const stream=plan.workstreams.find(s=>s.id===task.stream),tone=theme(stream||{color:'slate'});
+        const leftTitle=wrap(`${taskIndex.get(task.id)}  ${task.title}`,leftW,10.5,true),leftOwner=wrap(`${stream?.name||'Workstream'} · ${task.owner||'Unassigned'}`,leftW,8.2);
+        const rightRows=[date(task.start)+' - '+date(task.end),`${STATUS[task.status]||task.status} · ${task.progress||0}% complete`,`${String(task.priority||'medium').replace(/^./,c=>c.toUpperCase())} priority${task.health&&task.health!=='on_track'?' · '+task.health.replaceAll('_',' '):''}`].flatMap(s=>wrap(s,rightW,8.3));
+        const leftRows=[...leftTitle.map(s=>({s,size:10.5,bold:true,leading:14})),...leftOwner.map(s=>({s,size:8.2,fill:muted,leading:12}))];
+        const extra=[];
+        if(task.increment){const increment=increments.find(i=>i.id===task.increment);extra.push({label:'Increment',value:increment?`${incrementIndex.get(increment.id)} · ${increment.title}`:'Assigned increment is outside this export'});}
+        if(task.outcome){const o=(plan.outcomes||[]).find(o=>o.id===task.outcome);if(o)extra.push({label:'Outcome',value:o.title});}
+        if(task.description)extra.push({label:'Purpose',value:task.description});
+        const references=dependencyReferences('initiative',task.id,task.dependencies||[]);
+        if(references)extra.push({label:'Depends on',value:references});
+        if(top+Math.max(leftRows.reduce((n,x)=>n+x.leading,0),rightRows.length*12)+30>detailBottom){detailPage();}
+        rect(M,top+2,3,Math.max(28,leftRows.reduce((n,x)=>n+x.leading,0)-1),tone.solid,tone.outline,.6);
+        let lt=top;leftRows.forEach(r=>{text(r.s,M+10,lt,{size:r.size,bold:r.bold,fill:r.fill||ink});lt+=r.leading;});lines(rightRows,rightX,top,{size:8.3,leading:12,fill:ink});top+=Math.max(lt-top,rightRows.length*12)+10;
+        for(const field of extra){
+          const ss=paragraphRows(`${field.label}: ${field.value}`,CW-20,8.5);
+          for(let i=0;i<ss.length;i++){
+            if(top+14>detailBottom){detailPage();text(`${taskIndex.get(task.id)}  ${fit(task.title,CW-20,9,true)} — continued`,M+10,top,{size:9,bold:true,width:CW-20});top+=20;}
+            text(ss[i],M+10,top,{size:8.5,fill:muted});top+=12;
+          }
+          top+=4;
+        }
+        top+=6;stroke(M,top,M+CW,top,line,.5);top+=15;
+      }
+    }
+    if(opts.includeDetails&&milestones.length){
+      registerPage('Milestone register');
+      for(const m of milestones){
+        const rows=wrap(m.title,CW-52,11,true),description=m.description?wrap(m.description,CW-52,9):[];
+        const assignedIncrement=(plan.increments||[]).find(i=>i.id===m.increment),assignment=[];
+        if(assignedIncrement){
+          const included=incrementIndex.has(assignedIncrement.id),outside=m.date<assignedIncrement.start||m.date>assignedIncrement.end;
+          assignment.push(...wrap(`Increment: ${included?incrementIndex.get(assignedIncrement.id)+' · ':''}${assignedIncrement.title}${included?'':' (outside this export)'}`,CW-52,8.5));
+          if(outside)assignment.push(...wrap(`This milestone is outside the increment's dates (${date(assignedIncrement.start)} - ${date(assignedIncrement.end)}).`,CW-52,8.5));
+        }
+        const references=dependencyReferences('milestone',m.id,m.initiatives||[]);
+        const linkedRows=references?wrap((incoming.has('milestone:'+m.id)?'Depends on: ':'Required initiatives: ')+references,CW-52,8.5):[];
+        const blockH=rows.length*15+22+(assignment.length+description.length+linkedRows.length)*12+30;
+        // Keep ordinary milestone entries together; very long descriptions can still continue.
+        const firstPart=rows.length*15+32,required=blockH<=detailBottom-154?blockH:firstPart;
+        if(top+required>detailBottom)registerPage('Milestone register');
+        milestoneSymbol(m,M+8,top+9,7);lines(rows,M+26,top,{size:11,bold:true,leading:15});top+=rows.length*15+3;text(`${date(m.date)} · ${m.done?'Achieved':'Planned'}`,M+26,top,{size:8.5,fill:muted});top+=19;
+        for(const s of [...assignment,...description,...linkedRows]){if(top+14>detailBottom){registerPage('Milestone register');text(fit(m.title+' — continued',CW-52,9,true),M+26,top,{size:9,bold:true});top+=20;}text(s,M+26,top,{size:8.5,fill:muted});top+=12;}
+        top+=12;stroke(M,top,M+CW,top,line,.5);top+=18;
+      }
+    }
+    const generated=new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short',year:'numeric'}).format(new Date());
+    pagesMeta.forEach((meta,i)=>{page=meta.page;stroke(M,H-43,W-M,H-43,line,.65);text(`${clean(plan.name)} · ${generated}`,M,H-32,{size:7,fill:muted,width:CW*.55});text(`${meta.kind} · ${i+1} / ${pagesMeta.length}`,W-M,H-32,{size:7,fill:muted,align:'right'});if(i<chartPages){const note=coincidentMilestones?(opts.includeDetails?'Coincident milestones share a position. Every milestone is listed in the registers.':'Coincident milestones share a position. Enable detail registers for every title and date.'):opts.includeDetails?'Complete titles and exact dates appear in the registers.':truncatedLabels?'Some text is shortened. Enable detail registers for complete titles and dates.':`${viewLabel} exported from the selected period and scope.`;text(note,M,H-57,{size:6.8,fill:muted,width:CW});}});
+    await Promise.all(pending);
+    return pdf.save();
+  }
+  global.ArcPDF=Object.freeze({export:exportRoadmap,pack,colors:SOLID});
+})(globalThis);
+
