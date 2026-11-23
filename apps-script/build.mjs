@@ -2,7 +2,7 @@
 //   node apps-script/build.mjs
 // Output (apps-script/dist): Code.gs, appsscript.json, Index.html (planner + Sheet bridge),
 // PdfVendor.html / PdfFonts.html / PdfExport.html (PDF engine, loaded only on export).
-import { readFileSync, writeFileSync, mkdirSync, copyFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, copyFileSync, existsSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -68,6 +68,12 @@ mkdirSync(dist, { recursive: true });
 writeFileSync(join(dist, 'Index.html'), html);
 for (const [name, code] of Object.entries(pdfParts)) writeFileSync(join(dist, name + '.html'), code);
 copyFileSync(join(src, 'Code.gs'), join(dist, 'Code.gs'));
+// `clasp clone` downloads Google's starter Code.js; with our Code.gs it makes clasp report "Conflicting files".
+const starter = join(dist, 'Code.js');
+if (existsSync(starter) && readFileSync(starter, 'utf8').replace(/[^A-Za-z(){}]/g, '') === 'functionmyFunction(){}') {
+  rmSync(starter);
+  console.log('Removed the starter Code.js that clasp clone downloaded.');
+}
 copyFileSync(join(src, 'appsscript.json'), join(dist, 'appsscript.json'));
 
 const kb = s => (Buffer.byteLength(s) / 1024).toFixed(0) + ' KB';
