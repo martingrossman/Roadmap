@@ -924,6 +924,7 @@ body:has(#dependencySelection:not(:empty)):not(.dep-drawing) [data-entity][data-
    the first group's track stays clickable for empty-space actions. */
 .canvas-increment-row{display:grid;margin-bottom:8px;min-width:0}
 .canvas-increment-row:last-child{margin-bottom:0}
+body:not(.dep-drawing) [data-entity][data-id] [data-dep-port][data-dep-linked]{opacity:0!important}
 /* Grid and today lines bridge the gap to the next increment row so they read as continuous. */
 .canvas-increment-row:not(:last-child)>.canvas-increment-group>.canvas-increment-track>:is(.grid-line,.today-line){height:auto;bottom:-8px}
 .canvas-increment-row>.canvas-increment-group{grid-area:1/1;margin-bottom:0}
@@ -1660,7 +1661,7 @@ export:'<path d="M12 15V3m-4 4 4-4 4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"
 code:'<path d="m8 7-5 5 5 5m8-10 5 5-5 5m-5-14-4 18"/>',print:'<path d="M7 8V3h10v5M7 17H4V9h16v8h-3M7 14h10v7H7z"/><path d="M17 11h.01"/>',
 menu:'<path d="M4 6h16M4 12h16M4 18h16"/>',settings:'<path d="m9 3-.6 2.2-2 .9-2.1-.7-2 3.5L4 10.5v2L2.3 14l2 3.5 2.1-.7 2 .9L9 20h4l.6-2.3 2-.9 2.1.7 2-3.5-1.7-1.5v-2L19.7 9l-2-3.5-2.1.7-2-.9L13 3H9Z"/><circle cx="11" cy="11.5" r="3"/>',
 help:'<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4m0 3h.01"/>',spark:'<path d="m12 3 2.4 6.6L21 12l-6.6 2.4L12 21l-2.4-6.6L3 12l6.6-2.4L12 3Z"/>',
-link:'<path d="m9 15 6-6m-6 0 3-3a4.2 4.2 0 0 1 6 6l-3 3m0 0-3 3a4.2 4.2 0 0 1-6-6l3-3"/>',present:'<rect x="3" y="3" width="18" height="13" rx="2"/><path d="M12 16v5m-5 0 5-5 5 5"/>',
+link:'<rect x="3" y="4" width="8" height="5" rx="1.5"/><rect x="13" y="15" width="8" height="5" rx="1.5"/><path d="M11 6.5h3a2 2 0 0 1 2 2V13m-2.5-2.5 2.5 2.5 2.5-2.5"/>',present:'<rect x="3" y="3" width="18" height="13" rx="2"/><path d="M12 16v5m-5 0 5-5 5 5"/>',
 check:'<path d="m5 12 4 4L19 6"/>',calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 11h18"/>',warning:'<path d="m12 3 10 18H2L12 3Z"/><path d="M12 9v5m0 3h.01"/>',trash:'<path d="M4 7h16M9 7V3h6v4M6 7l1 14h10l1-14M10 11v6m4-6v6"/>',duplicate:'<rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V3H3v13h5"/>',dots:'<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',sort:'<path d="m9 8 3-3 3 3m-6 8 3 3 3-3"/>'};
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const icon=(name,cls='')=>`<svg class="icon ${cls}" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]||ICONS.layers}</svg>`;
@@ -2453,8 +2454,12 @@ const ArcDeps=(()=>{
   const nodes=new Map();for(const el of surface.querySelectorAll(entitySelector)){const key=nodeKey(el.dataset.entity,el.dataset.id);if(!nodes.has(key)){const b=el.getBoundingClientRect();nodes.set(key,{el,rect:{left:b.left-bounds.left,right:b.right-bounds.left,top:b.top-bounds.top,bottom:b.bottom-bounds.top}});}}
   const focusKey=document.activeElement?.dataset?.depEdge,focusEndpoint=document.activeElement?.dataset?.depEndpoint;
   let endpointHTML='',html='<defs><marker id="arc-dep-arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M1 1L6 3.5L1 6" fill="none" stroke="#748e93" stroke-width="1.4"/></marker><marker id="arc-dep-selected" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M1 1L6 3.5L1 6" fill="none" stroke="#1b826d" stroke-width="1.6"/></marker><marker id="arc-dep-warning" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M1 1L6 3.5L1 6" fill="none" stroke="#b86a40" stroke-width="1.4"/></marker></defs>';
+  // A connector that already has an arrow stays invisible (still draggable) so it never covers the arrowhead.
+  for(const port of surface.querySelectorAll('[data-dep-linked]'))port.removeAttribute('data-dep-linked');
+  const markLinked=(type,id,side)=>nodes.get(nodeKey(type,id))?.el.querySelector(`:scope [data-dep-port="${side}"]`)?.setAttribute('data-dep-linked','');
   for(const edge of all){
    const fromRef={type:edge.fromType,id:edge.from},toRef={type:edge.toType,id:edge.to},a=pointOf(fromRef,'end',surface),b=pointOf(toRef,'start',surface);if(!a||!b)continue;
+   markLinked(edge.fromType,edge.from,'end');markLinked(edge.toType,edge.to,'start');
    const isSelected=selected===edge.key,warning=dateConflict(edge),fromName=getRecord(state.plan,edge.fromType,edge.from)?.title||'Item',toName=getRecord(state.plan,edge.toType,edge.to)?.title||'Item';
    const obstacles=[...nodes.entries()].filter(([key])=>key!==nodeKey(edge.fromType,edge.from)&&key!==nodeKey(edge.toType,edge.to)).map(([,n])=>n.rect),path=route(a,b,obstacles);
    const classes=`arc-dep-line${isSelected?' is-selected':''}${warning?' is-warning':''}${(active||armed)?.reconnect?.key===edge.key?' is-reconnecting':''}`;
