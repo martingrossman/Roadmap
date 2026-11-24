@@ -2364,8 +2364,9 @@ const ArcDeps=(()=>{
   // Milestones: lines meet the symbol itself (left edge in, right edge out), not the connector beside it.
   const symbol=el.matches('[data-entity="milestone"]')?el.querySelector('.canvas-milestone-symbol'):null;
   if(symbol){const b=symbol.getBoundingClientRect();if(b.width)return{x:(side==='end'?b.right-2:b.left+2)-root.left,y:b.top+b.height/2-root.top};}
-  const port=el.querySelector(`[data-dep-port="${side}"]`),box=(port||el).getBoundingClientRect();
-  return{x:(port?box.left+box.width/2:side==='end'?box.right:box.left)-root.left,y:box.top+box.height/2-root.top};
+  // Bars: lines touch the bar edge itself (the connector dot sits a little outside it).
+  const box=el.getBoundingClientRect();
+  return{x:(side==='end'?box.right:box.left)-root.left,y:box.top+box.height/2-root.top};
  }
  function enable(){state.dependencies=true;const button=document.querySelector('#dependenciesBtn');if(button){button.classList.add('is-active');button.setAttribute('aria-pressed','true');}}
  function release(){if(active?.capture){try{if(active.capture.hasPointerCapture(active.pointerId))active.capture.releasePointerCapture(active.pointerId);}catch{}}}
