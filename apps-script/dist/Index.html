@@ -929,6 +929,8 @@ body:not(.dep-drawing) [data-entity][data-id] [data-dep-port][data-dep-linked]{o
 body [data-entity][data-id][data-dep-near="start"] [data-dep-port][data-dep-port="start"],body [data-entity][data-id][data-dep-near="end"] [data-dep-port][data-dep-port="end"]{opacity:1!important;pointer-events:auto!important}
 @media (hover:none){body [data-entity][data-id]:is(.canvas-selected,.is-selected) [data-dep-port]{opacity:1!important;pointer-events:auto!important}}
 [data-entity][data-id] [data-dep-port]{cursor:crosshair}
+/* While a name is being edited the item is text, not a handle: no connector dots, grips or resize handles. */
+body [data-entity][data-id]:has([contenteditable]) :is([data-dep-port][data-dep-port],.resize-handle,.canvas-grip,[data-resize]){opacity:0!important;pointer-events:none!important}
 [data-entity][data-id]:not(.canvas-milestone-flat):not(.canvas-milestone-on-bar) [data-dep-port="start"]{left:-19px;right:auto}
 [data-entity][data-id]:not(.canvas-milestone-flat):not(.canvas-milestone-on-bar) [data-dep-port="end"]{right:-19px;left:auto}
 /* Grid and today lines bridge the gap to the next increment row so they read as continuous. */
@@ -1984,7 +1986,7 @@ document.addEventListener('dblclick',event=>ArcCanvas.doubleClick(event));
  }
  function update(){
   frame=0;const e=last;if(!e)return;
-  if(e.pointerType!=='mouse'||e.buttons||document.body.classList.contains('dep-drawing')||state.presentation){setNear(null);return;}
+  if(e.pointerType!=='mouse'||e.buttons||document.body.classList.contains('dep-drawing')||state.presentation||document.querySelector('[data-entity] [contenteditable]')){setNear(null);return;}
   // A dot under the pointer keeps its item active even though it lies outside the bar.
   const port=e.target?.closest?.('[data-dep-port]');
   if(port){const el=port.closest('[data-entity][data-id]');setNear(el,port.dataset.depPort);return;}
