@@ -2013,6 +2013,16 @@ document.addEventListener('dblclick',event=>ArcCanvas.doubleClick(event));
  document.addEventListener('pointerdown',e=>{if(!e.target.closest?.('[data-dep-port]'))setNear(null);},true);
 })();
 
+// Clicking empty space works like Escape: it drops the selected arrow, any connection
+// in progress and the selected item. Toolbars, menus, dialogs and form controls are left alone.
+document.addEventListener('click',e=>{
+ const t=e.target;if(state.presentation||e.button!==0||!(t instanceof Element))return;
+ const entity=t.closest('[data-entity][data-id]'),onEdge=t.closest('[data-dep-edge],[data-dep-endpoint],[data-dep-port]');
+ if(!entity&&!onEdge&&t.closest('button,a,input,select,textarea,label,summary,[contenteditable],dialog,[role="dialog"],[role="menu"],.menu-popover,#filtersPopover,.detail-overlay,.toast-region,#dependencySelection,#canvasSelection,[data-canvas-action]'))return;
+ if(!onEdge&&(ArcDeps.selected()||ArcDeps.isDrawing()&&!entity))ArcDeps.cancel();
+ if(!entity&&!onEdge&&!ArcCanvas.isEditing()&&ArcCanvas.getSelection())ArcCanvas.clearSelection();
+},true);
+
 document.addEventListener('change',event=>ArcCanvas.change(event));
 document.addEventListener('dragstart',event=>{if(event.target.closest('.canvas-inline-name')){event.preventDefault();return;}if(ArcDeps.isDrawing()||event.target.closest('[data-dep-port],[data-canvas-show-increment]')||document.activeElement?.matches('[data-canvas-show-increment]')&&event.target.closest('[data-board-task]')){event.preventDefault();return;}const card=event.target.closest('[data-board-task]');if(!card)return;ArcCanvas.hideInspector();draggedTask=card.dataset.boardTask;event.dataTransfer.setData('text/plain',draggedTask);event.dataTransfer.effectAllowed='move';card.classList.add('dragging');});
 document.addEventListener('dragover',event=>{const col=event.target.closest('[data-drop-status]');if(col&&draggedTask){event.preventDefault();event.dataTransfer.dropEffect='move';$$('.board-column.drag-over').forEach(x=>x.classList.remove('drag-over'));col.closest('.board-column').classList.add('drag-over');}});
