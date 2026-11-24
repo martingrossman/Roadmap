@@ -520,13 +520,11 @@ html{scroll-padding-top:var(--arc-freeze-clearance,84px)}
 .swimlane-milestone-band:not(:has(.canvas-milestone)){min-height:42px!important;margin-bottom:8px}.swimlane-milestone-band:not(:has(.canvas-milestone)) .swimlane-milestone-label{min-height:42px;margin:0;padding-top:8px;padding-bottom:8px}.swimlane-milestone-band:not(:has(.canvas-milestone)) .swimlane-milestone-track{background:#f5f7f8}.swimlane-milestone-band:not(:has(.canvas-milestone)) .swimlane-milestone-add{display:none}.swimlane-milestone-band:not(:has(.canvas-milestone)) .canvas-empty-prompt{top:5px}
 .canvas-increment-drop-hint{display:none}
 .canvas-item.canvas-increment.canvas-membership-group{background:var(--increment-color,#0875C9);color:var(--increment-text,#fff);border-color:var(--increment-color,#0875C9)}
-/* Selecting an increment exposes resize grips below its milestone symbols. */
+/* A selected increment shows small resize tabs just below its ends (inside the existing row gap, so nothing shifts). They stay reachable when a milestone sits on the bar edge. */
 @media screen{
-.canvas-increment-group:has(.canvas-increment.canvas-selected){height:calc(var(--increment-group-height) + 20px)}
-.canvas-increment.canvas-selected>.resize-handle{top:calc(100% + 2px);bottom:auto;width:24px;height:24px;opacity:1;background:#fff;border:1px solid var(--increment-color,#0875C9);border-radius:5px;box-shadow:0 1px 3px #203b491c;cursor:ew-resize}
+.canvas-increment.canvas-selected>.resize-handle{top:calc(100% + 2px);bottom:auto;width:16px;height:12px;opacity:1;background:#fff;border:1px solid var(--increment-color,#0875C9);border-radius:4px;box-shadow:0 1px 2px #203b491c;cursor:ew-resize;z-index:9}
 .canvas-increment.canvas-selected>.resize-handle.start{left:0}.canvas-increment.canvas-selected>.resize-handle.end{right:0}
-.canvas-increment.canvas-selected>.resize-handle:after{content:"";position:absolute;inset:6px 8px;width:auto;height:auto;border-left:2px solid var(--increment-color,#0875C9);border-right:2px solid var(--increment-color,#0875C9);border-radius:0;background:transparent;opacity:.8}
-.presentation .canvas-increment-group:has(.canvas-increment.canvas-selected){height:var(--increment-group-height)}
+.canvas-increment.canvas-selected>.resize-handle:after{content:"";position:absolute;inset:3px 5px;width:auto;height:auto;border-left:1.5px solid var(--increment-color,#0875C9);border-right:1.5px solid var(--increment-color,#0875C9);border-radius:0;background:transparent;opacity:.8}
 }
 .canvas-increment-milestone-add{opacity:0;transition:opacity .12s}.canvas-increment-group:hover .canvas-increment-milestone-add,.canvas-increment-group:focus-within .canvas-increment-milestone-add{opacity:1}
 .swimlane-label .swimlane-add,.stream-add{opacity:0;transition:opacity .12s}.swimlane-group:hover .swimlane-add,.swimlane-group:focus-within .swimlane-add,.stream-header:hover .stream-add,.stream-header:focus-within .stream-add{opacity:1}
