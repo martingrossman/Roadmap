@@ -878,10 +878,58 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
 .ms-stacked>.canvas-milestone-flat:not(.canvas-milestone-on-bar)>.canvas-milestone-copy>small{flex:0 0 auto;white-space:nowrap}
 .ms-stacked>.canvas-milestone-flat:not(.canvas-milestone-on-bar)>.canvas-milestone-copy>.canvas-milestone-increment{flex:0 1 auto;min-width:0}
 .ms-stacked>.canvas-milestone-flat:not(.canvas-milestone-on-bar)::after{content:"";position:absolute;left:11.5px;bottom:100%;width:1px;height:calc(4px + var(--ms-raise,0px));background:var(--milestone-guide,var(--milestone-color));opacity:.55;pointer-events:none}
-.ms-stacked>.canvas-milestone-flat:not(.canvas-milestone-on-bar):is(:hover,:focus-within,.canvas-selected)>.canvas-milestone-copy{width:max-content!important;max-width:min(420px,calc(100vw - 24px))!important;box-shadow:0 1px 6px #0002!important;z-index:5}
+.ms-stacked>.canvas-milestone-flat:not(.canvas-milestone-on-bar):is(:hover,:focus-within,.canvas-selected)>.canvas-milestone-copy{width:max-content!important;max-width:min(420px,calc(100vw - 24px))!important;box-shadow:none!important;z-index:5}
 .ms-stacked>.canvas-milestone-flat:not(.canvas-milestone-on-bar):is(:hover,:focus-within,.canvas-selected)>.canvas-milestone-copy>[data-title]{overflow:visible!important;text-overflow:clip!important}
 .ms-measuring>.canvas-milestone-flat>.canvas-milestone-copy{width:max-content!important;max-width:none!important}
 .ms-measuring>.canvas-milestone-flat>.canvas-milestone-copy>[data-title]{overflow:visible!important}
+
+.settings-stream-remove{margin:-4px 0 12px;padding:11px 12px;border:1px solid #f0c9c2;border-radius:7px;background:#fff7f5;font-size:13px;line-height:1.45;color:#4b3a36}
+.settings-stream-remove>p{margin:0 0 8px}
+.settings-stream-move{display:flex;align-items:center;gap:8px;margin:0 0 10px;font-size:13px}
+.settings-stream-move>.select-wrap{flex:1;min-width:0}
+.settings-stream-move select{width:100%}
+.settings-stream-remove-actions{display:flex;flex-wrap:wrap;gap:8px}
+
+/* Dependency connectors stay hidden on mouse hover; they appear once an item is
+   selected (click), while a link is being drawn, or for keyboard focus. */
+[data-entity][data-id] [data-dep-port]{opacity:0!important;pointer-events:none!important}
+[data-entity][data-id]:is(.canvas-selected,.is-selected,:focus-visible,:has(:focus-visible)) [data-dep-port],.dep-drawing [data-entity][data-id] [data-dep-port]{opacity:1!important;pointer-events:auto!important}
+
+/* Dependency connectors at 30% of their former size, centred where they were.
+   The invisible ::before keeps a comfortable ~20px grab area. */
+[data-entity][data-id] [data-dep-port]{transform:translateY(-50%) scale(.3)!important;transform-origin:50% 50%}
+[data-entity][data-id] [data-dep-port]::before{content:"";position:absolute;inset:-24px;border-radius:50%}
+
+/* Connector dots show only while connecting (item selected, or a link being
+   dragged). Once a link is placed and selected, no circles: the line meets the
+   item directly. Its reconnect handles stay draggable but invisible. */
+body:has(#dependencySelection:not(:empty)):not(.dep-drawing) [data-entity][data-id] [data-dep-port]{opacity:0!important;pointer-events:none!important}
+.arc-dep-endpoint,.arc-dep-endpoint:hover,.arc-dep-endpoint:focus-visible{fill:transparent!important;stroke:transparent!important;filter:none!important}
+/* Milestone connectors sit right beside the symbol. */
+.canvas-milestone-flat .dep-port-start,.canvas-milestone-on-bar .dep-port-start{left:-21px!important;right:auto!important}
+.canvas-milestone-flat .dep-port-end,.canvas-milestone-on-bar .dep-port-end{left:21px!important;right:auto!important}
+
+/* Milestone names never get a background, so dependency lines stay visible through them. */
+.canvas-milestone>.canvas-milestone-copy,.canvas-milestone:is(:hover,:focus-within,.canvas-selected)>.canvas-milestone-copy,.ms-stacked>.canvas-milestone-flat>.canvas-milestone-copy,.ms-stacked>.canvas-milestone-flat:is(:hover,:focus-within,.canvas-selected)>.canvas-milestone-copy{background:transparent!important;box-shadow:none!important}
+
+/* Compact workstreams: no empty "new row" strip at rest; it appears only while a
+   bar is being dragged, so a bar can still be dropped into a row of its own. */
+.swimlane-view .swimlane-lane.canvas-add-row{display:none}
+.swimlane-view:has(.canvas-dragging) .swimlane-lane.canvas-add-row{display:block}
+.swimlane-group:not(.is-collapsed),.swimlane-group:not(.is-collapsed) .swimlane-label,.swimlane-group:not(.is-collapsed) .swimlane-lanes{min-height:42px}
+.swimlane-group:not(.is-collapsed) .swimlane-toggle{padding-top:5px;padding-bottom:5px;gap:2px}
+
+/* Increments that don't overlap share a row (see canvasIncrementBand). Groups in a
+   row are stacked; only their bars, milestones and buttons take the pointer, and
+   the first group's track stays clickable for empty-space actions. */
+.canvas-increment-row{display:grid;margin-bottom:8px;min-width:0}
+.canvas-increment-row:last-child{margin-bottom:0}
+/* Grid and today lines bridge the gap to the next increment row so they read as continuous. */
+.canvas-increment-row:not(:last-child)>.canvas-increment-group>.canvas-increment-track>:is(.grid-line,.today-line){height:auto;bottom:-8px}
+.canvas-increment-row>.canvas-increment-group{grid-area:1/1;margin-bottom:0}
+.canvas-increment-row>.canvas-increment-group.is-stacked{pointer-events:none}
+.canvas-increment-row>.canvas-increment-group.is-stacked>.canvas-increment-track{pointer-events:none;background:transparent}
+.canvas-increment-row>.canvas-increment-group.is-stacked .canvas-item,.canvas-increment-row>.canvas-increment-group.is-stacked .canvas-milestone,.canvas-increment-row>.canvas-increment-group.is-stacked button,.canvas-increment-row>.canvas-increment-group.is-stacked [data-resize]{pointer-events:auto}
 </style>
 </head>
 <body>
@@ -2200,10 +2248,41 @@ function saveDetail(event){event.preventDefault();if(!detail)return;const f=even
 function deleteRecord(){if(!detail?.id)return;const {type,id,data}=detail,extra=type==='initiative'?'Its dependency and milestone links will also be removed.':type==='outcome'?'Its initiatives will remain, without this outcome link.':type==='increment'?'Assigned initiatives and milestones will remain with their dates.':'Linked initiatives will remain.';confirmDialog(`Delete ${type}?`,`“${data.title}” will be removed. ${extra} You can undo this change.`,()=>{const collection=type==='initiative'?'initiatives':type==='outcome'?'outcomes':type==='increment'?'increments':'milestones';commit(p=>{p[collection]=p[collection].filter(x=>x.id!==id);if(type==='initiative'){p.initiatives.forEach(t=>t.dependencies=t.dependencies.filter(x=>x!==id));p.milestones.forEach(m=>m.initiatives=m.initiatives.filter(x=>x!==id));}if(type==='outcome')p.initiatives.forEach(t=>{if(t.outcome===id)t.outcome='';});if(type==='increment'){p.initiatives.forEach(t=>{if(t.increment===id)t.increment='';});p.milestones.forEach(m=>{if(m.increment===id)m.increment='';});}p.connections=p.connections.filter(x=>!(x.fromType===type&&x.from===id)&&!(x.toType===type&&x.to===id));},`${type.charAt(0).toUpperCase()+type.slice(1)} deleted`);closeDetail(true);},'Delete',true);}
 function duplicateRecord(){if(!detail?.id)return;if(detail.dirty){confirmDialog('Duplicate the saved version?','Your unsaved edits will be discarded. Save your changes first if you want them in the copy.',()=>{detail.dirty=false;duplicateRecord();},'Duplicate saved version');return;}const {type,data}=detail;const copy=clone(data);copy.id=uid();copy.title=copy.title.slice(0,type==='initiative'?150:110)+' (copy)';const collection=type==='initiative'?'initiatives':type==='outcome'?'outcomes':type==='increment'?'increments':'milestones';if(commit(p=>p[collection].push(copy),'Copy created')){closeDetail(true);openDetail(type,copy.id);}}
 function confirmDialog(title,body,callback,label='Continue',danger=false){$('#confirmTitle').textContent=title;$('#confirmBody').textContent=body;$('#confirmAction').textContent=label;$('#confirmAction').className='btn'+(danger?' danger':'');confirmCallback=callback;$('#confirmModal').showModal();}
-function openSettings(){settingsStreams=clone(state.plan.workstreams);const p=state.plan;$('#settingsBody').innerHTML=field('Project name',input('name',p.name,'required maxlength="80"'))+field('Description',`<textarea name="description" aria-label="Plan description" rows="2" maxlength="500">${esc(p.description)}</textarea>`)+`<div class="field-grid">${field('Default roadmap year',input('year',p.year,'type="number" min="2000" max="2099" step="1" required'))}${field('Reference date',input('reviewDate',p.reviewDate,'type="date" min="2000-01-01" max="2099-12-31" required'+(p.reviewDateMode==='today'?' readonly':'')))}</div><label class="check-row"><input type="checkbox" name="reviewDateToday" onchange="this.form.reviewDate.readOnly=this.checked;if(this.checked)this.form.reviewDate.value=today()" ${p.reviewDateMode==='today'?'checked':''}><span>Always use today's date</span></label><p class="form-help">The reference date drives overdue warnings and the vertical marker. With "Always use today's date" on, it moves with the calendar. Changing the roadmap year does not move existing initiatives.</p><label class="check-row"><input type="checkbox" name="example" ${p.example?'checked':''}><span>Label this as an example plan</span></label><div class="section-title">Workstreams</div><div id="settingsStreams"></div><button type="button" class="btn secondary small" id="addWorkstream">${icon('plus')}Add workstream</button><div class="settings-reset"><div class="section-title">A fresh starting point</div><p class="form-help">Replace the current plan with a blank workspace or the example. Both actions can be undone.</p><div class="reset-buttons"><button type="button" class="btn secondary small" id="blankPlan">Start blank plan</button><button type="button" class="btn ghost small" id="loadExample">Load example</button></div></div>`;renderSettingsStreams();$('#settingsModal').showModal();}
-function renderSettingsStreams(){const container=$('#settingsStreams');container.innerHTML=settingsStreams.map(s=>{const used=state.plan.initiatives.some(t=>t.stream===s.id);return `<div class="settings-stream-row" data-stream-row="${esc(s.id)}"><input aria-label="Workstream name" data-stream-name="${esc(s.id)}" value="${esc(s.name)}" maxlength="60" required><div class="select-wrap"><select aria-label="Workstream color" data-stream-color="${esc(s.id)}">${s.customColor?`<option value="custom" selected>Custom · ${esc(s.customColor)}</option>`:''}${ArcColors.slotsFor(state.plan,s.color).map(k=>`<option value="${k}" ${!s.customColor&&s.color===k?'selected':''}>${esc(PALETTE[k].name)}</option>`).join('')}</select></div><button type="button" class="icon-btn" data-remove-stream="${esc(s.id)}" ${used||settingsStreams.length<=1?'disabled':''} title="${used?'Move assigned initiatives before removing this workstream':'Remove workstream'}" aria-label="Remove ${esc(s.name)}">${icon('trash')}</button></div>`;}).join('');}
+function openSettings(){settingsStreams=clone(state.plan.workstreams);settingsStreamMoves=[];settingsRemoving='';const p=state.plan;$('#settingsBody').innerHTML=field('Project name',input('name',p.name,'required maxlength="80"'))+field('Description',`<textarea name="description" aria-label="Plan description" rows="2" maxlength="500">${esc(p.description)}</textarea>`)+`<div class="field-grid">${field('Default roadmap year',input('year',p.year,'type="number" min="2000" max="2099" step="1" required'))}${field('Reference date',input('reviewDate',p.reviewDate,'type="date" min="2000-01-01" max="2099-12-31" required'+(p.reviewDateMode==='today'?' readonly':'')))}</div><label class="check-row"><input type="checkbox" name="reviewDateToday" onchange="this.form.reviewDate.readOnly=this.checked;if(this.checked)this.form.reviewDate.value=today()" ${p.reviewDateMode==='today'?'checked':''}><span>Always use today's date</span></label><p class="form-help">The reference date drives overdue warnings and the vertical marker. With "Always use today's date" on, it moves with the calendar. Changing the roadmap year does not move existing initiatives.</p><label class="check-row"><input type="checkbox" name="example" ${p.example?'checked':''}><span>Label this as an example plan</span></label><div class="section-title">Workstreams</div><div id="settingsStreams"></div><button type="button" class="btn secondary small" id="addWorkstream">${icon('plus')}Add workstream</button><div class="settings-reset"><div class="section-title">A fresh starting point</div><p class="form-help">Replace the current plan with a blank workspace or the example. Both actions can be undone.</p><div class="reset-buttons"><button type="button" class="btn secondary small" id="blankPlan">Start blank plan</button><button type="button" class="btn ghost small" id="loadExample">Load example</button></div></div>`;renderSettingsStreams();$('#settingsModal').showModal();}
+// Removing a workstream that still has initiatives asks where they go. Choices are
+// kept as an ordered list and applied when the settings are saved (one Undo step).
+let settingsStreamMoves=[],settingsRemoving='';
+function settingsEffectiveStream(t){let s=t.stream;for(const m of settingsStreamMoves){if(s===m.from){s=m.to;if(s===null)break;}}return s;}
+function settingsStreamCount(id){return state.plan.initiatives.filter(t=>settingsEffectiveStream(t)===id).length;}
+function applySettingsStreamMoves(p){
+ if(!settingsStreamMoves.length)return {moved:0,deleted:0};
+ const gone=new Set();let moved=0;
+ p.initiatives.forEach(t=>{let s=t.stream;for(const m of settingsStreamMoves){if(s===m.from){s=m.to;if(s===null)break;}}if(s===null)gone.add(t.id);else if(s!==t.stream){t.stream=s;moved++;}});
+ if(gone.size){
+  p.initiatives=p.initiatives.filter(t=>!gone.has(t.id));
+  p.initiatives.forEach(t=>t.dependencies=t.dependencies.filter(x=>!gone.has(x)));
+  p.milestones.forEach(m=>m.initiatives=m.initiatives.filter(x=>!gone.has(x)));
+  p.connections=p.connections.filter(x=>!(x.fromType==='initiative'&&gone.has(x.from))&&!(x.toType==='initiative'&&gone.has(x.to)));
+ }
+ return {moved,deleted:gone.size};
+}
+function settingsRemovePanel(s,count){
+ const others=settingsStreams.filter(o=>o.id!==s.id),them=count===1?'it':'them';
+ const options=others.map(o=>`<option value="${esc(o.id)}">${esc(o.name||'Untitled workstream')}</option>`).join('');
+ return `<div class="settings-stream-remove" role="group" aria-label="Remove ${esc(s.name)}"><p><strong>${esc(s.name||'This workstream')}</strong> has ${count} initiative${count===1?'':'s'}. What should happen to ${them}?</p><label class="settings-stream-move">Move to <span class="select-wrap"><select data-stream-move-target aria-label="Move initiatives to">${options}</select></span></label><div class="settings-stream-remove-actions"><button type="button" class="btn small" data-stream-remove-confirm="move">Move and remove</button><button type="button" class="btn small danger" data-stream-remove-confirm="delete">Delete ${them} too</button><button type="button" class="btn ghost small" data-stream-remove-cancel>Cancel</button></div></div>`;
+}
+function renderSettingsStreams(){
+ const container=$('#settingsStreams');
+ container.innerHTML=settingsStreams.map(s=>{
+  const count=settingsStreamCount(s.id),only=settingsStreams.length<=1;
+  const title=only?'A plan needs at least one workstream':count?`Remove workstream (${count} initiative${count===1?'':'s'})`:'Remove workstream';
+  const colors=(s.customColor?`<option value="custom" selected>Custom · ${esc(s.customColor)}</option>`:'')+ArcColors.slotsFor(state.plan,s.color).map(k=>`<option value="${k}" ${!s.customColor&&s.color===k?'selected':''}>${esc(PALETTE[k].name)}</option>`).join('');
+  return `<div class="settings-stream-row" data-stream-row="${esc(s.id)}"><input aria-label="Workstream name" data-stream-name="${esc(s.id)}" value="${esc(s.name)}" maxlength="60" required><div class="select-wrap"><select aria-label="Workstream color" data-stream-color="${esc(s.id)}">${colors}</select></div><button type="button" class="icon-btn" data-remove-stream="${esc(s.id)}" ${only?'disabled':''} title="${title}" aria-label="Remove ${esc(s.name)}">${icon('trash')}</button></div>${settingsRemoving===s.id&&count?settingsRemovePanel(s,count):''}`;
+ }).join('');
+ container.querySelector('[data-stream-move-target]')?.focus();
+}
 function collectSettingsStreams(){for(const s of settingsStreams){s.name=$(`[data-stream-name="${s.id}"]`).value.trim();const color=$(`[data-stream-color="${s.id}"]`).value;if(color!=='custom'){s.color=color;s.customColor='';}}}
-function saveSettings(event){event.preventDefault();collectSettingsStreams();const f=new FormData(event.currentTarget),year=Number(f.get('year'));if(commit(p=>{p.name=String(f.get('name')).trim();p.description=String(f.get('description')).trim();p.year=year;p.reviewDateMode=f.has('reviewDateToday')?'today':'fixed';p.reviewDate=p.reviewDateMode==='today'?today():String(f.get('reviewDate'));p.example=f.has('example');p.workstreams=clone(settingsStreams);},'Plan settings updated')){state.year=year;render();$('#settingsModal').close();}}
+function saveSettings(event){event.preventDefault();collectSettingsStreams();let streamNote='';const f=new FormData(event.currentTarget),year=Number(f.get('year'));if(commit(p=>{p.name=String(f.get('name')).trim();p.description=String(f.get('description')).trim();p.year=year;p.reviewDateMode=f.has('reviewDateToday')?'today':'fixed';p.reviewDate=p.reviewDateMode==='today'?today():String(f.get('reviewDate'));p.example=f.has('example');const moves=applySettingsStreamMoves(p);streamNote=[moves.moved?moves.moved+' initiative'+(moves.moved===1?'':'s')+' moved':'',moves.deleted?moves.deleted+' deleted':''].filter(Boolean).join(' · ');p.workstreams=clone(settingsStreams);},'Plan settings updated')){state.year=year;render();$('#settingsModal').close();if(streamNote)toast('Plan settings updated · '+streamNote,false,true);}}
 function resetPlan(example){confirmDialog(example?'Load the example plan?':'Start a blank plan?',`This replaces the current plan${example?' with the fictional Atlas workspace':''}. Export a backup first if you want to keep a separate copy. You can undo this change.`,()=>{const next=samplePlan();if(!example){next.name='My product plan';next.description='A clear path from strategy to delivery.';next.example=false;next.year=state.year;next.reviewDate=today();next.reviewDateMode='today';next.initiatives=[];next.outcomes=[];next.milestones=[];next.increments=[];next.connections=[];}const id=state.plan.id;if(commit(p=>Object.assign(p,next,{id}),example?'Example loaded':'Blank plan created')){state.year=next.year;state.range='year';state.collapsed.clear();clearFilters();$('#settingsModal').close();}},example?'Load example':'Start blank plan');}
 function updateStatus(id,status){const task=getTask(id);if(!task||task.status===status||!STATUS[status])return;commit(p=>{const t=p.initiatives.find(x=>x.id===id),old=t.status;t.status=status;if(status==='done')t.progress=100;else if(old==='done')t.progress=0;},`Moved to ${STATUS[status]}`);}
 function startDrag(event){const el=event.target.closest('[data-bar]');if(!el||state.presentation||event.pointerType==='touch'||(event.pointerType==='mouse'&&event.button!==0))return;const task=getTask(el.dataset.bar),track=el.parentElement,r=timelineRange();activeDrag={pointerId:event.pointerId,el,id:task.id,kind:event.target.closest('[data-resize]')?.dataset.resize||'move',x:event.clientX,start:day(task.start),end:day(task.end),newStart:day(task.start),newEnd:day(task.end),width:track.getBoundingClientRect().width,r,moved:false};el.setPointerCapture(event.pointerId);}
@@ -2240,7 +2319,7 @@ function handleClick(event){if(event.target.closest('[data-canvas-show-increment
  if(b.dataset.sort){state.sort={field:b.dataset.sort,dir:state.sort.field===b.dataset.sort?-state.sort.dir:1};renderTable();return;}
  if(b.dataset.action){const a=b.dataset.action;if(a==='clear-filters')clearFilters();else if(a==='new-outcome')openDetail('outcome');else ArcCanvas.quickAdd(a==='new-milestone'?'milestone':a==='new-increment'?'increment':'initiative');return;}
  if(b.hasAttribute('data-close-dialog')){b.closest('dialog')?.close();return;}
- if(b.dataset.removeStream){collectSettingsStreams();settingsStreams=settingsStreams.filter(s=>s.id!==b.dataset.removeStream);renderSettingsStreams();return;}
+ if(b.dataset.removeStream){collectSettingsStreams();const id=b.dataset.removeStream;if(settingsStreams.length<=1)return;if(settingsStreamCount(id)){settingsRemoving=settingsRemoving===id?'':id;}else{settingsStreams=settingsStreams.filter(s=>s.id!==id);settingsRemoving='';}renderSettingsStreams();return;}if(b.dataset.streamRemoveConfirm){collectSettingsStreams();const id=settingsRemoving,move=b.dataset.streamRemoveConfirm==='move',target=move?$('[data-stream-move-target]')?.value:null;if(!id||(move&&!target))return;settingsStreamMoves.push({from:id,to:target});settingsStreams=settingsStreams.filter(s=>s.id!==id);settingsRemoving='';renderSettingsStreams();return;}if(b.hasAttribute('data-stream-remove-cancel')){collectSettingsStreams();settingsRemoving='';renderSettingsStreams();return;}
  const handlers={freezeTimelineBtn:()=>ArcFreeze.toggle(),filtersBtn:toggleFilters,clearFiltersBtn:clearFilters,settingsBtn:openSettings,primaryAdd,closeDetail:()=>closeDetail(),cancelDetail:()=>closeDetail(),undoBtn:undo,redoBtn:redo,helpBtn:()=>{$('#helpModal').showModal();closeMobile();},mobileMenu:()=>$('#sidebar').classList.contains('open')?closeMobile():openMobile(),presentBtn:()=>setPresentation(true),exitPresentation:()=>setPresentation(false),dependenciesBtn:()=>{state.dependencies=!state.dependencies;render();},prevPeriod:()=>{state.year=Math.max(2000,state.year-1);render();},nextPeriod:()=>{state.year=Math.min(2099,state.year+1);render();},periodLabel:()=>{state.year=Number(state.plan.reviewDate.slice(0,4));state.range='year';render();},deleteRecord,duplicateRecord,addWorkstream:()=>{collectSettingsStreams();if(settingsStreams.length>=30){toast('You can add up to 30 workstreams.',true);return;}settingsStreams.push({id:uid(),name:'New workstream',color:'slate'});renderSettingsStreams();const inputs=$$('[data-stream-name]');inputs.at(-1).focus();inputs.at(-1).select();},blankPlan:()=>resetPlan(false),loadExample:()=>resetPlan(true),exportBtn:()=>{const willOpen=$('#exportMenu').hidden;$('#exportMenu').hidden=!willOpen;$('#exportBtn').setAttribute('aria-expanded',String(willOpen));},exportPDF:openPDFExport,downloadHTML:()=>{hideExport();exportHTML();},exportJSON:()=>{hideExport();exportJSON();},exportCSV:()=>{hideExport();exportCSV();},importBtn:()=>{hideExport();$('#importFile').click();},printBtn:()=>{hideExport();window.print();},confirmAction:()=>{const cb=confirmCallback;confirmCallback=null;$('#confirmModal').close();cb?.();}};
  handlers[b.id]?.();
 }
@@ -2343,8 +2422,8 @@ function renderSwimlanes(){
  const streams=state.plan.workstreams.filter(s=>(state.stream==='all'||state.stream===s.id)&&(!(state.query||state.status!=='all'||state.outcome)||tasks.some(t=>t.stream===s.id)));
  let html=`<div class="swimlane-axis-row"><div class="swimlane-axis-label">WORKSTREAMS <span>${streams.length}</span></div><div class="swimlane-axis">${swimlaneAxis(r)}</div></div>${canvasIncrementBand(r,true)}${swimlaneMilestones(r)}`;
  for(const s of streams){
-  const items=tasks.filter(t=>t.stream===s.id),rows=packSwimlaneTasks(items,r),collapsed=state.collapsed.has(s.id),c=swimlaneColor(s);
-  html+=`<section class="swimlane-group ${collapsed?'is-collapsed':''}" style="--swimlane-color:${c.solid};--swimlane-text:${c.text};--swimlane-outline:${canvasFillOutline(c)}" aria-label="${esc(s.name)} workstream" data-stream-id="${esc(s.id)}"><div class="swimlane-label"><button type="button" class="swimlane-toggle workstream-name" data-workstream-details="${esc(s.id)}" aria-label="${esc(s.name)} workstream details" title="Double-click to edit ${esc(s.name)}"><strong>${esc(s.name)}</strong><small>${items.length} initiative${items.length===1?'':'s'}</small></button><button type="button" class="icon-btn workstream-collapse ${collapsed?'is-collapsed':''}" data-collapse="${esc(s.id)}" aria-expanded="${!collapsed}" aria-label="${collapsed?'Expand':'Collapse'} ${esc(s.name)}" title="${collapsed?'Expand':'Collapse'} ${esc(s.name)}">${icon('chevron')}</button><button class="icon-btn swimlane-add" data-add-stream="${esc(s.id)}" aria-label="Add initiative to ${esc(s.name)}">${icon('plus')}</button></div><div class="swimlane-lanes">`;
+  const items=tasks.filter(t=>t.stream===s.id),rows=packSwimlaneTasks(items,r),collapsed=false,c=swimlaneColor(s);
+  html+=`<section class="swimlane-group ${collapsed?'is-collapsed':''}" style="--swimlane-color:${c.solid};--swimlane-text:${c.text};--swimlane-outline:${canvasFillOutline(c)}" aria-label="${esc(s.name)} workstream" data-stream-id="${esc(s.id)}"><div class="swimlane-label"><button type="button" class="swimlane-toggle workstream-name" data-workstream-details="${esc(s.id)}" aria-label="${esc(s.name)} workstream details" title="Double-click to edit ${esc(s.name)}"><strong>${esc(s.name)}</strong><small>${items.length} initiative${items.length===1?'':'s'}</small></button><button class="icon-btn swimlane-add" data-add-stream="${esc(s.id)}" aria-label="Add initiative to ${esc(s.name)}">${icon('plus')}</button></div><div class="swimlane-lanes">`;
   if(collapsed)html+=`<div class="swimlane-collapsed-track">${gridHTML(r)}${collapsedWorkstreamSummary(s,items,r)}</div>`;
   else if(rows.length)html+=rows.map((row,i)=>`<div class="timeline-track swimlane-lane" data-track="${esc(s.id)}-${i}" data-canvas-track="initiative" data-stream-id="${esc(s.id)}">${gridHTML(r)}${row.map(t=>swimlaneBar(t,r,c)).join('')}</div>`).join('');
   else html+=`<div class="timeline-track swimlane-lane swimlane-empty-lane" data-canvas-track="initiative" data-stream-id="${esc(s.id)}">${gridHTML(r)}<button class="swimlane-empty-add" data-add-stream="${esc(s.id)}">${icon('plus')}Add initiative</button></div>`;
@@ -2460,11 +2539,29 @@ function canvasIncrementBand(r,swimlane=false){
  const label=`<div class="canvas-increment-label"><span>${icon('layers')}Increments</span><button class="icon-btn" data-action="new-increment" aria-label="Add increment">${icon('plus')}</button></div>`;
  let tracks;
  if(increments.length){
-  tracks=increments.map((x,index)=>{
-   const inPeriod=day(x.end)>=r.start&&day(x.start)<r.end,c=swimlaneColor(x.color||'slate'),ms=context.milestones.filter(m=>m.increment===x.id&&visibleMilestone(m)),layout=canvasIncrementMilestoneLayout(ms,r),barTop=layout.rows?40:7,height=barTop+36;
-   // Both tracks use the complete date range. Markers are siblings of the bar,
-   // so drag coordinates and dependency anchors never inherit its date width.
-   return `<section class="canvas-increment-group" data-increment-id="${esc(x.id)}" style="--increment-color:${c.solid};--increment-text:${c.text};--increment-outline:${canvasFillOutline(c)};--increment-bar-top:${barTop}px;--increment-group-height:${height}px"><div class="canvas-increment-track" ${inPeriod?'data-canvas-track="increment"':''} data-increment-track="${index}" data-increment-id="${esc(x.id)}">${gridHTML(r)}${inPeriod?canvasIncrementItem(x,r):`<button class="canvas-increment-outside-label" data-canvas-select="increment" data-record-id="${esc(x.id)}" title="${esc(x.title)} · Increment dates are outside this period"><strong data-title>${esc(x.title)}</strong><small>Increment dates are outside this period</small></button>`}</div><div class="canvas-increment-milestone-track" data-canvas-track="milestone" data-increment-id="${esc(x.id)}">${layout.placed.map(p=>canvasMilestoneMarker(p.milestone,r,p.row,swimlane,p)).join('')}<button class="canvas-increment-milestone-add" data-canvas-action="add-milestone-in-increment" data-increment-id="${esc(x.id)}" title="Add a milestone in ${esc(x.title)}" aria-label="Add milestone in ${esc(x.title)}">${icon('plus')}</button></div></section>`;
+  // Pack increments like initiatives: ones that don't overlap (bar plus its
+  // milestones) share a row. Each keeps its own full-width group, stacked in the
+  // row, so drag, drop and dependency code still see one group per increment.
+  const info=increments.map((x,index)=>{
+   const inPeriod=day(x.end)>=r.start&&day(x.start)<r.end,ms=context.milestones.filter(m=>m.increment===x.id&&visibleMilestone(m)),layout=canvasIncrementMilestoneLayout(ms,r);
+   const days=[...ms.map(m=>day(m.date))];if(inPeriod)days.push(Math.max(day(x.start),r.start),Math.min(day(x.end),r.end-1));
+   return {x,index,inPeriod,layout,start:Math.min(...days),end:Math.max(...days)};
+  });
+  const rows=[],ends=[];
+  for(const item of info){
+   // Increments shown only by a note (dates outside the period) keep a row of their own.
+   let row=item.inPeriod?ends.findIndex(last=>last<item.start):-1;
+   if(row<0){row=rows.length;rows.push([]);ends.push(item.inPeriod?-Infinity:Infinity);}
+   rows[row].push(item);if(item.inPeriod)ends[row]=item.end;
+  }
+  tracks=rows.map(row=>{
+   const barTop=row.some(item=>item.layout.rows)?40:7,height=barTop+36;
+   return `<div class="canvas-increment-row">${row.map((item,k)=>{
+    const {x,index,inPeriod,layout}=item,c=swimlaneColor(x.color||'slate');
+    // Both tracks use the complete date range. Markers are siblings of the bar,
+    // so drag coordinates and dependency anchors never inherit its date width.
+    return `<section class="canvas-increment-group ${k?'is-stacked':''}" data-increment-id="${esc(x.id)}" style="--increment-color:${c.solid};--increment-text:${c.text};--increment-outline:${canvasFillOutline(c)};--increment-bar-top:${barTop}px;--increment-group-height:${height}px"><div class="canvas-increment-track" ${inPeriod?'data-canvas-track="increment"':''} data-increment-track="${index}" data-increment-id="${esc(x.id)}">${k?'':gridHTML(r)}${inPeriod?canvasIncrementItem(x,r):`<button class="canvas-increment-outside-label" data-canvas-select="increment" data-record-id="${esc(x.id)}" title="${esc(x.title)} · Increment dates are outside this period"><strong data-title>${esc(x.title)}</strong><small>Increment dates are outside this period</small></button>`}</div><div class="canvas-increment-milestone-track" data-canvas-track="milestone" data-increment-id="${esc(x.id)}">${layout.placed.map(p=>canvasMilestoneMarker(p.milestone,r,p.row,swimlane,p)).join('')}<button class="canvas-increment-milestone-add" data-canvas-action="add-milestone-in-increment" data-increment-id="${esc(x.id)}" title="Add a milestone in ${esc(x.title)}" aria-label="Add milestone in ${esc(x.title)}">${icon('plus')}</button></div></section>`;
+   }).join('')}</div>`;
   }).join('');
  }else{
   tracks=`<div class="canvas-increment-track" data-canvas-track="increment" data-increment-track="0">${gridHTML(r)}<button class="canvas-empty-prompt" data-action="new-increment">${icon('plus')}Add increment</button></div>`;
@@ -2576,7 +2673,11 @@ const ArcDeps=(()=>{
  function refOf(el){const node=el?.closest?.(entitySelector);return node?{type:node.dataset.entity,id:node.dataset.id}:null;}
  function pointOf(ref,side,surface=getSurface()){
   const el=getNode(ref,surface);if(!el||!surface)return null;
-  const root=surface.getBoundingClientRect(),port=el.querySelector(`[data-dep-port="${side}"]`),box=(port||el).getBoundingClientRect();
+  const root=surface.getBoundingClientRect();
+  // Milestones: lines meet the symbol itself (left edge in, right edge out), not the connector beside it.
+  const symbol=el.matches('[data-entity="milestone"]')?el.querySelector('.canvas-milestone-symbol'):null;
+  if(symbol){const b=symbol.getBoundingClientRect();if(b.width)return{x:(side==='end'?b.right-2:b.left+2)-root.left,y:b.top+b.height/2-root.top};}
+  const port=el.querySelector(`[data-dep-port="${side}"]`),box=(port||el).getBoundingClientRect();
   return{x:(port?box.left+box.width/2:side==='end'?box.right:box.left)-root.left,y:box.top+box.height/2-root.top};
  }
  function enable(){state.dependencies=true;const button=document.querySelector('#dependenciesBtn');if(button){button.classList.add('is-active');button.setAttribute('aria-pressed','true');}}
