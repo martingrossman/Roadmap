@@ -10,3 +10,5 @@
 - [x] **IM5** - in case of longer then 1 year span , enable scrolling left to right and add another freeze icon to freeze column of names of workstreams
 - [x] **IM6** - hide explicit scrolling horizontal bar
 - [x] **IM7** - set manually also custom color of timeline and default make it more like gray / dark gray as default outside of colors template
+- [ ] **IM8** - when edited arrow automatically "release it" as after the finish so i dont need to press ESC or click outside
+- [ ] **IM9** - option to select multiple items and edit at once
