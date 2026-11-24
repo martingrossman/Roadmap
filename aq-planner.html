@@ -931,6 +931,11 @@ body [data-entity][data-id][data-dep-near="start"] [data-dep-port][data-dep-port
 [data-entity][data-id] [data-dep-port]{cursor:crosshair}
 /* While a name is being edited the item is text, not a handle: no connector dots, grips or resize handles. */
 body [data-entity][data-id]:has([contenteditable]) :is([data-dep-port][data-dep-port],.resize-handle,.canvas-grip,[data-resize]){opacity:0!important;pointer-events:none!important}
+/* Renaming happens in place: the bar keeps its look and size, with only the caret and text selection showing. */
+body [data-entity][data-id]:has([contenteditable]){outline:0!important}
+body .canvas-inline-name[data-title][contenteditable],body .canvas-inline-name[data-title][contenteditable]:focus{background:transparent!important;color:inherit!important;padding:0!important;border-radius:0!important;box-shadow:none!important;outline:0!important;min-width:1ch!important;line-height:inherit!important;caret-color:currentColor}
+body [data-entity][data-id]:has([contenteditable]) .canvas-grip{width:0!important}
+.canvas-increment-group:has(.canvas-increment [contenteditable]){height:var(--increment-group-height)!important}
 [data-entity][data-id]:not(.canvas-milestone-flat):not(.canvas-milestone-on-bar) [data-dep-port="start"]{left:-19px;right:auto}
 [data-entity][data-id]:not(.canvas-milestone-flat):not(.canvas-milestone-on-bar) [data-dep-port="end"]{right:-19px;left:auto}
 /* Grid and today lines bridge the gap to the next increment row so they read as continuous. */
