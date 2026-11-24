@@ -34,7 +34,7 @@ const ARC_ENUM_ALIASES = {
 
 const ARC_SETTINGS_SHEET = 'Settings';
 const ARC_META_KEYS = ['lastSavedAt', 'lastSavedBy'];
-const ARC_SETTINGS_ORDER = ['name', 'description', 'year', 'reviewDateMode', 'reviewDate', 'example', 'id',
+const ARC_SETTINGS_ORDER = ['name', 'description', 'year', 'reviewDateMode', 'reviewDate', 'timelineColor', 'example', 'id',
   'colorScheme', 'customColorSchemes', 'customPaletteRecipes'];
 const ARC_SETTINGS_HELP = {
   name: 'Plan name shown in the planner',
@@ -42,6 +42,7 @@ const ARC_SETTINGS_HELP = {
   year: 'Default roadmap year',
   reviewDateMode: '"today" = the reference date is always today (default); "fixed" = use reviewDate below',
   reviewDate: 'Reference date (yyyy-mm-dd) for overdue warnings and the timeline marker. Only used when reviewDateMode is "fixed"',
+  timelineColor: 'Timeline header colour (#RRGGBB); empty = default dark grey',
   example: 'TRUE shows an "Example" badge',
   id: 'Internal plan id, do not change',
   colorScheme: 'Color scheme id used by the planner',

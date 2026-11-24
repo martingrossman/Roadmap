@@ -190,7 +190,7 @@
       top=showFilter?94:80;return page;
     }
     function axis(){
-      const axisTop=top,year=new Date(range.start*DAY).getUTCFullYear(),axisTone=theme({color:'blue'});
+      const axisTop=top,year=new Date(range.start*DAY).getUTCFullYear(),axisTone=theme({color:'slate',customColor:input.plan?.timelineColor||'#4B5560'});
       text(isGantt?'INITIATIVE':'WORKSTREAM',M,axisTop+7,{size:8,bold:true,fill:muted});text(increments.length?'INCREMENTS / DELIVERY':'INITIATIVES / MILESTONES',M,axisTop+22,{size:6.4,fill:muted});
       const begin=new Date(range.start*DAY),end=new Date((range.end-1)*DAY);let ym=begin.getUTCFullYear(),m=begin.getUTCMonth();
       const months=[];while(ym<end.getUTCFullYear()||(ym===end.getUTCFullYear()&&m<=end.getUTCMonth())){

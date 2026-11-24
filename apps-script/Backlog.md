@@ -8,6 +8,5 @@
 - [x] **IM3** – Show dependencies by default.
 - [x] **IM4** - Set timeline also manually from start to end date
 - [x] **IM5** - in case of longer then 1 year span , enable scrolling left to right and add another freeze icon to freeze column of names of workstreams
-- [ ] **IM6** - hide explicit scrolling horizontal bar
-- [ ] **IM7** - set manually also custom color of timeline and default make it more like gray / dark gray as default outside of colors template
-- [ ] **IM8** - improve this design maybe shorten WORKSTREAMS name and make icons fit proeprly ![[Pasted image 20261124085826.png]]
+- [x] **IM6** - hide explicit scrolling horizontal bar
+- [x] **IM7** - set manually also custom color of timeline and default make it more like gray / dark gray as default outside of colors template
