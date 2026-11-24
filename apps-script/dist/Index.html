@@ -2484,13 +2484,37 @@ const ArcDeps=(()=>{
   const last=pts[pts.length-1];return d+` L${last.x},${last.y}`;
  }
  function route(from,to,obstacles=[]){
-  const options=[],sx=from.x+16,tx=to.x-16;
-  if(to.x>from.x&&Math.abs(to.y-from.y)<1)options.push([from,to]);
-  if(to.x-from.x>=32){for(const x of [(from.x+to.x)/2,sx,tx])options.push([from,{x,y:from.y},{x,y:to.y},to]);}
-  const ys=[(from.y+to.y)/2,from.y-30,from.y+30,to.y-30,to.y+30];
-  for(const y of ys){if(to.x<=from.x&&Math.abs(y-from.y)<10&&Math.abs(y-to.y)<10)continue;options.push([from,{x:sx,y:from.y},{x:sx,y},{x:tx,y},{x:tx,y:to.y},to]);}
-  const score=pts=>{let total=0;for(let i=1;i<pts.length;i++){const a=pts[i-1],b=pts[i];total+=Math.abs(a.x-b.x)+Math.abs(a.y-b.y)+8;for(const r of obstacles){const hit=Math.abs(a.y-b.y)<.1?a.y>r.top-3&&a.y<r.bottom+3&&Math.max(a.x,b.x)>r.left-3&&Math.min(a.x,b.x)<r.right+3:a.x>r.left-3&&a.x<r.right+3&&Math.max(a.y,b.y)>r.top-3&&Math.min(a.y,b.y)<r.bottom+3;if(hit)total+=100000;}}return total;};
-  options.sort((a,b)=>score(a)-score(b));return roundedPath(options[0]||[from,to]);
+  // Like a hand-drawn route: besides the default elbows, try running through the gaps
+  // just beside nearby obstacles (items, milestone symbols and names) and keep the
+  // shortest path that crosses none of them.
+  const sx=from.x+16,tx=to.x-16;
+  const lo=Math.min(from.y,to.y)-90,hi=Math.max(from.y,to.y)+90,left=Math.min(from.x,to.x)-60,right=Math.max(from.x,to.x)+60;
+  const near=obstacles.filter(r=>r.bottom>lo&&r.top<hi&&r.right>left&&r.left<right);
+  const uniq=list=>[...new Set(list.map(v=>Math.round(v)))];
+  const forward=to.x-from.x>=32;
+  const hits=(a,b)=>{for(const r of near){if(Math.abs(a.y-b.y)<.1?a.y>r.top-3&&a.y<r.bottom+3&&Math.max(a.x,b.x)>r.left-3&&Math.min(a.x,b.x)<r.right+3:a.x>r.left-3&&a.x<r.right+3&&Math.max(a.y,b.y)>r.top-3&&Math.min(a.y,b.y)<r.bottom+3)return true;}return false;};
+  // Length plus 8 per segment; 100000 per segment that crosses something. Prefer the usual
+  // 16px clearance at both ends, so tighter turns win only when they avoid an obstacle.
+  // Scoring stops as soon as a candidate can no longer beat the best one.
+  let best=null,bestScore=Infinity;
+  const consider=pts=>{
+   let total=pts.length>2?Math.max(0,16-Math.abs(pts[1].x-from.x))*3+Math.max(0,16-Math.abs(to.x-pts[pts.length-2].x))*3:0;
+   for(let i=1;i<pts.length;i++){const a=pts[i-1],b=pts[i];total+=Math.abs(a.x-b.x)+Math.abs(a.y-b.y)+8;if(total>=bestScore)return;}
+   for(let i=1;i<pts.length;i++){if(hits(pts[i-1],pts[i])){total+=100000;if(total>=bestScore)return;}}
+   best=pts;bestScore=total;
+  };
+  // Gaps can be narrow (a name starting just after the source), so turns may sit as close as 4px.
+  const mids=uniq([(from.x+to.x)/2,sx,tx,...near.flatMap(r=>[r.left-8,r.left-5,r.right+5,r.right+8])]).filter(x=>x>=from.x+4&&x<=to.x-4).sort((a,b)=>a-b);
+  if(to.x>from.x&&Math.abs(to.y-from.y)<1)consider([from,to]);
+  if(forward)for(const x of mids)consider([from,{x,y:from.y},{x,y:to.y},to]);
+  // A clear single elbow is already the shortest possible; detours can only tie or lose.
+  if(bestScore<100000)return roundedPath(best);
+  const ys=uniq([(from.y+to.y)/2,from.y-30,from.y+30,to.y-30,to.y+30,...near.flatMap(r=>[r.top-7,r.bottom+7])]).filter(y=>y>lo&&y<hi);
+  // Turn-down points near the source and turn-in points near the target.
+  const sxs=forward?mids.filter(x=>x<=(from.x+to.x)/2+1).slice(0,10):[sx];
+  const txs=forward?mids.filter(x=>x>=(from.x+to.x)/2-1).slice(-10):[tx];
+  for(const y of ys){if(to.x<=from.x&&Math.abs(y-from.y)<10&&Math.abs(y-to.y)<10)continue;for(const x1 of sxs)for(const x2 of txs){if(x2<x1&&forward)continue;consider([from,{x:x1,y:from.y},{x:x1,y},{x:x2,y},{x:x2,y:to.y},to]);}}
+  return roundedPath(best||[from,to]);
  }
  function dateConflict(edge){
   const from=getRecord(state.plan,edge.fromType,edge.from),to=getRecord(state.plan,edge.toType,edge.to);if(!from||!to)return false;
@@ -2521,11 +2545,14 @@ const ArcDeps=(()=>{
   // A connector that already has an arrow stays invisible (still draggable) so it never covers the arrowhead.
   for(const port of surface.querySelectorAll('[data-dep-linked]'))port.removeAttribute('data-dep-linked');
   const markLinked=(type,id,side)=>nodes.get(nodeKey(type,id))?.el.querySelector(`:scope [data-dep-port="${side}"]`)?.setAttribute('data-dep-linked','');
+  // Milestone names sit outside their item's box, so routes treat them as obstacles too.
+  const labelRects=[...surface.querySelectorAll('.canvas-milestone-copy')].map(copy=>{const owner=copy.closest('[data-entity][data-id]'),b=copy.getBoundingClientRect();return {key:owner?nodeKey(owner.dataset.entity,owner.dataset.id):'',rect:{left:b.left-bounds.left,right:b.right-bounds.left,top:b.top-bounds.top,bottom:b.bottom-bounds.top}};}).filter(l=>l.rect.right>l.rect.left);
   for(const edge of all){
    const fromRef={type:edge.fromType,id:edge.from},toRef={type:edge.toType,id:edge.to},a=pointOf(fromRef,'end',surface),b=pointOf(toRef,'start',surface);if(!a||!b)continue;
    markLinked(edge.fromType,edge.from,'end');markLinked(edge.toType,edge.to,'start');
    const isSelected=selected===edge.key,warning=dateConflict(edge),fromName=getRecord(state.plan,edge.fromType,edge.from)?.title||'Item',toName=getRecord(state.plan,edge.toType,edge.to)?.title||'Item';
-   const obstacles=[...nodes.entries()].filter(([key])=>key!==nodeKey(edge.fromType,edge.from)&&key!==nodeKey(edge.toType,edge.to)).map(([,n])=>n.rect),path=route(a,b,obstacles);
+   const ends=[nodeKey(edge.fromType,edge.from),nodeKey(edge.toType,edge.to)];
+   const obstacles=[...nodes.entries()].filter(([key])=>!ends.includes(key)).map(([,n])=>n.rect).concat(labelRects.filter(l=>!ends.includes(l.key)).map(l=>l.rect)),path=route(a,b,obstacles);
    const classes=`arc-dep-line${isSelected?' is-selected':''}${warning?' is-warning':''}${(active||armed)?.reconnect?.key===edge.key?' is-reconnecting':''}`;
    html+=`<path class="${classes}" d="${path}" marker-end="url(#${isSelected?'arc-dep-selected':warning?'arc-dep-warning':'arc-dep-arrow'})"/><path class="arc-dep-hit" d="${path}" data-dep-edge="${esc(edge.key)}" role="button" tabindex="0" aria-label="Dependency: ${esc(fromName)} is a prerequisite of ${esc(toName)}. Select to reconnect or remove."><title>${esc(fromName)} → ${esc(toName)}${warning?' · Dates need attention':''}</title></path>`;
    if(isSelected&&!active&&!armed)endpointHTML+=`<circle class="arc-dep-endpoint" cx="${a.x}" cy="${a.y}" r="7" data-dep-edge="${esc(edge.key)}" data-dep-endpoint="from" role="button" tabindex="0" aria-label="Reconnect prerequisite"/><circle class="arc-dep-endpoint" cx="${b.x}" cy="${b.y}" r="7" data-dep-edge="${esc(edge.key)}" data-dep-endpoint="to" role="button" tabindex="0" aria-label="Reconnect dependent"/>`;
