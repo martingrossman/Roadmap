@@ -928,6 +928,15 @@ body:not(.dep-drawing) [data-entity][data-id] [data-dep-port][data-dep-linked]{o
 body [data-entity][data-id][data-dep-near="start"] [data-dep-port][data-dep-port="start"],body [data-entity][data-id][data-dep-near="end"] [data-dep-port][data-dep-port="end"]{opacity:1!important;pointer-events:auto!important}
 @media (hover:none){body [data-entity][data-id]:is(.canvas-selected,.is-selected) [data-dep-port]{opacity:1!important;pointer-events:auto!important}}
 [data-entity][data-id] [data-dep-port]{cursor:crosshair}
+/* Freeze lives in the date-row corner as a small lock. */
+#freezeTimelineBtn{display:none!important}
+.freeze-lock{margin-left:auto;display:inline-grid;place-items:center;width:26px;height:26px;padding:0;border:1px solid transparent;border-radius:6px;background:transparent;color:#8a9aa0;cursor:pointer;flex:none}
+.freeze-lock svg{width:15px;height:15px}
+.freeze-lock:hover{background:#eef3f2;color:#2c5f54}
+.freeze-lock:focus-visible{outline:2px solid #2b7b61;outline-offset:1px}
+.freeze-lock.is-active{background:#e3f1df;border-color:#b9d9b0;color:#2f7a3b}
+.presentation .freeze-lock{display:none}
+@media print{.freeze-lock{display:none!important}}
 /* While a name is being edited the item is text, not a handle: no connector dots, grips or resize handles. */
 body [data-entity][data-id]:has([contenteditable]) :is([data-dep-port][data-dep-port],.resize-handle,.canvas-grip,[data-resize]){opacity:0!important;pointer-events:none!important}
 /* Renaming happens in place: the bar keeps its look and size, with only the caret and text selection showing. */
@@ -984,7 +993,7 @@ body [data-entity][data-id]:has([contenteditable]) .canvas-grip{width:0!importan
             <div class="toolbar-controls">
               <div class="search-box"><span data-icon="search"></span><input id="searchInput" type="search" placeholder="Search…" aria-label="Search initiatives" autocomplete="off"><kbd>/</kbd></div>
               <div class="filter-wrap">
-                <button class="btn secondary small" id="filtersBtn" type="button" aria-label="Filters" aria-expanded="false" aria-controls="filtersPopover"><span data-icon="filter"></span><span>Filters</span><span id="filtersCount" class="filters-count" hidden=""></span></button>
+                <button class="btn secondary small" id="filtersBtn" type="button" aria-label="Show or hide" aria-expanded="false" aria-controls="filtersPopover"><span data-icon="filter"></span><span>Show/hide</span><span id="filtersCount" class="filters-count" hidden=""></span></button>
                 <div class="filters-popover" id="filtersPopover" role="group" aria-label="Roadmap filters" hidden="">
                   <div class="filters-popover-header"><strong>Filters</strong><button type="button" class="text-button" id="clearFiltersBtn">Clear</button></div>
                   <label class="filter-field" for="workstreamFilter"><span>Workstream</span><div class="select-wrap"><select id="workstreamFilter" aria-label="Filter by workstream"><option value="all">All workstreams</option></select></div></label>
@@ -2032,7 +2041,7 @@ const ArcColors=(()=>{
 })();
 
 const ICONS={
-pin:'<path d="M9 3h6l-1 6 4 4v2H6v-2l4-4-1-6ZM12 15v6"/>',
+pin:'<path d="M9 3h6l-1 6 4 4v2H6v-2l4-4-1-6ZM12 15v6"/>',lock:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',unlock:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.5-1.9"/>',
 edit:'<path d="m16 3 5 5L8 21H3v-5L16 3Z"/><path d="m13 6 5 5"/>',cursor:'<path d="m4 3 7 18 2.5-7.5L21 11 4 3Z"/>',
 roadmap:'<path d="M4 6h10M10 12h10M4 18h11"/><path d="M4 4v4m10-4v4m-4 2v4m10-4v4M4 16v4m11-4v4"/>',
 board:'<rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="10" y="4" width="5" height="11" rx="1.5"/><rect x="17" y="4" width="4" height="14" rx="1.5"/>',
@@ -2138,7 +2147,7 @@ const STORAGE_KEY='arc.plan.'+initialPlan.id;
 let loadedPlan=initialPlan;try{const s=localStorage.getItem(STORAGE_KEY);if(s)loadedPlan=validatePlan(JSON.parse(s));}catch(e){startupMessage='Saved data could not be loaded. The original plan is shown; export a backup before closing.';}
 const INCREMENT_VISIBILITY_KEY='arc.view.showIncrements.'+initialPlan.id;
 let storedIncrementVisibility=true;try{storedIncrementVisibility=localStorage.getItem(INCREMENT_VISIBILITY_KEY)!=='false';}catch{}
-const state={plan:loadedPlan,section:'roadmap',view:'swimlane',year:loadedPlan.year,range:'year',stream:'all',status:'all',query:'',outcome:'',collapsed:new Set(),dependencies:false,showIncrements:storedIncrementVisibility,sort:{field:'start',dir:1},undo:[],redo:[],presentation:false};
+const state={plan:loadedPlan,section:'roadmap',view:'swimlane',year:loadedPlan.year,range:'year',stream:'all',status:'all',query:'',outcome:'',collapsed:new Set(),dependencies:true,showIncrements:storedIncrementVisibility,sort:{field:'start',dir:1},undo:[],redo:[],presentation:false};
 let storageOK=true,detail=null,lastFocus=null,confirmCallback=null,settingsStreams=[],activeDrag=null,suppressClickUntil=0,draggedTask=null;
 function hydrateIcons(root=document){root.querySelectorAll('[data-icon]').forEach(e=>{e.innerHTML=icon(e.dataset.icon);e.removeAttribute('data-icon');});}
 function palette(stream){return ArcColors.streamPalette(state.plan.workstreams.find(s=>s.id===stream));}
@@ -2318,6 +2327,7 @@ function openMobile(){$('#sidebar').classList.add('open');$('#mobileScrim').clas
 function hideExport(){$('#exportMenu').hidden=true;$('#exportBtn').setAttribute('aria-expanded','false');}
 function primaryAdd(){if(state.section==='outcomes')openDetail('outcome');else ArcCanvas.quickAdd(state.section==='milestones'?'milestone':'initiative');}
 function handleClick(event){if(event.target.closest('[data-canvas-show-increment],[data-canvas-reveal-initiative],[data-canvas-reveal-milestone]')){ArcDeps.cancel();if(ArcCanvas.handleClick(event))return;}if(ArcDeps.handleClick(event)||ArcCanvas.handleClick(event))return;const b=event.target.closest('button,[data-board-task]');if(!b)return;
+ if(b.hasAttribute('data-freeze-toggle')){ArcFreeze.toggle();return;}
  if(b.dataset.section){changeSection(b.dataset.section);return;}
  if(b.dataset.view){hideFilters();state.view=b.dataset.view;render();return;}
  if(b.dataset.streamFilter){state.stream=b.dataset.streamFilter;if(b.classList.contains('sidebar-stream'))state.section='roadmap';closeMobile();render();return;}
@@ -2482,7 +2492,7 @@ function swimlaneBar(t,r,c){return canvasInitiativeBar(t,r,c,true);}
 function renderSwimlanes(){
  const r=timelineRange(),all=filteredTasks(),tasks=all.filter(t=>day(t.end)>=r.start&&day(t.start)<r.end);
  const streams=state.plan.workstreams.filter(s=>(state.stream==='all'||state.stream===s.id)&&(!(state.query||state.status!=='all'||state.outcome)||tasks.some(t=>t.stream===s.id)));
- let html=`<div class="swimlane-axis-row"><div class="swimlane-axis-label">WORKSTREAMS <span>${streams.length}</span></div><div class="swimlane-axis">${swimlaneAxis(r)}</div></div>${canvasIncrementBand(r,true)}${swimlaneMilestones(r)}`;
+ let html=`<div class="swimlane-axis-row"><div class="swimlane-axis-label">WORKSTREAMS <span>${streams.length}</span><button type="button" class="freeze-lock" data-freeze-toggle aria-pressed="false" aria-label="Keep dates and tools visible while scrolling" title="Keep dates and tools visible while scrolling">${icon('unlock')}</button></div><div class="swimlane-axis">${swimlaneAxis(r)}</div></div>${canvasIncrementBand(r,true)}${swimlaneMilestones(r)}`;
  for(const s of streams){
   const items=tasks.filter(t=>t.stream===s.id),rows=packSwimlaneTasks(items,r),collapsed=false,c=swimlaneColor(s);
   html+=`<section class="swimlane-group ${collapsed?'is-collapsed':''}" style="--swimlane-color:${c.solid};--swimlane-text:${c.text};--swimlane-outline:${canvasFillOutline(c)}" aria-label="${esc(s.name)} workstream" data-stream-id="${esc(s.id)}"><div class="swimlane-label"><button type="button" class="swimlane-toggle workstream-name" data-workstream-details="${esc(s.id)}" aria-label="${esc(s.name)} workstream details" title="Double-click to edit ${esc(s.name)}"><strong>${esc(s.name)}</strong><small>${items.length} initiative${items.length===1?'':'s'}</small></button><button class="icon-btn swimlane-add" data-add-stream="${esc(s.id)}" aria-label="Add initiative to ${esc(s.name)}">${icon('plus')}</button></div><div class="swimlane-lanes">`;
@@ -2639,7 +2649,7 @@ function renderTimeline(){
  const milestones=canvasOutcomeContext().milestones.filter(m=>(!state.showIncrements||!m.increment)&&day(m.date)>=r.start&&day(m.date)<r.end),layout=canvasFlatMilestoneLayout(milestones,r);
  const markers=layout.placed.map(p=>canvasMilestoneMarker(p.milestone,r,0,false,null,p)).join('');
  const markerHeight=milestones.length?54:42;
- let rows=`<div class="timeline-header"><div class="lane-heading">INITIATIVES <span>${n}</span></div><div class="time-axis">${axis}</div></div>${canvasIncrementBand(r)}<div class="milestone-row" style="height:${markerHeight}px"><div class="lane-label">${icon('flag')}<span>Milestones</span><button class="icon-btn" data-action="new-milestone" aria-label="Add milestone">${icon('plus')}</button></div><div class="milestone-track" data-canvas-track="milestone" style="height:${markerHeight}px">${gridHTML(r)}${markers||'<button class="canvas-empty-prompt" data-action="new-milestone">'+icon('plus')+'Add milestone</button>'}</div></div>`;
+ let rows=`<div class="timeline-header"><div class="lane-heading">INITIATIVES <span>${n}</span><button type="button" class="freeze-lock" data-freeze-toggle aria-pressed="false" aria-label="Keep dates and tools visible while scrolling" title="Keep dates and tools visible while scrolling">${icon('unlock')}</button></div><div class="time-axis">${axis}</div></div>${canvasIncrementBand(r)}<div class="milestone-row" style="height:${markerHeight}px"><div class="lane-label">${icon('flag')}<span>Milestones</span><button class="icon-btn" data-action="new-milestone" aria-label="Add milestone">${icon('plus')}</button></div><div class="milestone-track" data-canvas-track="milestone" style="height:${markerHeight}px">${gridHTML(r)}${markers||'<button class="canvas-empty-prompt" data-action="new-milestone">'+icon('plus')+'Add milestone</button>'}</div></div>`;
  for(const s of state.plan.workstreams.filter(s=>state.stream==='all'||state.stream===s.id)){
   // The saved initiative order owns each row; date edits must not move rows.
   const st=tasks.filter(t=>t.stream===s.id);if(!st.length&&(state.query||state.status!=='all'||state.outcome))continue;const collapsed=state.collapsed.has(s.id),c=ArcColors.streamPalette(s);
@@ -3673,7 +3683,10 @@ const ArcFreeze=(()=>{
  }
  function afterRender(){
   button.hidden=!supported();button.classList.toggle('is-active',enabled);
-  button.setAttribute('aria-pressed',String(enabled));button.querySelector('.freeze-label').textContent=enabled?'Frozen':'Freeze';
+  button.setAttribute('aria-pressed',String(enabled));
+  // The lock in the date-row corner replaces the toolbar button (kept hidden for its state).
+  const lockLabel=enabled?'Unlock: let dates and tools scroll away':'Lock dates and tools in view while scrolling';
+  document.querySelectorAll('[data-freeze-toggle]').forEach(b=>{b.classList.toggle('is-active',enabled);b.setAttribute('aria-pressed',String(enabled));b.title=lockLabel;b.setAttribute('aria-label',lockLabel);b.innerHTML=icon(enabled?'lock':'unlock');});button.querySelector('.freeze-label').textContent=enabled?'Frozen':'Freeze';
   button.title=enabled?'Unfreeze timeline and tools':'Keep timeline and tools visible while scrolling';
   document.body.classList.toggle('freeze-roadmap',active());
   dock.hidden=true;observer?.disconnect();observer?.observe(document.querySelector('.topbar'));observer?.observe(tools);
