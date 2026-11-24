@@ -275,6 +275,8 @@ body[data-canvas-mode="initiative"] [data-canvas-track="initiative"]:hover,body[
 .canvas-inspector{pointer-events:auto;background:#fff;border:1px solid #cdded7;border-radius:11px;box-shadow:0 8px 35px #123d3526;padding:13px 16px 10px;max-height:46vh;overflow:auto}
 .canvas-inspector-header{display:flex;align-items:center;gap:10px;min-height:30px;margin-bottom:10px}.canvas-selection-type{color:#749083;font-size:10px;letter-spacing:1px;text-transform:uppercase;font-weight:700;flex-shrink:0}
 .canvas-selected-name{border:0;background:none;padding:3px 0;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;font-weight:650;color:#26463a;font-size:15px;margin-right:auto;cursor:text}.canvas-selected-name:hover{text-decoration:underline;text-decoration-style:dotted;text-underline-offset:4px}
+input.canvas-selected-name{font:inherit;font-weight:650;font-size:15px;color:inherit;border-radius:5px;padding:3px 6px;margin-left:-6px;flex:1 1 auto;width:100%}
+input.canvas-selected-name:focus{outline:none;text-decoration:none;background:#fff;box-shadow:0 0 0 1px #cfdcd8,0 0 0 4px rgba(37,99,235,.12);cursor:text}
 .canvas-inspector-actions{display:flex;align-items:center;gap:2px;flex-shrink:0}.canvas-action{display:flex;align-items:center;gap:5px;padding:6px 7px;min-height:32px;border:0;background:transparent;border-radius:5px;font-size:12px;color:#5e776c}.canvas-action:hover{background:#edf5ef;color:#234f3e}.canvas-action.danger:hover{background:#fbe9e6;color:#a84938}.canvas-action .icon{width:15px;height:15px}
 .canvas-inline-fields{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap}.canvas-inline-field{display:flex;flex-direction:column;gap:4px;flex:1;min-width:110px;max-width:210px}.canvas-inline-field>span{font-size:11px;color:#83948d}.canvas-inline-field input,.canvas-inline-field select{width:100%;min-width:0;height:36px;font-size:14px;padding:5px 8px;border:1px solid #dce5e0;border-radius:5px;background:#fcfdfc;color:#355a48}.canvas-inline-field select{padding-right:18px}.canvas-inline-field input[type=date]{font-size:14px;min-width:126px}.canvas-inline-field input:focus,.canvas-inline-field select:focus{border-color:#72b092;outline:2px solid #c8e7d3;outline-offset:0}
 .canvas-inline-check{display:flex;align-items:center;gap:8px;min-height:34px;font-size:13px;color:#426755}.canvas-inline-check input{accent-color:#297456;width:16px;height:16px}
@@ -2937,7 +2939,7 @@ const ArcCanvas=(()=>{
   // Keep the existing fields alive when a blur commits a change. Replacing the
   // inspector here would swallow the pending click on the next control.
   if(host.dataset.selectionKey===selectionKey&&host.querySelector('.canvas-inspector')){
-   host.querySelector('.canvas-selected-name').textContent=item.title;
+   {const n=host.querySelector('.canvas-selected-name');n.defaultValue=item.title;if(force||n!==document.activeElement)n.value=item.title;}
    host.querySelectorAll('[data-inline-field]').forEach(input=>{
     const key=input.dataset.inlineField;
     if(input.tagName==='SELECT'){
@@ -2979,7 +2981,7 @@ const ArcCanvas=(()=>{
    fields+=choices('Color',arcColorChoices(item.color||'slate',{inline:'color',label:'Increment color'}));
    fields+='<span class="canvas-increment-explainer">A delivery period that groups work across lanes.</span>';
   }
-  host.innerHTML=`<section class="canvas-inspector" aria-label="Selected ${type} controls"><div class="canvas-inspector-header"><span class="canvas-selection-type">${names[type]}</span><button class="canvas-selected-name" type="button" data-canvas-action="rename" title="Rename ${type}">${esc(item.title)}</button><div class="canvas-inspector-actions">${actionButton('details','Details','dots')}${actionButton('duplicate','Duplicate','duplicate')}${actionButton('delete','Delete','trash','danger')}<button type="button" class="icon-btn" data-canvas-action="close" aria-label="Close selected item controls" title="Close controls">${icon('close')}</button></div></div><div class="canvas-inline-fields">${fields}</div>${purpose}${type==='milestone'?`<p class="canvas-milestone-placement-note">${esc(milestonePlacementNote(item))}</p>`:''}${type==='increment'?`<section class="canvas-increment-members" aria-label="Included work in ${esc(item.title)}"></section>`:''}</section>`;
+  host.innerHTML=`<section class="canvas-inspector" aria-label="Selected ${type} controls"><div class="canvas-inspector-header"><span class="canvas-selection-type">${names[type]}</span><input type="text" class="canvas-selected-name" data-inline-field="title" maxlength="200" aria-label="${names[type]} name" title="Rename ${type}" value="${esc(item.title)}" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}else if(event.key==='Escape'){event.preventDefault();event.stopPropagation();this.value=this.defaultValue;this.blur();}"><div class="canvas-inspector-actions">${actionButton('details','Details','dots')}${actionButton('duplicate','Duplicate','duplicate')}${actionButton('delete','Delete','trash','danger')}<button type="button" class="icon-btn" data-canvas-action="close" aria-label="Close selected item controls" title="Close controls">${icon('close')}</button></div></div><div class="canvas-inline-fields">${fields}</div>${purpose}${type==='milestone'?`<p class="canvas-milestone-placement-note">${esc(milestonePlacementNote(item))}</p>`:''}${type==='increment'?`<section class="canvas-increment-members" aria-label="Included work in ${esc(item.title)}"></section>`:''}</section>`;
   host.dataset.selectionKey=selectionKey;
   if(type==='initiative')refreshPurposeSummary(host,item);
   if(type==='increment')refreshMemberList(host,item);
@@ -3196,7 +3198,7 @@ const ArcCanvas=(()=>{
    const end=iso(day(value)+day(item.end)-day(item.start));if(!dateOK(end)){toast('This duration would extend beyond 2099.',true);renderInspector(true);return true;}
    commit(p=>{const x=find(type,id,p);x.start=value;x.end=end;},`${names[type]} rescheduled`);return true;
   }
-  if(item[key]===value)return true;
+  if(key==='title'&&!value){toast('Enter a name.',true);input.value=item.title;return true;}if(item[key]===value)return true;
   if(key==='stream'&&state.stream!=='all')state.stream=value;
   if(key==='status'&&state.status!=='all')state.status=value;
   if(key==='outcome'&&state.outcome)state.outcome=value;
