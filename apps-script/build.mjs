@@ -1,4 +1,4 @@
-// Builds the Google Apps Script project from ../aq-planner.html.
+// Builds the Google Apps Script project from ../roadmap.html.
 //   node apps-script/build.mjs
 // Output (apps-script/dist): Code.gs, appsscript.json, Index.html (planner + Sheet bridge),
 // PdfVendor.html / PdfFonts.html / PdfExport.html (PDF engine, loaded only on export).
@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const src = join(here, 'src'), dist = join(here, 'dist');
-const input = process.argv[2] || join(here, '..', 'aq-planner.html');
+const input = process.argv[2] || join(here, '..', 'roadmap.html');
 let html = readFileSync(input, 'utf8').replace(/\r\n/g, '\n');
 
 function replaceOnce(haystack, find, replacement, label) {

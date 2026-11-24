@@ -1,6 +1,6 @@
 # Arc planner on Google Sheets
 
-This runs `aq-planner.html` as a Google Apps Script web app. The Google Sheet is where the data lives:
+This runs `roadmap.html` as a Google Apps Script web app. The Google Sheet is where the data lives:
 
 | Tab | One row per… | Notes |
 |---|---|---|
@@ -62,7 +62,7 @@ If you would rather people need only the link and no Sheet access, deploy with *
 
 ## Updating the planner
 
-After changing `aq-planner.html`, rebuild and paste the files that changed (usually just `Index.html`):
+After changing `roadmap.html`, rebuild and paste the files that changed (usually just `Index.html`):
 
 ```powershell
 node apps-script/build.mjs
