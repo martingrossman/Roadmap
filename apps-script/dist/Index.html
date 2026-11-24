@@ -893,7 +893,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
 /* Dependency connectors stay hidden on mouse hover; they appear once an item is
    selected (click), while a link is being drawn, or for keyboard focus. */
 [data-entity][data-id] [data-dep-port]{opacity:0!important;pointer-events:none!important}
-[data-entity][data-id]:is(.canvas-selected,.is-selected,:focus-visible,:has(:focus-visible)) [data-dep-port],.dep-drawing [data-entity][data-id] [data-dep-port]{opacity:1!important;pointer-events:auto!important}
+[data-entity][data-id]:is(:focus-visible,:has(:focus-visible)) [data-dep-port],.dep-drawing [data-entity][data-id] [data-dep-port]{opacity:1!important;pointer-events:auto!important}
 
 /* Dependency connectors at 30% of their former size, centred where they were.
    The invisible ::before keeps a comfortable ~20px grab area. */
@@ -925,6 +925,12 @@ body:has(#dependencySelection:not(:empty)):not(.dep-drawing) [data-entity][data-
 .canvas-increment-row{display:grid;margin-bottom:8px;min-width:0}
 .canvas-increment-row:last-child{margin-bottom:0}
 body:not(.dep-drawing) [data-entity][data-id] [data-dep-port][data-dep-linked]{opacity:0!important}
+/* Connector dots: shown only when the mouse is near that end (data-dep-near), or for the selected item on touch screens. They sit just outside the bar so the edge stays a resize handle. */
+body [data-entity][data-id][data-dep-near="start"] [data-dep-port][data-dep-port="start"],body [data-entity][data-id][data-dep-near="end"] [data-dep-port][data-dep-port="end"]{opacity:1!important;pointer-events:auto!important}
+@media (hover:none){body [data-entity][data-id]:is(.canvas-selected,.is-selected) [data-dep-port]{opacity:1!important;pointer-events:auto!important}}
+[data-entity][data-id] [data-dep-port]{cursor:crosshair}
+[data-entity][data-id]:not(.canvas-milestone-flat):not(.canvas-milestone-on-bar) [data-dep-port="start"]{left:-19px;right:auto}
+[data-entity][data-id]:not(.canvas-milestone-flat):not(.canvas-milestone-on-bar) [data-dep-port="end"]{right:-19px;left:auto}
 /* Grid and today lines bridge the gap to the next increment row so they read as continuous. */
 .canvas-increment-row:not(:last-child)>.canvas-increment-group>.canvas-increment-track>:is(.grid-line,.today-line){height:auto;bottom:-8px}
 .canvas-increment-row>.canvas-increment-group{grid-area:1/1;margin-bottom:0}
@@ -1965,6 +1971,42 @@ $('#detailOverlay').addEventListener('click',event=>{if(event.target===$('#detai
 $('#importFile').addEventListener('change',event=>importJSON(event.target.files?.[0]));
 document.addEventListener('pointerdown',event=>{if(!ArcDeps.pointerDown(event))ArcCanvas.pointerDown(event);});document.addEventListener('pointermove',event=>{ArcDeps.pointerMove(event);ArcCanvas.pointerMove(event);},{passive:false});document.addEventListener('pointerup',event=>{ArcDeps.pointerUp(event);ArcCanvas.pointerUp(event);});document.addEventListener('pointercancel',event=>{ArcDeps.pointerUp(event,true);ArcCanvas.pointerUp(event,true);});
 document.addEventListener('dblclick',event=>ArcCanvas.doubleClick(event));
+// Connector dots appear only when a mouse comes near an item's left or right end
+// (inside or just outside it). The thin edge itself stays the resize handle; the dot
+// sits outside it, so the two never compete. Touch and keyboard use selection/focus.
+(()=>{
+ const NEAR=16;let current=null,frame=0,last=null;
+ const anchorRect=el=>{const symbol=el.matches('[data-entity="milestone"]')?el.querySelector('.canvas-milestone-symbol'):null;return (symbol||el).getBoundingClientRect();};
+ const entityAt=(x,y)=>{const el=document.elementFromPoint(x,y);return el?.closest?.('[data-entity][data-id]')||null;};
+ function setNear(el,side){
+  if(current&&(current!==el||current.dataset.depNear!==side))current.removeAttribute('data-dep-near');
+  current=el;if(el&&side)el.dataset.depNear=side;else current=null;
+ }
+ function update(){
+  frame=0;const e=last;if(!e)return;
+  if(e.pointerType!=='mouse'||e.buttons||document.body.classList.contains('dep-drawing')||state.presentation){setNear(null);return;}
+  // A dot under the pointer keeps its item active even though it lies outside the bar.
+  const port=e.target?.closest?.('[data-dep-port]');
+  if(port){const el=port.closest('[data-entity][data-id]');setNear(el,port.dataset.depPort);return;}
+  const found=new Set([entityAt(e.clientX,e.clientY),entityAt(e.clientX+NEAR,e.clientY),entityAt(e.clientX-NEAR,e.clientY)].filter(Boolean));
+  let best=null;
+  for(const el of found){
+   if(!el.querySelector('[data-dep-port]'))continue;
+   const r=anchorRect(el);if(!r.width||e.clientY<r.top-4||e.clientY>r.bottom+4)continue;
+   for(const [side,edge] of [['start',r.left],['end',r.right]]){
+    const d=Math.abs(e.clientX-edge),inside=side==='start'?e.clientX>=edge:e.clientX<=edge;
+    // Inside the bar only the outer 16px counts; never more than half a short bar.
+    if(d>(inside?Math.min(NEAR,r.width/2):NEAR+6))continue;
+    if(!best||d<best.d)best={el,side,d};
+   }
+  }
+  setNear(best?.el||null,best?.side);
+ }
+ document.addEventListener('pointermove',e=>{last=e;if(!frame)frame=requestAnimationFrame(update);},{passive:true,capture:true});
+ document.addEventListener('pointerleave',()=>{last=null;setNear(null);});
+ document.addEventListener('pointerdown',e=>{if(!e.target.closest?.('[data-dep-port]'))setNear(null);},true);
+})();
+
 document.addEventListener('change',event=>ArcCanvas.change(event));
 document.addEventListener('dragstart',event=>{if(event.target.closest('.canvas-inline-name')){event.preventDefault();return;}if(ArcDeps.isDrawing()||event.target.closest('[data-dep-port],[data-canvas-show-increment]')||document.activeElement?.matches('[data-canvas-show-increment]')&&event.target.closest('[data-board-task]')){event.preventDefault();return;}const card=event.target.closest('[data-board-task]');if(!card)return;ArcCanvas.hideInspector();draggedTask=card.dataset.boardTask;event.dataTransfer.setData('text/plain',draggedTask);event.dataTransfer.effectAllowed='move';card.classList.add('dragging');});
 document.addEventListener('dragover',event=>{const col=event.target.closest('[data-drop-status]');if(col&&draggedTask){event.preventDefault();event.dataTransfer.dropEffect='move';$$('.board-column.drag-over').forEach(x=>x.classList.remove('drag-over'));col.closest('.board-column').classList.add('drag-over');}});
