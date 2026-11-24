@@ -2483,38 +2483,53 @@ const ArcDeps=(()=>{
   for(let i=1;i<pts.length-1;i++){const a=pts[i-1],b=pts[i],c=pts[i+1],ab=Math.hypot(b.x-a.x,b.y-a.y),bc=Math.hypot(c.x-b.x,c.y-b.y),r=Math.min(radius,ab/2,bc/2);if(!ab||!bc)continue;const p={x:b.x-(b.x-a.x)/ab*r,y:b.y-(b.y-a.y)/ab*r},q={x:b.x+(c.x-b.x)/bc*r,y:b.y+(c.y-b.y)/bc*r};d+=` L${p.x},${p.y} Q${b.x},${b.y} ${q.x},${q.y}`;}
   const last=pts[pts.length-1];return d+` L${last.x},${last.y}`;
  }
- function route(from,to,obstacles=[]){
+ function route(from,to,obstacles=[],taken=null){
   // Like a hand-drawn route: besides the default elbows, try running through the gaps
   // just beside nearby obstacles (items, milestone symbols and names) and keep the
-  // shortest path that crosses none of them.
+  // shortest path that crosses none of them. Lanes already used by earlier arrows
+  // (taken) cost extra, so two arrows don't share a line or meet corner to corner.
   const sx=from.x+16,tx=to.x-16;
   const lo=Math.min(from.y,to.y)-90,hi=Math.max(from.y,to.y)+90,left=Math.min(from.x,to.x)-60,right=Math.max(from.x,to.x)+60;
   const near=obstacles.filter(r=>r.bottom>lo&&r.top<hi&&r.right>left&&r.left<right);
+  const pin=p=>Math.round(p.x)+','+Math.round(p.y),ownPins=[pin(from),pin(to)];
+  const busy=(taken||[]).filter(s=>s.h?s.c>lo&&s.c<hi&&s.b>left&&s.a<right:s.c>left&&s.c<right&&s.b>lo&&s.a<hi);
   const uniq=list=>[...new Set(list.map(v=>Math.round(v)))];
   const forward=to.x-from.x>=32;
   const hits=(a,b)=>{for(const r of near){if(Math.abs(a.y-b.y)<.1?a.y>r.top-3&&a.y<r.bottom+3&&Math.max(a.x,b.x)>r.left-3&&Math.min(a.x,b.x)<r.right+3:a.x>r.left-3&&a.x<r.right+3&&Math.max(a.y,b.y)>r.top-3&&Math.min(a.y,b.y)<r.bottom+3)return true;}return false;};
-  // Length plus 8 per segment; 100000 per segment that crosses something. Prefer the usual
-  // 16px clearance at both ends, so tighter turns win only when they avoid an obstacle.
-  // Scoring stops as soon as a candidate can no longer beat the best one.
-  let best=null,bestScore=Infinity;
+  const shared=(a,b)=>{let p=0;const h=Math.abs(a.y-b.y)<.1,c=h?a.y:a.x,lo1=h?Math.min(a.x,b.x):Math.min(a.y,b.y),hi1=h?Math.max(a.x,b.x):Math.max(a.y,b.y);
+   for(const s of busy){if(s.h!==h||Math.abs(s.c-c)>=6||s.anchor&&ownPins.includes(s.anchor))continue;const o=Math.min(hi1,s.b+6)-Math.max(lo1,s.a-6);if(o>0)p+=300+o*2;}return p;};
+  // Length plus 8 per segment; 100000 per segment that crosses something; 300+ for sharing
+  // a lane with another arrow. Prefer the usual 16px clearance at both ends, so tighter
+  // turns win only when they avoid something. Scoring stops once a candidate can't win.
+  let best=null,bestScore=Infinity,bestClean=false;
   const consider=pts=>{
    let total=pts.length>2?Math.max(0,16-Math.abs(pts[1].x-from.x))*3+Math.max(0,16-Math.abs(to.x-pts[pts.length-2].x))*3:0;
+   // Tie-break between equally long routes: turn near the usual spot 16px from the source or target.
+   if(pts.length===4)total+=Math.min(Math.abs(pts[1].x-sx),Math.abs(pts[1].x-tx))*.1;
+   else if(pts.length===6)total+=(Math.abs(pts[1].x-sx)+Math.abs(pts[3].x-tx))*.1;
    for(let i=1;i<pts.length;i++){const a=pts[i-1],b=pts[i];total+=Math.abs(a.x-b.x)+Math.abs(a.y-b.y)+8;if(total>=bestScore)return;}
-   for(let i=1;i<pts.length;i++){if(hits(pts[i-1],pts[i])){total+=100000;if(total>=bestScore)return;}}
-   best=pts;bestScore=total;
+   let clean=true;
+   for(let i=1;i<pts.length;i++){if(hits(pts[i-1],pts[i])){clean=false;total+=100000;if(total>=bestScore)return;}}
+   if(busy.length)for(let i=1;i<pts.length;i++){const p=shared(pts[i-1],pts[i]);if(p){clean=false;total+=p;if(total>=bestScore)return;}}
+   best=pts;bestScore=total;bestClean=clean;
   };
-  // Gaps can be narrow (a name starting just after the source), so turns may sit as close as 4px.
-  const mids=uniq([(from.x+to.x)/2,sx,tx,...near.flatMap(r=>[r.left-8,r.left-5,r.right+5,r.right+8])]).filter(x=>x>=from.x+4&&x<=to.x-4).sort((a,b)=>a-b);
+  // Gaps can be narrow (a name starting just after the source), so turns may sit as close
+  // as 4px; spare lanes 10px either side of the defaults let arrows step around each other.
+  const mids=uniq([(from.x+to.x)/2,sx,tx,sx+10,tx-10,from.x+6,to.x-6,...near.flatMap(r=>[r.left-8,r.left-5,r.right+5,r.right+8])]).filter(x=>x>=from.x+4&&x<=to.x-4).sort((a,b)=>a-b);
   if(to.x>from.x&&Math.abs(to.y-from.y)<1)consider([from,to]);
   if(forward)for(const x of mids)consider([from,{x,y:from.y},{x,y:to.y},to]);
   // A clear single elbow is already the shortest possible; detours can only tie or lose.
-  if(bestScore<100000)return roundedPath(best);
-  const ys=uniq([(from.y+to.y)/2,from.y-30,from.y+30,to.y-30,to.y+30,...near.flatMap(r=>[r.top-7,r.bottom+7])]).filter(y=>y>lo&&y<hi);
-  // Turn-down points near the source and turn-in points near the target.
-  const sxs=forward?mids.filter(x=>x<=(from.x+to.x)/2+1).slice(0,10):[sx];
-  const txs=forward?mids.filter(x=>x>=(from.x+to.x)/2-1).slice(-10):[tx];
-  for(const y of ys){if(to.x<=from.x&&Math.abs(y-from.y)<10&&Math.abs(y-to.y)<10)continue;for(const x1 of sxs)for(const x2 of txs){if(x2<x1&&forward)continue;consider([from,{x:x1,y:from.y},{x:x1,y},{x:x2,y},{x:x2,y:to.y},to]);}}
-  return roundedPath(best||[from,to]);
+  if(!(best&&bestClean)){
+   const ys=uniq([(from.y+to.y)/2,from.y-30,from.y+30,to.y-30,to.y+30,...near.flatMap(r=>[r.top-7,r.bottom+7])]).filter(y=>y>lo&&y<hi);
+   // Turn-down points near the source and turn-in points near the target.
+   const sxs=forward?mids.filter(x=>x<=(from.x+to.x)/2+1).slice(0,10):[sx,sx+10];
+   const txs=forward?mids.filter(x=>x>=(from.x+to.x)/2-1).slice(-10):[tx,tx-10];
+   for(const y of ys){if(to.x<=from.x&&Math.abs(y-from.y)<10&&Math.abs(y-to.y)<10)continue;for(const x1 of sxs)for(const x2 of txs){if(x2<x1&&forward)continue;consider([from,{x:x1,y:from.y},{x:x1,y},{x:x2,y},{x:x2,y:to.y},to]);}}
+  }
+  const pts=best||[from,to];
+  // Stubs remember the item point they attach to: arrows meeting at the same point may share them.
+  if(taken)for(let i=1;i<pts.length;i++){const a=pts[i-1],b=pts[i],h=Math.abs(a.y-b.y)<.1;taken.push({h,c:h?a.y:a.x,a:h?Math.min(a.x,b.x):Math.min(a.y,b.y),b:h?Math.max(a.x,b.x):Math.max(a.y,b.y),anchor:i===1?pin(from):i===pts.length-1?pin(to):''});}
+  return roundedPath(pts);
  }
  function dateConflict(edge){
   const from=getRecord(state.plan,edge.fromType,edge.from),to=getRecord(state.plan,edge.toType,edge.to);if(!from||!to)return false;
@@ -2546,13 +2561,17 @@ const ArcDeps=(()=>{
   for(const port of surface.querySelectorAll('[data-dep-linked]'))port.removeAttribute('data-dep-linked');
   const markLinked=(type,id,side)=>nodes.get(nodeKey(type,id))?.el.querySelector(`:scope [data-dep-port="${side}"]`)?.setAttribute('data-dep-linked','');
   // Milestone names sit outside their item's box, so routes treat them as obstacles too.
+  // Segments of arrows already routed this draw, so later ones avoid sharing their lanes.
+  const takenLanes=[];
   const labelRects=[...surface.querySelectorAll('.canvas-milestone-copy')].map(copy=>{const owner=copy.closest('[data-entity][data-id]'),b=copy.getBoundingClientRect();return {key:owner?nodeKey(owner.dataset.entity,owner.dataset.id):'',rect:{left:b.left-bounds.left,right:b.right-bounds.left,top:b.top-bounds.top,bottom:b.bottom-bounds.top}};}).filter(l=>l.rect.right>l.rect.left);
-  for(const edge of all){
+  // Route left to right by start point: long arrows claim their lanes first and short ones step around them.
+  const startX=e=>nodes.get(nodeKey(e.fromType,e.from))?.rect.right??0;
+  for(const edge of [...all].sort((p,q)=>startX(p)-startX(q))){
    const fromRef={type:edge.fromType,id:edge.from},toRef={type:edge.toType,id:edge.to},a=pointOf(fromRef,'end',surface),b=pointOf(toRef,'start',surface);if(!a||!b)continue;
    markLinked(edge.fromType,edge.from,'end');markLinked(edge.toType,edge.to,'start');
    const isSelected=selected===edge.key,warning=dateConflict(edge),fromName=getRecord(state.plan,edge.fromType,edge.from)?.title||'Item',toName=getRecord(state.plan,edge.toType,edge.to)?.title||'Item';
    const ends=[nodeKey(edge.fromType,edge.from),nodeKey(edge.toType,edge.to)];
-   const obstacles=[...nodes.entries()].filter(([key])=>!ends.includes(key)).map(([,n])=>n.rect).concat(labelRects.filter(l=>!ends.includes(l.key)).map(l=>l.rect)),path=route(a,b,obstacles);
+   const obstacles=[...nodes.entries()].filter(([key])=>!ends.includes(key)).map(([,n])=>n.rect).concat(labelRects.filter(l=>!ends.includes(l.key)).map(l=>l.rect)),path=route(a,b,obstacles,takenLanes);
    const classes=`arc-dep-line${isSelected?' is-selected':''}${warning?' is-warning':''}${(active||armed)?.reconnect?.key===edge.key?' is-reconnecting':''}`;
    html+=`<path class="${classes}" d="${path}" marker-end="url(#${isSelected?'arc-dep-selected':warning?'arc-dep-warning':'arc-dep-arrow'})"/><path class="arc-dep-hit" d="${path}" data-dep-edge="${esc(edge.key)}" role="button" tabindex="0" aria-label="Dependency: ${esc(fromName)} is a prerequisite of ${esc(toName)}. Select to reconnect or remove."><title>${esc(fromName)} → ${esc(toName)}${warning?' · Dates need attention':''}</title></path>`;
    if(isSelected&&!active&&!armed)endpointHTML+=`<circle class="arc-dep-endpoint" cx="${a.x}" cy="${a.y}" r="7" data-dep-edge="${esc(edge.key)}" data-dep-endpoint="from" role="button" tabindex="0" aria-label="Reconnect prerequisite"/><circle class="arc-dep-endpoint" cx="${b.x}" cy="${b.y}" r="7" data-dep-edge="${esc(edge.key)}" data-dep-endpoint="to" role="button" tabindex="0" aria-label="Reconnect dependent"/>`;
