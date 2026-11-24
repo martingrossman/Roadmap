@@ -913,7 +913,8 @@ body:has(#dependencySelection:not(:empty)):not(.dep-drawing) [data-entity][data-
 /* Compact workstreams: no empty "new row" strip at rest; it appears only while a
    bar is being dragged, so a bar can still be dropped into a row of its own. */
 .swimlane-view .swimlane-lane.canvas-add-row{display:none}
-.swimlane-view:has(.canvas-dragging) .swimlane-lane.canvas-add-row{display:block}
+/* While dragging an initiative, only the workstream under the pointer offers its empty "new row" lane; nothing else grows. */
+.swimlane-view:has(.canvas-dragging[data-entity="initiative"]) .swimlane-group.canvas-drop-target .swimlane-lane.canvas-add-row{display:block}
 .swimlane-group:not(.is-collapsed),.swimlane-group:not(.is-collapsed) .swimlane-label,.swimlane-group:not(.is-collapsed) .swimlane-lanes{min-height:42px}
 .swimlane-group:not(.is-collapsed) .swimlane-toggle{padding-top:5px;padding-bottom:5px;gap:2px}
 
