@@ -935,6 +935,8 @@ body [data-entity][data-id]:has([contenteditable]){outline:0!important}
 /* White fill across the label area; the 4px white spread pads it without moving the text. */
 body .canvas-inline-name[data-title][contenteditable],body .canvas-inline-name[data-title][contenteditable]:focus{background:#fff!important;color:#203d43!important;padding:0!important;border-radius:2px!important;box-shadow:0 0 0 4px #fff!important;outline:0!important;flex:1 1 auto;width:100%!important;min-width:1ch!important;max-width:none!important;line-height:inherit!important;caret-color:#174c3b}
 body [data-entity][data-id]:has([contenteditable]) .canvas-grip{width:0!important}
+/* Milestone names sit above arrows and grid/today lines; a halo in the band colour breaks those lines around the letters only, so nothing is hidden behind a box. */
+.canvas-milestone>.canvas-milestone-copy{z-index:6;text-shadow:0 0 1px var(--ms-bg,#fff),0 0 2px var(--ms-bg,#fff),0 0 3px var(--ms-bg,#fff),0 0 4px var(--ms-bg,#fff),0 0 5px var(--ms-bg,#fff)}
 .canvas-increment-group:has(.canvas-increment [contenteditable]){height:var(--increment-group-height)!important}
 [data-entity][data-id]:not(.canvas-milestone-flat):not(.canvas-milestone-on-bar) [data-dep-port="start"]{left:-19px;right:auto}
 [data-entity][data-id]:not(.canvas-milestone-flat):not(.canvas-milestone-on-bar) [data-dep-port="end"]{right:-19px;left:auto}
@@ -2542,9 +2544,11 @@ function layoutMilestoneLabels(){
    if(tier<0){tier=ends.length;ends.push(0);}
    ends[tier]=d.start+d.w;d.tier=tier;
   });
-  const rows=Math.max(1,ends.length),markerTop=TOP+rows*ROW+4,bg=getComputedStyle(track).backgroundColor;
+  const rows=Math.max(1,ends.length),markerTop=TOP+rows*ROW+4;
+  // The first painted background behind the labels, used for the text halo.
+  let bg='',node=track;while(node&&node!==document.documentElement){const c=getComputedStyle(node).backgroundColor;if(c&&c!=='transparent'&&!(c.startsWith('rgba')&&c.replace(/\s/g,'').endsWith(',0)'))){bg=c;break;}node=node.parentElement;}
   track.style.setProperty('--ms-marker-top',markerTop+'px');
-  track.style.setProperty('--ms-bg',!bg||bg==='rgba(0, 0, 0, 0)'||bg==='transparent'?'#fff':bg);
+  track.style.setProperty('--ms-bg',bg||'#fff');
   data.forEach(d=>{
    // The marker box starts 12px left of its date (translateX(-12px)).
    d.el.style.setProperty('--ms-label-left',(d.start-(d.x-12))+'px');
