@@ -1,3 +1,8 @@
+# Backlog
 
-IM1 - Chnage Freeze button to side of  dateline row as small lock icon ![[Pasted image 20261124084155.png]]IM2 - Change "Filters" name on button to "Show/hide"
-IM3 - start with default depndencies show on
+- **IM1** – Change the Freeze button to a small lock icon at the side of the date row.
+
+  ![Freeze button today](../Pasted%20image%2020261124084155.png)
+
+- **IM2** – Rename the "Filters" button to "Show/hide".
+- **IM3** – Show dependencies by default.
