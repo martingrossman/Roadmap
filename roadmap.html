@@ -60,7 +60,7 @@ body.drawer-open{overflow:hidden}.detail-overlay{height:100dvh}.detail-panel{max
 .swimlane-milestone-label .swimlane-milestone-add:hover{color:#fff;background:#ffffff24}
 .swimlane-lane-milestones{flex:0 0 auto;min-height:54px}
 .lane-add-menu{min-width:230px}
-.canvas-milestone.canvas-dragging{outline:0!important;box-shadow:none!important}
+.canvas-milestone:is(.canvas-dragging,.canvas-pressing){outline:0!important;box-shadow:none!important}
 /* Board: a card dragged with the pointer follows it as a floating copy; the column under it is highlighted. */
 .board-drag-preview{position:fixed;z-index:200;pointer-events:none;margin:0;transform:rotate(1.5deg);box-shadow:0 14px 34px #203d4740;opacity:.95}
 .board-card.is-board-dragging{opacity:.35}
@@ -3760,6 +3760,8 @@ const RoadmapCanvas=(()=>{
    const start=day(point?item.date:item.start),end=day(point?item.date:item.end),scroll=track.closest('.timeline-scroll');
    select(target.type,target.id,true);
    gesture={kind,type:target.type,id:target.id,el:target.element,track,canvas:track.closest('.timeline'),pointerId:event.pointerId,x:event.clientX,y:event.clientY,grabY:event.clientY-target.element.getBoundingClientRect().top,windowScrollY:window.scrollY,width:track.getBoundingClientRect().width,r:timelineRange(),start,end,newStart:start,newEnd:end,stream:item.stream,newStream:item.stream,increment:item.increment||'',newIncrement:item.increment||'',moved:false,style:target.element.style.cssText,scroll,scrollLeft:scroll?.scrollLeft||0};
+   // No selection outline on a milestone while it is pressed or dragged; it shows again on release.
+   if(target.type==='milestone')target.element.classList.add('canvas-pressing');
    if(event.pointerType==='touch')event.preventDefault();return true;
   }
   const origin=event.target.closest('[data-canvas-track]');
@@ -3972,7 +3974,7 @@ const RoadmapCanvas=(()=>{
    const end=d.moved?d.newEnd:Math.min(d.newStart+27,timelineRange().end-1);positionGhost(d.ghost,d.type,d.newStart,d.type==='milestone'?d.newStart:end);
    quickAdd(d.type,{start:iso(d.newStart),end:iso(end),date:iso(d.newStart),stream:d.stream,increment:d.increment,track:d.track,ghost:d.ghost,anchor:{x:event?.clientX??d.x,y:event?.clientY??d.y}});return true;
   }
-  d.ghost?.remove();d.el.classList.remove('canvas-dragging');d.el.style.cssText=d.style;
+  d.ghost?.remove();d.el.classList.remove('canvas-dragging','canvas-pressing');d.el.style.cssText=d.style;
   if(d.moved){
    ignoreClickUntil=performance.now()+450;suppressClickUntil=ignoreClickUntil;
    if((d.type==='initiative'||d.type==='milestone'&&['swimlane','timeline'].includes(state.view))&&d.kind==='move'&&!d.validDrop)cancelled=true;
