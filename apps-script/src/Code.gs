@@ -1,5 +1,5 @@
 /**
- * Arc planner — Google Sheets backend.
+ * Roadmap planner — Google Sheets backend.
  *
  * The Sheet is the source of truth. Every record lives on its own row:
  *   Settings     key / value rows for plan-level fields
@@ -16,7 +16,7 @@
  * directly in the Sheet).
  */
 
-const ARC_ENUMS = {
+const ROADMAP_ENUMS = {
   status: ['planned', 'discovery', 'building', 'review', 'done'],
   priority: ['critical', 'high', 'medium', 'low'],
   health: ['on_track', 'at_risk', 'blocked'],
@@ -27,16 +27,16 @@ const ARC_ENUMS = {
 };
 
 // Friendly spellings people may type in the Sheet → stored value.
-const ARC_ENUM_ALIASES = {
+const ROADMAP_ENUM_ALIASES = {
   in_review: 'review', reviewing: 'review', complete: 'done', completed: 'done',
   ontrack: 'on_track', atrisk: 'at_risk', red: 'rose'
 };
 
-const ARC_SETTINGS_SHEET = 'Settings';
-const ARC_META_KEYS = ['lastSavedAt', 'lastSavedBy'];
-const ARC_SETTINGS_ORDER = ['name', 'description', 'year', 'reviewDateMode', 'reviewDate', 'timelineColor', 'example', 'id',
+const ROADMAP_SETTINGS_SHEET = 'Settings';
+const ROADMAP_META_KEYS = ['lastSavedAt', 'lastSavedBy'];
+const ROADMAP_SETTINGS_ORDER = ['name', 'description', 'year', 'reviewDateMode', 'reviewDate', 'timelineColor', 'example', 'id',
   'colorScheme', 'customColorSchemes', 'customPaletteRecipes'];
-const ARC_SETTINGS_HELP = {
+const ROADMAP_SETTINGS_HELP = {
   name: 'Plan name shown in the planner',
   description: 'Short plan description',
   year: 'Default roadmap year',
@@ -53,7 +53,7 @@ const ARC_SETTINGS_HELP = {
 };
 
 // One entry per tab. `field` is the plan property, `header` the column title.
-const ARC_TABS = [
+const ROADMAP_TABS = [
   { key: 'workstreams', sheet: 'Workstreams', cols: [
     { field: 'id' },
     { field: 'name' },
@@ -118,11 +118,11 @@ const ARC_TABS = [
     { field: 'to' }
   ] }
 ];
-const ARC_REQUIRED = {"workstreams":["name"],"initiatives":["title","stream","start","end"],"outcomes":["title","metric","baseline","target","due"],"milestones":["title","date"],"increments":["title","start","end"],"connections":["fromType","from","toType","to"]};
-ARC_TABS.forEach(tab => tab.cols.forEach(c => {
+const ROADMAP_REQUIRED = {"workstreams":["name"],"initiatives":["title","stream","start","end"],"outcomes":["title","metric","baseline","target","due"],"milestones":["title","date"],"increments":["title","start","end"],"connections":["fromType","from","toType","to"]};
+ROADMAP_TABS.forEach(tab => tab.cols.forEach(c => {
   c.header = c.header || c.field;
   c.type = c.type || 'text';
-  c.required = (ARC_REQUIRED[tab.key] || []).indexOf(c.field) >= 0;
+  c.required = (ROADMAP_REQUIRED[tab.key] || []).indexOf(c.field) >= 0;
 }));
 
 /* ------------------------------------------------------------------ */
@@ -130,17 +130,20 @@ ARC_TABS.forEach(tab => tab.cols.forEach(c => {
 /* ------------------------------------------------------------------ */
 
 function onOpen() {
-  SpreadsheetApp.getUi().createMenu('Arc')
-    .addItem('Open planner', 'openPlanner')
-    .addItem('Set planner link…', 'setPlannerLink')
+  // Menus cannot show images, so an emoji makes the menu easy to spot in the menu bar.
+  SpreadsheetApp.getUi().createMenu('🗺️ Roadmap')
+    .addItem('🚀 Open planner', 'openPlanner')
+    .addItem('🔗 Set planner link…', 'setPlannerLink')
     .addSeparator()
-    .addItem('Reapply tab formatting', 'reapplyFormatting')
+    .addItem('🎨 Reapply tab formatting', 'reapplyFormatting')
     .addToUi();
+  // Point people at the menu each time the Sheet opens.
+  SpreadsheetApp.getActiveSpreadsheet().toast('Open the planner from the 🗺️ Roadmap menu.', '🗺️ Roadmap planner', 8);
 }
 
 // The deployed web app link: https://script.google.com/[a/macros/<domain>/]macros/s/<id>/exec
 // (Workspace links look like https://script.google.com/a/macros/<domain>/s/<id>/exec.)
-const ARC_WEB_APP_URL_RE = /^https:\/\/script\.google\.com\/(?:a\/macros\/[^\/\s]+\/|macros\/)s\/[\w-]+\/exec$/;
+const ROADMAP_WEB_APP_URL_RE = /^https:\/\/script\.google\.com\/(?:a\/macros\/[^\/\s]+\/|macros\/)s\/[\w-]+\/exec$/;
 
 /**
  * Asks for the web app's /exec link and stores it as the WEB_APP_URL script property.
@@ -158,7 +161,7 @@ function setPlannerLink() {
     const res = ui.prompt('Planner link', hint, ui.ButtonSet.OK_CANCEL);
     if (res.getSelectedButton() !== ui.Button.OK) return null;
     const url = res.getResponseText().trim().replace(/[?#].*$/, '');
-    if (ARC_WEB_APP_URL_RE.test(url)) {
+    if (ROADMAP_WEB_APP_URL_RE.test(url)) {
       props.setProperty('WEB_APP_URL', url);
       return url;
     }
@@ -175,28 +178,28 @@ function openPlanner() {
   props.setProperty('SPREADSHEET_ID', ss.getId());
   let url = props.getProperty('WEB_APP_URL');
   // Set by apps-script/deploy.mjs in Deployment.gs; used when no link was saved by hand.
-  if (!url || !ARC_WEB_APP_URL_RE.test(url)) url = typeof ARC_DEPLOYED_URL === 'string' ? ARC_DEPLOYED_URL : '';
-  if (!url || !ARC_WEB_APP_URL_RE.test(url)) url = setPlannerLink();
+  if (!url || !ROADMAP_WEB_APP_URL_RE.test(url)) url = typeof ROADMAP_DEPLOYED_URL === 'string' ? ROADMAP_DEPLOYED_URL : '';
+  if (!url || !ROADMAP_WEB_APP_URL_RE.test(url)) url = setPlannerLink();
   if (!url) return;
-  const safe = arcEscapeHtml_(url);
+  const safe = roadmapEscapeHtml_(url);
   const html = HtmlService.createHtmlOutput(
     '<div style="font:14px/1.5 Arial,sans-serif;padding:4px 2px">' +
     '<p style="margin:0 0 14px">The planner opens in a new browser tab.</p>' +
     '<a href="' + safe + '" target="_blank" rel="noopener" onclick="setTimeout(function(){google.script.host.close()},400)" ' +
-    'style="display:inline-block;background:#276d51;color:#fff;padding:9px 16px;border-radius:6px;text-decoration:none;font-weight:600">Open Arc planner</a>' +
+    'style="display:inline-block;background:#276d51;color:#fff;padding:9px 16px;border-radius:6px;text-decoration:none;font-weight:600">Open Roadmap planner</a>' +
     '</div>'
   ).setWidth(320).setHeight(120);
-  SpreadsheetApp.getUi().showModelessDialog(html, 'Arc planner');
+  SpreadsheetApp.getUi().showModelessDialog(html, 'Roadmap planner');
 }
 
 function reapplyFormatting() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  arcEnsureSheets_(ss);
-  ARC_TABS.forEach(tab => {
+  roadmapEnsureSheets_(ss);
+  ROADMAP_TABS.forEach(tab => {
     const sh = ss.getSheetByName(tab.sheet);
-    arcFormatTab_(ss, sh, tab, arcHeaders_(sh));
+    roadmapFormatTab_(ss, sh, tab, roadmapHeaders_(sh));
   });
-  arcFormatSettings_(ss.getSheetByName(ARC_SETTINGS_SHEET));
+  roadmapFormatSettings_(ss.getSheetByName(ROADMAP_SETTINGS_SHEET));
 }
 
 /* ------------------------------------------------------------------ */
@@ -206,33 +209,33 @@ function reapplyFormatting() {
 function doGet() {
   const boot = { plan: null, revision: null, error: null };
   try {
-    const current = arcRead_(arcSpreadsheet_());
+    const current = roadmapRead_(roadmapSpreadsheet_());
     boot.plan = current.plan;
     boot.revision = current.revision;
     boot.problems = current.problems || [];
     boot.savedBy = current.savedBy;
     boot.savedAt = current.savedAt;
   } catch (err) {
-    boot.error = arcMessage_(err);
+    boot.error = roadmapMessage_(err);
   }
   const html = HtmlService.createHtmlOutputFromFile('Index').getContent();
-  const marker = '/*ARC_SHEET_BOOT*/null';
-  if (html.indexOf(marker) < 0) throw new Error('Index.html is missing the ARC_SHEET_BOOT marker. Rebuild it with build.mjs.');
+  const marker = '/*ROADMAP_SHEET_BOOT*/null';
+  if (html.indexOf(marker) < 0) throw new Error('Index.html is missing the ROADMAP_SHEET_BOOT marker. Rebuild it with build.mjs.');
   const json = JSON.stringify(boot).replace(/</g, '\\u003c');
-  const name = boot.plan && boot.plan.name ? boot.plan.name : 'Arc';
+  const name = boot.plan && boot.plan.name ? boot.plan.name : 'Roadmap';
   return HtmlService.createHtmlOutput(html.replace(marker, () => json))
-    .setTitle(name + ' — Arc')
+    .setTitle(name + ' — Roadmap')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1, viewport-fit=cover');
 }
 
 /** Returns the current plan and its revision hash. */
 function getPlan() {
-  return arcRead_(arcSpreadsheet_());
+  return roadmapRead_(roadmapSpreadsheet_());
 }
 
 /** Cheap-enough change check used by the planner when it regains focus. */
 function getRevision() {
-  const current = arcRead_(arcSpreadsheet_());
+  const current = roadmapRead_(roadmapSpreadsheet_());
   return { revision: current.revision, savedBy: current.savedBy, savedAt: current.savedAt };
 }
 
@@ -245,18 +248,18 @@ function savePlan(json, baseRevision, force) {
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(20000)) throw new Error('The Sheet is busy saving another change. Try again in a moment.');
   try {
-    const ss = arcSpreadsheet_();
+    const ss = roadmapSpreadsheet_();
     let current = null;
-    try { current = arcRead_(ss); } catch (err) { current = { revision: 'unreadable', error: arcMessage_(err) }; }
+    try { current = roadmapRead_(ss); } catch (err) { current = { revision: 'unreadable', error: roadmapMessage_(err) }; }
     if (!force && current.revision !== baseRevision) {
       return { ok: false, conflict: true, plan: current.plan || null, revision: current.revision,
         savedBy: current.savedBy || '', savedAt: current.savedAt || '', error: current.error || null };
     }
     const plan = JSON.parse(json);
-    arcCheckShape_(plan);
-    arcWrite_(ss, plan);
+    roadmapCheckShape_(plan);
+    roadmapWrite_(ss, plan);
     SpreadsheetApp.flush();
-    const after = arcRead_(ss);
+    const after = roadmapRead_(ss);
     return { ok: true, revision: after.revision, savedBy: after.savedBy, savedAt: after.savedAt };
   } finally {
     lock.releaseLock();
@@ -276,18 +279,18 @@ function getPdfEngine() {
 /* Reading                                                             */
 /* ------------------------------------------------------------------ */
 
-function arcSpreadsheet_() {
+function roadmapSpreadsheet_() {
   let active = null;
   try { active = SpreadsheetApp.getActiveSpreadsheet(); } catch (err) { active = null; }
   if (active) return active;
   const id = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
   if (id) return SpreadsheetApp.openById(id);
-  throw new Error('The planner does not know which Sheet to use yet. Open the Sheet and choose Arc → Open planner once.');
+  throw new Error('The planner does not know which Sheet to use yet. Open the Sheet and choose 🗺️ Roadmap → Open planner once.');
 }
 
 /** Reads the plan from the tabs. plan is null when the Sheet has not been set up yet. */
-function arcRead_(ss) {
-  const settings = ss.getSheetByName(ARC_SETTINGS_SHEET);
+function roadmapRead_(ss) {
+  const settings = ss.getSheetByName(ROADMAP_SETTINGS_SHEET);
   if (!settings) return { plan: null, revision: 'empty', savedBy: '', savedAt: '' };
   const tz = ss.getSpreadsheetTimeZone();
   const plan = { schemaVersion: 1 };
@@ -296,29 +299,29 @@ function arcRead_(ss) {
   for (let r = 1; r < rows.length; r++) {
     const key = String(rows[r][0]).trim();
     if (!key || key === 'schemaVersion') continue;
-    if (ARC_META_KEYS.indexOf(key) >= 0) { meta[key] = arcCellText_(rows[r][1], tz); continue; }
-    plan[key] = arcParseSetting_(key, rows[r][1], tz);
+    if (ROADMAP_META_KEYS.indexOf(key) >= 0) { meta[key] = roadmapCellText_(rows[r][1], tz); continue; }
+    plan[key] = roadmapParseSetting_(key, rows[r][1], tz);
   }
   const problems = [], rowOf = {};
-  ARC_TABS.forEach(tab => {
+  ROADMAP_TABS.forEach(tab => {
     rowOf[tab.key] = {};
-    plan[tab.key] = arcReadTab_(ss, tab, tz, problems, rowOf[tab.key]);
+    plan[tab.key] = roadmapReadTab_(ss, tab, tz, problems, rowOf[tab.key]);
   });
-  arcCheckRefs_(plan, rowOf, problems);
-  const revision = arcHash_(JSON.stringify(plan));
+  roadmapCheckRefs_(plan, rowOf, problems);
+  const revision = roadmapHash_(JSON.stringify(plan));
   return { plan: plan, revision: revision, problems: problems.slice(0, 25),
     savedBy: meta.lastSavedBy || '', savedAt: meta.lastSavedAt || '' };
 }
 
 /** Points at links between tabs that lead nowhere, by tab and row. */
-function arcCheckRefs_(plan, rowOf, problems) {
+function roadmapCheckRefs_(plan, rowOf, problems) {
   const ids = key => new Set((plan[key] || []).map(r => r.id));
   const sets = { workstreams: ids('workstreams'), outcomes: ids('outcomes'), increments: ids('increments'),
     initiatives: ids('initiatives'), milestones: ids('milestones') };
-  const at = (key, rec) => arcTabName_(key) + ' row ' + rowOf[key][rec.id] + ' (' + (rec.title || rec.name || rec.id) + ')';
+  const at = (key, rec) => roadmapTabName_(key) + ' row ' + rowOf[key][rec.id] + ' (' + (rec.title || rec.name || rec.id) + ')';
   const check = (key, field, target, many) => (plan[key] || []).forEach(rec => {
     const values = many ? rec[field] || [] : rec[field] ? [rec[field]] : [];
-    values.forEach(v => { if (!sets[target].has(v)) problems.push(at(key, rec) + ': ' + (field === 'stream' ? 'workstream' : field) + ' "' + v + '" is not an id on the ' + arcTabName_(target) + ' tab.'); });
+    values.forEach(v => { if (!sets[target].has(v)) problems.push(at(key, rec) + ': ' + (field === 'stream' ? 'workstream' : field) + ' "' + v + '" is not an id on the ' + roadmapTabName_(target) + ' tab.'); });
   });
   check('initiatives', 'stream', 'workstreams');
   check('initiatives', 'outcome', 'outcomes');
@@ -328,12 +331,12 @@ function arcCheckRefs_(plan, rowOf, problems) {
   check('milestones', 'initiatives', 'initiatives', true);
 }
 
-function arcTabName_(key) { const tab = ARC_TABS.filter(t => t.key === key)[0]; return tab ? tab.sheet : key; }
+function roadmapTabName_(key) { const tab = ROADMAP_TABS.filter(t => t.key === key)[0]; return tab ? tab.sheet : key; }
 
-function arcParseSetting_(key, value, tz) {
+function roadmapParseSetting_(key, value, tz) {
   if (key === 'year') return value === '' ? '' : Number(value);
-  if (key === 'example') return arcBool_(value);
-  if (value instanceof Date) return arcDate_(value, tz);
+  if (key === 'example') return roadmapBool_(value);
+  if (value instanceof Date) return roadmapDate_(value, tz);
   const text = String(value).trim();
   if (/^[\[{]/.test(text)) {
     try { return JSON.parse(text); } catch (err) { throw new Error('Settings → ' + key + ' is not valid JSON.'); }
@@ -341,19 +344,19 @@ function arcParseSetting_(key, value, tz) {
   return text;
 }
 
-function arcReadTab_(ss, tab, tz, problems, rowOf) {
+function roadmapReadTab_(ss, tab, tz, problems, rowOf) {
   const sh = ss.getSheetByName(tab.sheet);
   if (!sh) return [];
   const values = sh.getDataRange().getValues();
   if (!values.length) return [];
-  const index = arcColumnIndex_(values[0], tab);
+  const index = roadmapColumnIndex_(values[0], tab);
   if (index.id < 0) throw new Error('The ' + tab.sheet + ' tab needs an "id" column.');
   const records = [];
   for (let r = 1; r < values.length; r++) {
     const row = values[r];
-    const blank = tab.cols.every(c => index[c.field] < 0 || c.type === 'bool' || arcIsBlank_(row[index[c.field]]));
+    const blank = tab.cols.every(c => index[c.field] < 0 || c.type === 'bool' || roadmapIsBlank_(row[index[c.field]]));
     if (blank) continue;
-    let id = arcCellText_(row[index.id], tz);
+    let id = roadmapCellText_(row[index.id], tz);
     if (!id) {
       // Someone added a row by hand: give it an id so the planner can track it.
       id = Utilities.getUuid();
@@ -368,13 +371,13 @@ function arcReadTab_(ss, tab, tz, problems, rowOf) {
       if (c.field === 'id') return;
       const at = index[c.field];
       const raw = at < 0 ? '' : row[at];
-      const value = arcFromCell_(c, raw, tz);
+      const value = roadmapFromCell_(c, raw, tz);
       rec[c.field] = value;
       if (!problems) return;
-      if (c.required && arcIsBlank_(raw)) problems.push(where + ': ' + c.header + ' is empty.');
+      if (c.required && roadmapIsBlank_(raw)) problems.push(where + ': ' + c.header + ' is empty.');
       else if (c.type === 'date' && value && !/^\d{4}-\d{2}-\d{2}$/.test(value)) problems.push(where + ': ' + c.header + ' "' + value + '" must be a date like 2027-03-15.');
       else if (c.type === 'number' && value !== '' && !isFinite(value)) problems.push(where + ': ' + c.header + ' "' + raw + '" must be a number.');
-      else if (c.type === 'enum' && value && ARC_ENUMS[c.values].indexOf(value) < 0) problems.push(where + ': ' + c.header + ' "' + raw + '" must be one of ' + ARC_ENUMS[c.values].slice(0, 6).join(', ') + '.');
+      else if (c.type === 'enum' && value && ROADMAP_ENUMS[c.values].indexOf(value) < 0) problems.push(where + ': ' + c.header + ' "' + raw + '" must be one of ' + ROADMAP_ENUMS[c.values].slice(0, 6).join(', ') + '.');
     });
     if (rowOf) rowOf[id] = r + 1;
     records.push(rec);
@@ -382,29 +385,29 @@ function arcReadTab_(ss, tab, tz, problems, rowOf) {
   return records;
 }
 
-function arcFromCell_(col, value, tz) {
+function roadmapFromCell_(col, value, tz) {
   switch (col.type) {
     case 'number':
-      if (arcIsBlank_(value)) return col.blank !== undefined ? col.blank : '';
+      if (roadmapIsBlank_(value)) return col.blank !== undefined ? col.blank : '';
       return typeof value === 'number' ? value : Number(String(value).replace(/[%\s]/g, '').replace(',', '.'));
     case 'bool':
-      return arcBool_(value);
+      return roadmapBool_(value);
     case 'date':
-      return value instanceof Date ? arcDate_(value, tz) : arcNormalizeDate_(String(value).trim());
+      return value instanceof Date ? roadmapDate_(value, tz) : roadmapNormalizeDate_(String(value).trim());
     case 'list':
       return String(value).split(/[\s,;]+/).map(s => s.trim()).filter(Boolean);
     case 'enum': {
       const text = String(value).trim().toLowerCase().replace(/[\s-]+/g, '_');
       // Empty → the column default, or undefined so the planner applies its own default.
       if (!text) return col.blank;
-      return ARC_ENUM_ALIASES[text] || ARC_ENUM_ALIASES[text.replace(/_/g, '')] || text;
+      return ROADMAP_ENUM_ALIASES[text] || ROADMAP_ENUM_ALIASES[text.replace(/_/g, '')] || text;
     }
     default:
-      return arcCellText_(value, tz);
+      return roadmapCellText_(value, tz);
   }
 }
 
-function arcColumnIndex_(headerRow, tab) {
+function roadmapColumnIndex_(headerRow, tab) {
   const norm = h => String(h).trim().toLowerCase().replace(/\s*\(.*\)\s*$/, '');
   const headers = headerRow.map(norm);
   const index = {};
@@ -420,45 +423,45 @@ function arcColumnIndex_(headerRow, tab) {
 /* Writing                                                             */
 /* ------------------------------------------------------------------ */
 
-function arcWrite_(ss, plan) {
-  const created = arcEnsureSheets_(ss);
-  arcWriteSettings_(ss.getSheetByName(ARC_SETTINGS_SHEET), plan, created[ARC_SETTINGS_SHEET]);
-  ARC_TABS.forEach(tab => arcWriteTab_(ss, tab, plan[tab.key] || [], created[tab.sheet]));
+function roadmapWrite_(ss, plan) {
+  const created = roadmapEnsureSheets_(ss);
+  roadmapWriteSettings_(ss.getSheetByName(ROADMAP_SETTINGS_SHEET), plan, created[ROADMAP_SETTINGS_SHEET]);
+  ROADMAP_TABS.forEach(tab => roadmapWriteTab_(ss, tab, plan[tab.key] || [], created[tab.sheet]));
 }
 
 /** Creates any missing tabs (in a sensible order) and reports which were new. */
-function arcEnsureSheets_(ss) {
+function roadmapEnsureSheets_(ss) {
   const created = {};
-  [ARC_SETTINGS_SHEET].concat(ARC_TABS.map(t => t.sheet)).forEach(name => {
+  [ROADMAP_SETTINGS_SHEET].concat(ROADMAP_TABS.map(t => t.sheet)).forEach(name => {
     if (!ss.getSheetByName(name)) { ss.insertSheet(name, ss.getSheets().length); created[name] = true; }
   });
   // A brand-new spreadsheet has an empty "Sheet1"; remove it once our tabs exist.
   const blank = ss.getSheetByName('Sheet1');
-  if (blank && created[ARC_SETTINGS_SHEET] && blank.getLastRow() === 0 && ss.getSheets().length > 1) ss.deleteSheet(blank);
+  if (blank && created[ROADMAP_SETTINGS_SHEET] && blank.getLastRow() === 0 && ss.getSheets().length > 1) ss.deleteSheet(blank);
   return created;
 }
 
-function arcWriteSettings_(sh, plan, isNew) {
-  const keys = ARC_SETTINGS_ORDER.filter(k => k in plan)
-    .concat(Object.keys(plan).filter(k => ARC_SETTINGS_ORDER.indexOf(k) < 0 && k !== 'schemaVersion' &&
-      !ARC_TABS.some(t => t.key === k)));
+function roadmapWriteSettings_(sh, plan, isNew) {
+  const keys = ROADMAP_SETTINGS_ORDER.filter(k => k in plan)
+    .concat(Object.keys(plan).filter(k => ROADMAP_SETTINGS_ORDER.indexOf(k) < 0 && k !== 'schemaVersion' &&
+      !ROADMAP_TABS.some(t => t.key === k)));
   const rows = [['key', 'value', 'about']];
   keys.forEach(k => {
     const v = plan[k];
-    rows.push([k, v !== null && typeof v === 'object' ? JSON.stringify(v) : v, ARC_SETTINGS_HELP[k] || '']);
+    rows.push([k, v !== null && typeof v === 'object' ? JSON.stringify(v) : v, ROADMAP_SETTINGS_HELP[k] || '']);
   });
-  rows.push(['lastSavedAt', Utilities.formatDate(new Date(), 'UTC', "yyyy-MM-dd HH:mm 'UTC'"), ARC_SETTINGS_HELP.lastSavedAt]);
-  rows.push(['lastSavedBy', arcUser_(), ARC_SETTINGS_HELP.lastSavedBy]);
-  if (isNew) arcFormatSettings_(sh);
+  rows.push(['lastSavedAt', Utilities.formatDate(new Date(), 'UTC', "yyyy-MM-dd HH:mm 'UTC'"), ROADMAP_SETTINGS_HELP.lastSavedAt]);
+  rows.push(['lastSavedBy', roadmapUser_(), ROADMAP_SETTINGS_HELP.lastSavedBy]);
+  if (isNew) roadmapFormatSettings_(sh);
   sh.clearContents();
   sh.getRange(1, 1, rows.length, 3).setValues(rows);
 }
 
-function arcWriteTab_(ss, tab, records, isNew) {
+function roadmapWriteTab_(ss, tab, records, isNew) {
   const sh = ss.getSheetByName(tab.sheet);
   const existing = sh.getLastRow() > 0 ? sh.getDataRange().getValues() : [];
   const oldHeaders = existing.length ? existing[0].map(h => String(h)) : [];
-  const oldIndex = arcColumnIndex_(oldHeaders, tab);
+  const oldIndex = roadmapColumnIndex_(oldHeaders, tab);
   const canonicalAt = new Set(tab.cols.map(c => oldIndex[c.field]).filter(i => i >= 0));
 
   // Columns people added themselves are kept and follow their row's id.
@@ -475,19 +478,19 @@ function arcWriteTab_(ss, tab, records, isNew) {
   const headers = tab.cols.map(c => c.header).concat(extras.map(x => x.header));
   const out = [headers];
   records.forEach(rec => {
-    const row = tab.cols.map(c => arcToCell_(c, rec[c.field]));
+    const row = tab.cols.map(c => roadmapToCell_(c, rec[c.field]));
     out.push(row.concat(extraById[rec.id] || extras.map(() => '')));
   });
 
   const layoutChanged = isNew || oldHeaders.slice(0, tab.cols.length).join('\u0001') !== headers.slice(0, tab.cols.length).join('\u0001');
   if (sh.getMaxColumns() < headers.length) sh.insertColumnsAfter(sh.getMaxColumns(), headers.length - sh.getMaxColumns());
   if (sh.getMaxRows() < out.length + 1) sh.insertRowsAfter(sh.getMaxRows(), out.length + 1 - sh.getMaxRows());
-  if (layoutChanged) arcFormatTab_(ss, sh, tab, headers);
+  if (layoutChanged) roadmapFormatTab_(ss, sh, tab, headers);
   sh.getRange(1, 1, Math.max(existing.length, 1), Math.max(oldHeaders.length, headers.length)).clearContent();
   sh.getRange(1, 1, out.length, headers.length).setValues(out);
 }
 
-function arcToCell_(col, value) {
+function roadmapToCell_(col, value) {
   if (value === undefined || value === null) return col.type === 'bool' ? false : '';
   if (col.type === 'list') return (value || []).join(', ');
   if (col.type === 'bool') return value === true;
@@ -498,11 +501,11 @@ function arcToCell_(col, value) {
 /* Formatting                                                          */
 /* ------------------------------------------------------------------ */
 
-function arcFormatTab_(ss, sh, tab, headers) {
+function roadmapFormatTab_(ss, sh, tab, headers) {
   const rows = Math.max(sh.getMaxRows() - 1, 1);
   sh.setFrozenRows(1);
   sh.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#e6f1ec').setFontColor('#172b2b');
-  const index = arcColumnIndex_(headers, tab);
+  const index = roadmapColumnIndex_(headers, tab);
   tab.cols.forEach(c => {
     const at = index[c.field];
     if (at < 0) return;
@@ -513,7 +516,7 @@ function arcFormatTab_(ss, sh, tab, headers) {
     if (c.type === 'enum') {
       range.setDataValidation(SpreadsheetApp.newDataValidation()
         // Warn instead of reject, so friendly spellings like "In review" can be typed.
-        .requireValueInList(ARC_ENUMS[c.values], true).setAllowInvalid(true).build());
+        .requireValueInList(ROADMAP_ENUMS[c.values], true).setAllowInvalid(true).build());
     }
     if (c.type === 'ref') {
       const target = ss.getSheetByName(c.ref);
@@ -523,14 +526,14 @@ function arcFormatTab_(ss, sh, tab, headers) {
     }
     if (c.type === 'date') {
       range.setDataValidation(SpreadsheetApp.newDataValidation()
-        .requireFormulaSatisfied('=OR(ISBLANK(' + arcA1Col_(at + 1) + '2),REGEXMATCH(TO_TEXT(' + arcA1Col_(at + 1) + '2),"^\\d{4}-\\d{2}-\\d{2}$"))')
+        .requireFormulaSatisfied('=OR(ISBLANK(' + roadmapA1Col_(at + 1) + '2),REGEXMATCH(TO_TEXT(' + roadmapA1Col_(at + 1) + '2),"^\\d{4}-\\d{2}-\\d{2}$"))')
         .setAllowInvalid(true).setHelpText('Use yyyy-mm-dd, for example 2027-03-15.').build());
     }
     sh.setColumnWidth(at + 1, c.wide ? 280 : c.field === 'id' ? 150 : 120);
   });
 }
 
-function arcFormatSettings_(sh) {
+function roadmapFormatSettings_(sh) {
   sh.setFrozenRows(1);
   sh.getRange(1, 1, 1, 3).setFontWeight('bold').setBackground('#e6f1ec').setFontColor('#172b2b');
   sh.getRange(1, 2, Math.max(sh.getMaxRows(), 1), 1).setNumberFormat('@');
@@ -541,9 +544,9 @@ function arcFormatSettings_(sh) {
 /* Helpers                                                             */
 /* ------------------------------------------------------------------ */
 
-function arcCheckShape_(plan) {
-  if (!plan || plan.schemaVersion !== 1) throw new Error('This is not an Arc plan (schemaVersion 1).');
-  ARC_TABS.forEach(tab => {
+function roadmapCheckShape_(plan) {
+  if (!plan || plan.schemaVersion !== 1) throw new Error('This is not an Roadmap plan (schemaVersion 1).');
+  ROADMAP_TABS.forEach(tab => {
     if (plan[tab.key] !== undefined && !Array.isArray(plan[tab.key])) throw new Error('Plan field ' + tab.key + ' must be a list.');
     (plan[tab.key] || []).forEach(rec => {
       if (!rec || typeof rec.id !== 'string' || !rec.id) throw new Error('Every ' + tab.key + ' record needs an id.');
@@ -551,11 +554,11 @@ function arcCheckShape_(plan) {
   });
 }
 
-function arcIsBlank_(v) { return v === '' || v === null || v === undefined; }
-function arcBool_(v) { return v === true || /^(true|yes|y|1|x|✓)$/i.test(String(v).trim()); }
-function arcDate_(d, tz) { return Utilities.formatDate(d, tz, 'yyyy-MM-dd'); }
+function roadmapIsBlank_(v) { return v === '' || v === null || v === undefined; }
+function roadmapBool_(v) { return v === true || /^(true|yes|y|1|x|✓)$/i.test(String(v).trim()); }
+function roadmapDate_(d, tz) { return Utilities.formatDate(d, tz, 'yyyy-MM-dd'); }
 /** Accepts 2027-3-5, 2027/03/05 and 5.3.2027 (day.month.year); anything else is returned unchanged. */
-function arcNormalizeDate_(text) {
+function roadmapNormalizeDate_(text) {
   const pad = n => String(n).padStart(2, '0');
   let m = /^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})$/.exec(text);
   if (m) return m[1] + '-' + pad(m[2]) + '-' + pad(m[3]);
@@ -563,17 +566,17 @@ function arcNormalizeDate_(text) {
   if (m) return m[3] + '-' + pad(m[2]) + '-' + pad(m[1]);
   return text;
 }
-function arcCellText_(v, tz) { return v instanceof Date ? arcDate_(v, tz) : String(v).trim(); }
-function arcA1Col_(n) { let s = ''; while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; }
-function arcHeaders_(sh) { return sh.getLastRow() > 0 ? sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String) : []; }
-function arcEscapeHtml_(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
-function arcMessage_(err) { return String(err && err.message ? err.message : err); }
+function roadmapCellText_(v, tz) { return v instanceof Date ? roadmapDate_(v, tz) : String(v).trim(); }
+function roadmapA1Col_(n) { let s = ''; while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; }
+function roadmapHeaders_(sh) { return sh.getLastRow() > 0 ? sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String) : []; }
+function roadmapEscapeHtml_(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function roadmapMessage_(err) { return String(err && err.message ? err.message : err); }
 
-function arcHash_(text) {
+function roadmapHash_(text) {
   const bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, text, Utilities.Charset.UTF_8);
   return bytes.map(b => ((b + 256) % 256).toString(16).padStart(2, '0')).join('');
 }
 
-function arcUser_() {
+function roadmapUser_() {
   try { return Session.getActiveUser().getEmail() || 'someone'; } catch (err) { return 'someone'; }
 }

@@ -1,7 +1,7 @@
 <script>
-/* Arc PDF export. Offline vector roadmaps with embedded Open Sans.
- * Dependencies: arc-pdf-vendor.js, before this script.
- * API: await ArcPDF.export({plan,tasks,increments,milestones,range,options,palette}) -> Uint8Array.
+/* Roadmap PDF export. Offline vector roadmaps with embedded Open Sans.
+ * Dependencies: roadmap-pdf-vendor.js, before this script.
+ * API: await RoadmapPDF.export({plan,tasks,increments,milestones,range,options,palette}) -> Uint8Array.
  * range.start/end are UTC epoch days, with exclusive end.
  * Unsupported font characters use a browser-canvas fallback; no user text is discarded.
  */
@@ -47,7 +47,7 @@
     throw Error('This browser cannot decode the embedded PDF font.');
   }
   async function exportRoadmap(input) {
-    const lib=global.PDFLib,assets=global.ArcPDFFonts;
+    const lib=global.PDFLib,assets=global.RoadmapPDFFonts;
     if(!lib||!assets)throw Error('The PDF exporter is unavailable. Reload the planner and try again.');
     const {PDFDocument,rgb}=lib;
     const plan=input.plan;
@@ -87,7 +87,7 @@
       return names.join('; ');
     }
     const pdf=await PDFDocument.create();
-    pdf.setTitle(`${clean(plan.name)} - ${viewLabel}`);pdf.setSubject(`${opts.periodLabel||date(fromDay(range.start))+' - '+date(fromDay(range.end-1))}; ${clean(opts.scopeLabel||'Selected initiatives')}`);pdf.setCreator('Arc product planner');pdf.setProducer('Arc product planner / pdf-lib');pdf.setLanguage('en');
+    pdf.setTitle(`${clean(plan.name)} - ${viewLabel}`);pdf.setSubject(`${opts.periodLabel||date(fromDay(range.start))+' - '+date(fromDay(range.end-1))}; ${clean(opts.scopeLabel||'Selected initiatives')}`);pdf.setCreator('Roadmap product planner');pdf.setProducer('Roadmap product planner / pdf-lib');pdf.setLanguage('en');
     const fonts={};
     for(const type of ['regular','bold']){
       pdf.registerFontkit({create:()=>fontAdapter(assets[type])});
@@ -105,7 +105,7 @@
     const customTones=new Map();
     function customTone(hex){
       if(customTones.has(hex))return customTones.get(hex);
-      const shared=typeof ArcColors!=='undefined'?ArcColors:global.ArcColors;
+      const shared=typeof RoadmapColors!=='undefined'?RoadmapColors:global.RoadmapColors;
       if(shared?.tone){const value=shared.tone(hex);customTones.set(hex,value);return value;}
       // Standalone exports use the same contrast policy as the app's color tool.
       const channels=value=>[1,3,5].map(i=>parseInt(value.slice(i,i+2),16));
@@ -542,7 +542,7 @@
     await Promise.all(pending);
     return pdf.save();
   }
-  global.ArcPDF=Object.freeze({export:exportRoadmap,pack,colors:SOLID});
+  global.RoadmapPDF=Object.freeze({export:exportRoadmap,pack,colors:SOLID});
 })(globalThis);
 
 

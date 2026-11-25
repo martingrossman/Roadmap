@@ -1,4 +1,4 @@
-# Arc planner on Google Sheets
+# Roadmap planner on Google Sheets
 
 This runs `roadmap.html` as a Google Apps Script web app. The Google Sheet is where the data lives:
 
@@ -45,7 +45,7 @@ The PDF engine (pdf-lib plus Open Sans) is about 1.1 MB, so it lives in separate
    - **Who has access: Anyone with a Google account**, or your organization only.
    - Click **Deploy** and approve the permissions.
 6. Copy the **Web app URL** that the deployment shows. It ends in `/exec`. You can find it again later under **Deploy → Manage deployments**.
-7. Reload the Sheet. A new **Arc** menu appears. Choose **Arc → Open planner**. The first time, it asks for the link from step 6 and saves it as the `WEB_APP_URL` script property. To change the link later, choose **Arc → Set planner link…**.
+7. Reload the Sheet. A new **🗺️ Roadmap** menu appears in the menu bar, and a note in the corner points to it. Choose **🗺️ Roadmap → Open planner**. The first time, it asks for the link from step 6 and saves it as the `WEB_APP_URL` script property. To change the link later, choose **🗺️ Roadmap → Set planner link…**.
    The first time the planner opens, it writes the plan bundled in the page into the Sheet and creates the tabs.
 
 ## Sharing
@@ -55,7 +55,7 @@ Share the **Sheet** as you normally would:
 - **Editor:** can change the plan in the planner and in the Sheet.
 - **Viewer:** can open the planner, but sees "view-only access" and nothing they change is saved.
 
-Then send people the web app link (from **Arc → Open planner** or the deployment page), or tell them to use the Arc menu in the Sheet.
+Then send people the web app link (from **🗺️ Roadmap → Open planner** or the deployment page), or tell them to use the 🗺️ Roadmap menu in the Sheet.
 
 The first time each person opens the planner, Google asks them to approve the app. Outside a Google Workspace organization they will also see "Google hasn't verified this app". That's expected for a private script: click **Advanced → Go to …**.
 
@@ -86,7 +86,7 @@ clasp push
 
 ### Deploy with one command
 
-Once clasp is set up, this builds the files, uploads them, deploys a new version of the web app and saves its link for the **Arc** menu:
+Once clasp is set up, this builds the files, uploads them, deploys a new version of the web app and saves its link for the **🗺️ Roadmap** menu:
 
 ```powershell
 node apps-script/deploy.mjs
@@ -94,7 +94,7 @@ node apps-script/deploy.mjs
 
 It reuses your existing web app deployment, so the link stays the same. If there is none, it creates one. If there are several, it lists them and asks you to choose one with `--id <deploymentId>`. Use `-d "What changed"` to set the version description. If you leave it out, the last commit message is used.
 
-The link is saved in `dist/Deployment.gs`. Git ignores that file because the link belongs to your own project. With it in place, **Arc → Open planner** opens the right page without asking. A link you set by hand with **Arc → Set planner link…** still takes priority.
+The link is saved in `dist/Deployment.gs`. Git ignores that file because the link belongs to your own project. With it in place, **🗺️ Roadmap → Open planner** opens the right page without asking. A link you set by hand with **🗺️ Roadmap → Set planner link…** still takes priority.
 
 ## Local test harness
 

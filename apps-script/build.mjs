@@ -24,8 +24,8 @@ const pdfOpen = '<script id="pdf-engine">\n', pdfClose = '</script>\n<script>\n'
 const a = html.indexOf(pdfOpen), b = html.indexOf(pdfClose, a);
 if (a < 0 || b < 0) throw new Error('Could not find the pdf-engine script.');
 const engine = html.slice(a + pdfOpen.length, b);
-const fontsAt = engine.indexOf(';globalThis.ArcPDFFonts=');
-const exportAt = engine.indexOf('/* Arc PDF export.');
+const fontsAt = engine.indexOf(';globalThis.RoadmapPDFFonts=');
+const exportAt = engine.indexOf('/* Roadmap PDF export.');
 if (fontsAt < 0 || exportAt < fontsAt) throw new Error('Could not split the PDF engine into vendor / fonts / export parts.');
 const pdfParts = {
   PdfVendor: engine.slice(0, fontsAt),
@@ -37,30 +37,30 @@ const pdfParts = {
 const bridge = readFileSync(join(src, 'sheet-bridge.js'), 'utf8').replace(/\r\n/g, '\n');
 if (bridge.includes('</script')) throw new Error('sheet-bridge.js must not contain "</script".');
 html = html.slice(0, a) +
-  '<script id="arc-sheet-boot">window.ARC_SHEET_BOOT=/*ARC_SHEET_BOOT*/null;</script>\n' +
-  '<script id="arc-sheet-bridge">\n' + bridge + '</script>\n<script id="arc-app">\n' +
+  '<script id="roadmap-sheet-boot">window.ROADMAP_SHEET_BOOT=/*ROADMAP_SHEET_BOOT*/null;</script>\n' +
+  '<script id="roadmap-sheet-bridge">\n' + bridge + '</script>\n<script id="roadmap-app">\n' +
   html.slice(b + pdfClose.length);
 
 // 3. Small hooks in the planner so it uses the Sheet when the bridge is active.
 html = replaceOnce(html,
   "catch(e){initialPlan=samplePlan();startupMessage='The embedded plan could not be loaded. The example plan is shown.';}",
-  "catch(e){globalThis.ArcLoadError=e&&e.message||String(e);initialPlan=samplePlan();startupMessage='The embedded plan could not be loaded. The example plan is shown.';}",
+  "catch(e){globalThis.RoadmapLoadError=e&&e.message||String(e);initialPlan=samplePlan();startupMessage='The embedded plan could not be loaded. The example plan is shown.';}",
   'record load error');
 html = replaceOnce(html,
   'let loadedPlan=initialPlan;try{const s=localStorage.getItem(STORAGE_KEY);',
-  'let loadedPlan=initialPlan;try{const s=globalThis.ArcSheet?null:localStorage.getItem(STORAGE_KEY);',
+  'let loadedPlan=initialPlan;try{const s=globalThis.RoadmapSheet?null:localStorage.getItem(STORAGE_KEY);',
   'skip browser copy in Sheet mode');
 html = replaceOnce(html,
   'function persist(){',
-  'function persist(){if(globalThis.ArcSheet)return ArcSheet.persist();',
+  'function persist(){if(globalThis.RoadmapSheet)return RoadmapSheet.persist();',
   'save to Sheet');
 html = replaceOnce(html,
-  "if(!globalThis.ArcPDF)throw Error('The PDF exporter did not load.",
-  "if(!globalThis.ArcPDF&&globalThis.ArcSheet)await ArcSheet.loadPdfEngine();if(!globalThis.ArcPDF)throw Error('The PDF exporter did not load.",
+  "if(!globalThis.RoadmapPDF)throw Error('The PDF exporter did not load.",
+  "if(!globalThis.RoadmapPDF&&globalThis.RoadmapSheet)await RoadmapSheet.loadPdfEngine();if(!globalThis.RoadmapPDF)throw Error('The PDF exporter did not load.",
   'load PDF engine on demand');
 html = replaceOnce(html,
   "function exportHTML(){const doc=new DOMParser().parseFromString(ORIGINAL_HTML,'text/html'),snapshot=clone(state.plan);",
-  "async function exportHTML(){if(globalThis.ArcSheet)try{await ArcSheet.loadPdfEngine();}catch(e){}const doc=new DOMParser().parseFromString(ORIGINAL_HTML,'text/html'),snapshot=clone(state.plan);if(globalThis.ArcSheet)ArcSheet.cleanExport(doc);",
+  "async function exportHTML(){if(globalThis.RoadmapSheet)try{await RoadmapSheet.loadPdfEngine();}catch(e){}const doc=new DOMParser().parseFromString(ORIGINAL_HTML,'text/html'),snapshot=clone(state.plan);if(globalThis.RoadmapSheet)RoadmapSheet.cleanExport(doc);",
   'clean HTML export');
 
 // 4. Write the project.

@@ -1,12 +1,12 @@
-/* Arc ↔ Google Sheets bridge.
- * Runs before the planner script. Active only when doGet() injected ARC_SHEET_BOOT,
+/* Roadmap ↔ Google Sheets bridge.
+ * Runs before the planner script. Active only when doGet() injected ROADMAP_SHEET_BOOT,
  * so the same Index.html still works as a plain file (it then saves to this browser).
- * The planner calls ArcSheet.persist() instead of localStorage, and asks this bridge
+ * The planner calls RoadmapSheet.persist() instead of localStorage, and asks this bridge
  * for the PDF engine, which lives in separate Apps Script files and loads on demand.
  */
 (function () {
   'use strict';
-  const BOOT = window.ARC_SHEET_BOOT;
+  const BOOT = window.ROADMAP_SHEET_BOOT;
   if (!BOOT) return;
 
   // Hand the Sheet's plan to the planner through its normal embedded-plan slot.
@@ -48,10 +48,10 @@
   }
 
   function banner(message, details) {
-    let el = document.getElementById('arc-sheet-banner');
+    let el = document.getElementById('roadmap-sheet-banner');
     if (!el) {
       el = document.createElement('div');
-      el.id = 'arc-sheet-banner';
+      el.id = 'roadmap-sheet-banner';
       el.setAttribute('role', 'alert');
       el.style.cssText = 'position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:9999;max-width:min(720px,calc(100vw - 32px));' +
         'background:#fff4f2;color:#7a1f17;border:1px solid #f0b8ae;border-radius:10px;padding:12px 40px 12px 16px;' +
@@ -161,7 +161,7 @@
     state.plan = next;
     state.undo = []; state.redo = [];
     if (next.year !== previous.year) state.year = next.year;
-    try { if (typeof ArcCanvas !== 'undefined' && ArcCanvas.reconcileOutcomeFilter) ArcCanvas.reconcileOutcomeFilter(previous, next); } catch (e) { /* optional */ }
+    try { if (typeof RoadmapCanvas !== 'undefined' && RoadmapCanvas.reconcileOutcomeFilter) RoadmapCanvas.reconcileOutcomeFilter(previous, next); } catch (e) { /* optional */ }
     cleanFilters();
     revision = rev; conflict = null; dirty = false;
     render();
@@ -195,8 +195,8 @@
     if (el) el.addEventListener('click', () => { if (conflict) askOverwrite(); });
     window.addEventListener('beforeunload', e => { if (dirty || inflight) { e.preventDefault(); e.returnValue = ''; } });
     if (BOOT.error) return setReadOnly('Could not read the Sheet: ' + BOOT.error);
-    if (globalThis.ArcLoadError) {
-      return setReadOnly('The Sheet has data the planner cannot use (' + globalThis.ArcLoadError + '). Fix it in the Sheet, then reload this page.',
+    if (globalThis.RoadmapLoadError) {
+      return setReadOnly('The Sheet has data the planner cannot use (' + globalThis.RoadmapLoadError + '). Fix it in the Sheet, then reload this page.',
         BOOT.problems);
     }
     active = true;
@@ -214,7 +214,7 @@
   }
 
   function loadPdfEngine() {
-    if (globalThis.ArcPDF) return Promise.resolve();
+    if (globalThis.RoadmapPDF) return Promise.resolve();
     if (!pdfPromise) {
       pdfPromise = call('getPdfEngine').then(code => {
         pdfCode = code;
@@ -222,7 +222,7 @@
         s.id = 'pdf-engine';
         s.textContent = code;
         document.head.appendChild(s);
-        if (!globalThis.ArcPDF) throw new Error('The PDF exporter could not start.');
+        if (!globalThis.RoadmapPDF) throw new Error('The PDF exporter could not start.');
       }).catch(err => { pdfPromise = null; throw err; });
     }
     return pdfPromise;
@@ -230,17 +230,17 @@
 
   // "Export → HTML" copies the page; strip the Sheet wiring so the copy works on its own.
   function cleanExport(doc) {
-    doc.querySelectorAll('script').forEach(s => { if (s.id !== 'embedded-plan' && s.id !== 'arc-app') s.remove(); });
-    doc.querySelectorAll('base, #arc-sheet-banner').forEach(e => e.remove());
+    doc.querySelectorAll('script').forEach(s => { if (s.id !== 'embedded-plan' && s.id !== 'roadmap-app') s.remove(); });
+    doc.querySelectorAll('base, #roadmap-sheet-banner').forEach(e => e.remove());
     if (pdfCode) {
       const s = doc.createElement('script');
       s.id = 'pdf-engine';
       s.textContent = pdfCode;
-      const app = doc.getElementById('arc-app');
+      const app = doc.getElementById('roadmap-app');
       app.parentNode.insertBefore(s, app);
     }
   }
 
-  window.ArcSheet = { persist: persist, loadPdfEngine: loadPdfEngine, cleanExport: cleanExport, flush: () => flush() };
+  window.RoadmapSheet = { persist: persist, loadPdfEngine: loadPdfEngine, cleanExport: cleanExport, flush: () => flush() };
   document.addEventListener('DOMContentLoaded', activate);
 })();

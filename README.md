@@ -1,10 +1,10 @@
-# Arc roadmap planner
+# Roadmap planner
 
 A product roadmap planner in a single HTML file. Plan workstreams, initiatives, milestones and increments on a timeline, link them with dependencies, and export the result as a PDF.
 
 **[Open the live demo →](https://martingrossman.github.io/Roadmap/)**
 
-![Arc roadmap view with workstreams, milestones and dependency arrows](docs/images/arc-roadmap.png)
+![Roadmap planner view with workstreams, milestones and dependency arrows](docs/images/roadmap-planner.png)
 
 ## Ways to use it
 

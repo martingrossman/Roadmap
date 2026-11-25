@@ -1,5 +1,5 @@
 // Builds, uploads and deploys the planner to your Apps Script project in one step,
-// and tells the Sheet's Arc menu the web app link, so nobody has to paste it.
+// and tells the Sheet's Roadmap menu the web app link, so nobody has to paste it.
 //
 //   node apps-script/deploy.mjs                  redeploy the existing web app (link stays the same)
 //   node apps-script/deploy.mjs -d "What changed" set the deployment description
@@ -54,7 +54,7 @@ if (!id) {
   } else {
     console.log('No web app deployment yet. Creating one.');
     clasp('push --force');
-    const out = clasp('create-deployment -d ' + quote('Arc planner'));
+    const out = clasp('create-deployment -d ' + quote('Roadmap planner'));
     const m = out.match(/AKfyc[\w-]+/);
     if (!m) { console.error('Could not read the new deployment id from clasp:\n' + out); process.exit(1); }
     id = m[0];
@@ -62,15 +62,15 @@ if (!id) {
 }
 const url = `https://script.google.com/macros/s/${id}/exec`;
 
-// 3. Tell the Arc menu the link, upload, and point the deployment at the new code.
+// 3. Tell the Roadmap menu the link, upload, and point the deployment at the new code.
 writeFileSync(linkFile,
-  '// Written by apps-script/deploy.mjs. The web app link Arc → Open planner uses.\n' +
-  `const ARC_DEPLOYED_URL = '${url}';\n`);
+  '// Written by apps-script/deploy.mjs. The web app link Roadmap → Open planner uses.\n' +
+  `const ROADMAP_DEPLOYED_URL = '${url}';\n`);
 clasp('push --force');
 let description = arg('-d') || arg('--description');
 if (!description) {
-  try { description = execSync('git log -1 --format=%s', { cwd: here, encoding: 'utf8' }).trim(); } catch (e) { description = 'Arc planner'; }
+  try { description = execSync('git log -1 --format=%s', { cwd: here, encoding: 'utf8' }).trim(); } catch (e) { description = 'Roadmap planner'; }
 }
 process.stdout.write(clasp(`update-deployment ${id} -d ${quote(description.slice(0, 100))}`));
 
-console.log('\nDeployed. Reload the Sheet, then choose Arc → Open planner.\nWeb app link: ' + url);
+console.log('\nDeployed. Reload the Sheet, then choose 🗺️ Roadmap → Open planner.\nWeb app link: ' + url);
