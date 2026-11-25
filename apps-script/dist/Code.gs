@@ -133,6 +133,7 @@ function onOpen() {
   // Menus cannot show images, so an emoji makes the menu easy to spot in the menu bar.
   SpreadsheetApp.getUi().createMenu('🗺️ Roadmap')
     .addItem('🚀 Open planner', 'openPlanner')
+    .addItem('↗️ Open in new tab', 'openPlannerInTab')
     .addItem('🔗 Set planner link…', 'setPlannerLink')
     .addSeparator()
     .addItem('📥 Load demo plan', 'loadDemoPlan')
@@ -140,22 +141,49 @@ function onOpen() {
     .addToUi();
   // Point people at the menu each time the Sheet opens.
   SpreadsheetApp.getActiveSpreadsheet().toast('Open the planner from the 🗺️ Roadmap menu.', '🗺️ Roadmap planner', 8);
+  try { roadmapRememberSheet_(SpreadsheetApp.getActiveSpreadsheet()); } catch (err) { /* using the menu sets it too */ }
+}
+
+/*
+ * A copy of the Sheet (File → Make a copy) gets a copy of this script, including
+ * Deployment.gs and possibly the script properties, but not the web app deployment.
+ * Every saved link and Sheet id is therefore tagged with the script id it belongs to,
+ * and a copy ignores the original's values instead of opening (and saving to) the
+ * original Sheet.
+ */
+function roadmapRememberSheet_(ss) {
+  PropertiesService.getScriptProperties().setProperties({
+    SPREADSHEET_ID: ss.getId(),
+    SPREADSHEET_SCRIPT_ID: ScriptApp.getScriptId()
+  });
 }
 
 // The deployed web app link: https://script.google.com/[a/macros/<domain>/]macros/s/<id>/exec
 // (Workspace links look like https://script.google.com/a/macros/<domain>/s/<id>/exec.)
 const ROADMAP_WEB_APP_URL_RE = /^https:\/\/script\.google\.com\/(?:a\/macros\/[^\/\s]+\/|macros\/)s\/[\w-]+\/exec$/;
 
+/** This script's own web app link, or null when this copy has none yet. */
+function roadmapWebAppUrl_() {
+  const props = PropertiesService.getScriptProperties();
+  const scriptId = ScriptApp.getScriptId();
+  const saved = props.getProperty('WEB_APP_URL');
+  if (saved && props.getProperty('WEB_APP_SCRIPT_ID') === scriptId && ROADMAP_WEB_APP_URL_RE.test(saved)) return saved;
+  // Written by apps-script/deploy.mjs in Deployment.gs.
+  if (typeof ROADMAP_DEPLOYED_URL === 'string' && typeof ROADMAP_DEPLOYED_SCRIPT_ID === 'string' &&
+      ROADMAP_DEPLOYED_SCRIPT_ID === scriptId && ROADMAP_WEB_APP_URL_RE.test(ROADMAP_DEPLOYED_URL)) return ROADMAP_DEPLOYED_URL;
+  return null;
+}
+
 /**
- * Asks for the web app's /exec link and stores it as the WEB_APP_URL script property.
- * ScriptApp.getService().getUrl() is not used: in a Sheet-bound script it often returns
- * the /dev test link or an older deployment instead of the live one.
+ * Asks for the web app's /exec link and saves it for this script only.
+ * ScriptApp.getService().getUrl() is not trusted: in a Sheet-bound script it often
+ * returns the /dev test link or an older deployment instead of the live one.
  * Returns the saved link, or null if the person cancelled.
  */
 function setPlannerLink() {
   const ui = SpreadsheetApp.getUi();
   const props = PropertiesService.getScriptProperties();
-  const current = props.getProperty('WEB_APP_URL');
+  const current = roadmapWebAppUrl_();
   let hint = 'In Apps Script choose Deploy → Manage deployments, select the web app, and copy its Web app URL (it ends in /exec).';
   if (current) hint += '\n\nCurrent link:\n' + current;
   for (;;) {
@@ -163,7 +191,7 @@ function setPlannerLink() {
     if (res.getSelectedButton() !== ui.Button.OK) return null;
     const url = res.getResponseText().trim().replace(/[?#].*$/, '');
     if (ROADMAP_WEB_APP_URL_RE.test(url)) {
-      props.setProperty('WEB_APP_URL', url);
+      props.setProperties({ WEB_APP_URL: url, WEB_APP_SCRIPT_ID: ScriptApp.getScriptId() });
       return url;
     }
     hint = (/\/dev$/.test(url)
@@ -173,15 +201,52 @@ function setPlannerLink() {
   }
 }
 
+/**
+ * Opens the planner in a large window on top of the Sheet. It runs from this Sheet's
+ * own script, so it needs no deployment and works in every copy straight away.
+ * A small launcher measures the screen first, then asks for the full-size window.
+ */
 function openPlanner() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const props = PropertiesService.getScriptProperties();
-  props.setProperty('SPREADSHEET_ID', ss.getId());
-  let url = props.getProperty('WEB_APP_URL');
-  // Set by apps-script/deploy.mjs in Deployment.gs; used when no link was saved by hand.
-  if (!url || !ROADMAP_WEB_APP_URL_RE.test(url)) url = typeof ROADMAP_DEPLOYED_URL === 'string' ? ROADMAP_DEPLOYED_URL : '';
-  if (!url || !ROADMAP_WEB_APP_URL_RE.test(url)) url = setPlannerLink();
-  if (!url) return;
+  roadmapRememberSheet_(SpreadsheetApp.getActiveSpreadsheet());
+  const launcher = HtmlService.createHtmlOutput(
+    '<div style="font:14px/1.5 Arial,sans-serif;padding:6px 2px;color:#334">Opening the planner…</div>' +
+    '<script>google.script.run' +
+    '.withFailureHandler(function(e){document.body.textContent="The planner could not open: "+(e&&e.message||e);})' +
+    '.showPlannerWindow(Math.min(screen.availWidth-80,2000),Math.min(screen.availHeight-180,1300));</script>'
+  ).setWidth(260).setHeight(70);
+  SpreadsheetApp.getUi().showModalDialog(launcher, '🗺️ Roadmap');
+}
+
+/** Called by the launcher in openPlanner(); replaces it with the planner window. */
+function showPlannerWindow(width, height) {
+  const w = Math.max(760, Math.min(2000, Math.round(Number(width) || 1200)));
+  const h = Math.max(520, Math.min(1300, Math.round(Number(height) || 760)));
+  const page = roadmapPage_();
+  SpreadsheetApp.getUi().showModalDialog(page.output.setWidth(w).setHeight(h), '🗺️ ' + page.name);
+}
+
+/**
+ * Opens the planner in its own browser tab through this script's web app. A copy of
+ * the Sheet has no web app until someone deploys one in the copy, so this explains how.
+ */
+function openPlannerInTab() {
+  const ui = SpreadsheetApp.getUi();
+  roadmapRememberSheet_(SpreadsheetApp.getActiveSpreadsheet());
+  let url = roadmapWebAppUrl_();
+  if (!url) {
+    const answer = ui.alert('Set up the planner in its own tab',
+      'This Sheet has no web app of its own yet. That is normal for a copy, and 🚀 Open planner works without it.\n\n' +
+      'To open the planner in its own browser tab (about a minute, once per copy):\n' +
+      '1. Choose Extensions → Apps Script.\n' +
+      '2. Choose Deploy → New deployment. Click the gear next to "Select type" and choose Web app.\n' +
+      '3. Set "Execute as" to "User accessing the web app", and "Who has access" to "Anyone with a Google account" or your organization.\n' +
+      '4. Click Deploy, approve the permissions, and copy the Web app URL.\n\n' +
+      'Click OK to paste the link now, or Cancel to do it later with 🔗 Set planner link….',
+      ui.ButtonSet.OK_CANCEL);
+    if (answer !== ui.Button.OK) return;
+    url = setPlannerLink();
+    if (!url) return;
+  }
   const safe = roadmapEscapeHtml_(url);
   const html = HtmlService.createHtmlOutput(
     '<div style="font:14px/1.5 Arial,sans-serif;padding:4px 2px">' +
@@ -190,7 +255,7 @@ function openPlanner() {
     'style="display:inline-block;background:#276d51;color:#fff;padding:9px 16px;border-radius:6px;text-decoration:none;font-weight:600">Open Roadmap planner</a>' +
     '</div>'
   ).setWidth(320).setHeight(120);
-  SpreadsheetApp.getUi().showModelessDialog(html, 'Roadmap planner');
+  ui.showModelessDialog(html, '🗺️ Roadmap planner');
 }
 
 /**
@@ -235,7 +300,8 @@ function reapplyFormatting() {
 /* Web app                                                             */
 /* ------------------------------------------------------------------ */
 
-function doGet() {
+/** Builds the planner page with the Sheet's plan baked in. Used by the web app and the in-Sheet window. */
+function roadmapPage_() {
   const boot = { plan: null, revision: null, error: null };
   try {
     const current = roadmapRead_(roadmapSpreadsheet_());
@@ -252,8 +318,13 @@ function doGet() {
   if (html.indexOf(marker) < 0) throw new Error('Index.html is missing the ROADMAP_SHEET_BOOT marker. Rebuild it with build.mjs.');
   const json = JSON.stringify(boot).replace(/</g, '\\u003c');
   const name = boot.plan && boot.plan.name ? boot.plan.name : 'Roadmap';
-  return HtmlService.createHtmlOutput(html.replace(marker, () => json))
-    .setTitle(name + ' — Roadmap')
+  return { name: name, output: HtmlService.createHtmlOutput(html.replace(marker, () => json)) };
+}
+
+function doGet() {
+  const page = roadmapPage_();
+  return page.output
+    .setTitle(page.name + ' — Roadmap')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1, viewport-fit=cover');
 }
 
@@ -312,8 +383,12 @@ function roadmapSpreadsheet_() {
   let active = null;
   try { active = SpreadsheetApp.getActiveSpreadsheet(); } catch (err) { active = null; }
   if (active) return active;
-  const id = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
-  if (id) return SpreadsheetApp.openById(id);
+  const props = PropertiesService.getScriptProperties();
+  const id = props.getProperty('SPREADSHEET_ID');
+  const owner = props.getProperty('SPREADSHEET_SCRIPT_ID');
+  // owner is empty for ids saved before copies were handled; those are accepted and
+  // re-tagged the next time the Sheet opens. A copy ignores the original's tagged id.
+  if (id && (!owner || owner === ScriptApp.getScriptId())) return SpreadsheetApp.openById(id);
   throw new Error('The planner does not know which Sheet to use yet. Open the Sheet and choose 🗺️ Roadmap → Open planner once.');
 }
 

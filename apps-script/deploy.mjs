@@ -63,9 +63,12 @@ if (!id) {
 const url = `https://script.google.com/macros/s/${id}/exec`;
 
 // 3. Tell the Roadmap menu the link, upload, and point the deployment at the new code.
+const scriptId = JSON.parse(readFileSync(join(dist, '.clasp.json'), 'utf8')).scriptId;
 writeFileSync(linkFile,
   '// Written by apps-script/deploy.mjs. The web app link Roadmap → Open planner uses.\n' +
-  `const ROADMAP_DEPLOYED_URL = '${url}';\n`);
+  `const ROADMAP_DEPLOYED_URL = '${url}';\n` +
+  '// Copies of the Sheet get their own script id, so they ignore this link.\n' +
+  `const ROADMAP_DEPLOYED_SCRIPT_ID = '${scriptId}';\n`);
 clasp('push --force');
 let description = arg('-d') || arg('--description');
 if (!description) {

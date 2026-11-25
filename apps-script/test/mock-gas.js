@@ -71,6 +71,7 @@
   window.SpreadsheetApp = { getActiveSpreadsheet: () => ss, openById: () => ss, flush() {}, newDataValidation: builder, getUi: () => ({}) };
   const lock = () => ({ tryLock: () => true, releaseLock() {} });
   window.LockService = { getDocumentLock: lock, getScriptLock: lock };
+  window.ScriptApp = { getScriptId: () => 'test-script-id' };
   window.PropertiesService = { getScriptProperties: () => ({ getProperty: () => null, setProperty() {} }) };
   window.Session = { getActiveUser: () => ({ getEmail: () => window.__mockUser || 'tester@example.com' }) };
   window.Utilities = {

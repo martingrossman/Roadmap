@@ -39,15 +39,15 @@ The PDF engine (pdf-lib plus Open Sans) is about 1.1 MB, so it lives in separate
    | `PdfExport.html` | `dist/PdfExport.html` | **+ → HTML**, name it `PdfExport` |
 
    The PDF files are large (500–600 KB each), so the editor may take a few seconds to accept the paste. Select all the text in a new file before pasting. To avoid pasting altogether, see [Using clasp](#using-clasp-optional) below.
-4. Optional: turn on **Project Settings → Show "appsscript.json"** and replace that file with `dist/appsscript.json`. It sets the deployment defaults described in step 5.
-5. Choose **Deploy → New deployment → Web app**:
-   - **Execute as: User accessing the web app.** This is the recommended setting. People can then only open and edit the plan if they have that access to the Sheet itself, so normal Sheet sharing controls everything.
-   - **Who has access: Anyone with a Google account**, or your organization only.
-   - Click **Deploy** and approve the permissions.
-6. Copy the **Web app URL** that the deployment shows. It ends in `/exec`. You can find it again later under **Deploy → Manage deployments**.
-7. Reload the Sheet. A new **🗺️ Roadmap** menu appears in the menu bar, and a note in the corner points to it. Choose **🗺️ Roadmap → Open planner**. The first time, it asks for the link from step 6 and saves it as the `WEB_APP_URL` script property. To change the link later, choose **🗺️ Roadmap → Set planner link…**.
+4. Optional: turn on **Project Settings → Show "appsscript.json"** and replace that file with `dist/appsscript.json`. It sets the deployment defaults described in step 6.
+5. Reload the Sheet. A new **🗺️ Roadmap** menu appears in the menu bar, and a note in the corner points to it. Choose **🗺️ Roadmap → 🚀 Open planner**. The planner opens in a large window on top of the Sheet. This needs no deployment.
    The first time the planner opens, it writes the plan bundled in the page into the Sheet and creates the tabs.
    To reset the Sheet to the same example plan the live demo shows, choose **🗺️ Roadmap → 📥 Load demo plan**. It asks first, because it replaces the data on the planner tabs. The build (`build.mjs`) copies that plan from `roadmap.html` into `DemoPlan.gs`, so it always matches the demo.
+6. Optional, for the planner in its own browser tab and a link you can send: choose **Deploy → New deployment → Web app**.
+   - **Execute as: User accessing the web app.** This is the recommended setting. People can then only open and edit the plan if they have that access to the Sheet itself, so normal Sheet sharing controls everything.
+   - **Who has access: Anyone with a Google account**, or your organization only.
+   - Click **Deploy**, approve the permissions, and copy the **Web app URL**. It ends in `/exec`.
+   - In the Sheet, choose **🗺️ Roadmap → ↗️ Open in new tab** and paste the link when asked. To change it later, choose **🔗 Set planner link…**. With [deploy.mjs](#deploy-with-one-command), the link is set for you.
 
 ## Sharing
 
@@ -56,11 +56,19 @@ Share the **Sheet** as you normally would:
 - **Editor:** can change the plan in the planner and in the Sheet.
 - **Viewer:** can open the planner, but sees "view-only access" and nothing they change is saved.
 
-Then send people the web app link (from **🗺️ Roadmap → Open planner** or the deployment page), or tell them to use the 🗺️ Roadmap menu in the Sheet.
+Then tell people to use **🗺️ Roadmap → 🚀 Open planner** in the Sheet, or send them the web app link (**↗️ Open in new tab** shows it). Viewers can't run the Sheet's menu, so send them the web app link.
 
 The first time each person opens the planner, Google asks them to approve the app. Outside a Google Workspace organization they will also see "Google hasn't verified this app". That's expected for a private script: click **Advanced → Go to …**.
 
 If you would rather people need only the link and no Sheet access, deploy with **Execute as: Me**. Everyone then saves as you, and anyone with the link can change the plan.
+
+### When someone makes a copy
+
+Anyone who can open the Sheet can choose **File → Make a copy**. The copy gets its own copy of the script, so in the copy:
+
+- **🗺️ Roadmap → 🚀 Open planner** works straight away with the copy's own data. Google asks the person to approve the script the first time.
+- **↗️ Open in new tab** needs a web app of the copy's own. Google does not copy deployments. The menu explains the steps (step 6 above, about a minute) and saves the new link.
+- The copy never opens or saves to your Sheet. Your web app link and Sheet id are tagged with your script's id, and a copy has a different one, so it ignores them.
 
 ## Updating the planner
 
