@@ -64,6 +64,7 @@ body.drawer-open{overflow:hidden}.detail-overlay{height:100dvh}.detail-panel{max
 /* Board: a card dragged with the pointer follows it as a floating copy; the column under it is highlighted. */
 .board-drag-preview{position:fixed;z-index:200;pointer-events:none;margin:0;transform:rotate(1.5deg);box-shadow:0 14px 34px #203d4740;opacity:.95}
 .board-card.is-board-dragging{opacity:.35}
+.board-drop-guide{z-index:210}
 .board-dragging,.board-dragging *{user-select:none!important;cursor:grabbing!important}
 .gantt-lane-row .canvas-increment-label,.gantt-lane-row.milestone-row .lane-label{background:#fafcfb;font-weight:550;font-size:12px;color:#6b8371}
 .gantt-lane-row.milestone-row{background:#fcfdfc}
@@ -3919,19 +3920,43 @@ const RoadmapCanvas=(()=>{
   event.preventDefault?.();
   d.preview.style.left=event.clientX-d.dx+'px';d.preview.style.top=event.clientY-d.dy+'px';
   const col=document.elementsFromPoint(event.clientX,event.clientY).map(n=>n.closest?.('[data-drop-status]')).find(Boolean)||null;
-  d.status=col?.dataset.dropStatus||null;
+  d.status=col?.dataset.dropStatus||null;d.targetId=null;d.placement='last';
+  if(col){
+   // The card above whose middle the pointer is: insert before it; below every card: after the last one.
+   const cards=[...col.querySelectorAll('[data-board-task]')].filter(c=>c!==d.el),next=cards.find(c=>{const b=c.getBoundingClientRect();return event.clientY<b.top+b.height/2;});
+   if(next){d.targetId=next.dataset.boardTask;d.placement='before';}else if(cards.length){d.targetId=cards.at(-1).dataset.boardTask;d.placement='after';}
+   const ref=next||cards.at(-1),body=col.getBoundingClientRect(),b=ref?ref.getBoundingClientRect():null;
+   if(!d.guide){d.guide=document.createElement('div');d.guide.className='canvas-row-drop-guide board-drop-guide';document.body.append(d.guide);}
+   const left=b?b.left:body.left+12,width=b?b.width:body.width-24,y=b?(next?b.top-6:b.bottom+6):body.top+10;
+   d.guide.style.cssText=`left:${left}px;width:${width}px;top:${y-1}px`;d.guide.hidden=false;
+  }else if(d.guide)d.guide.hidden=true;
   document.querySelectorAll('.board-column.drag-over').forEach(x=>{if(x!==col?.closest('.board-column'))x.classList.remove('drag-over');});
   col?.closest('.board-column')?.classList.add('drag-over');
   if(d.scroll){const s=d.scroll.getBoundingClientRect();if(event.clientX>s.right-40)d.scroll.scrollLeft+=14;else if(event.clientX<s.left+40)d.scroll.scrollLeft-=14;}
   return true;
  }
  function boardEnd(d,cancelled){
-  d.preview?.remove();d.el.classList.remove('is-board-dragging');document.body.classList.remove('board-dragging');
+  d.preview?.remove();d.guide?.remove();d.el.classList.remove('is-board-dragging');document.body.classList.remove('board-dragging');
   document.querySelectorAll('.board-column.drag-over').forEach(x=>x.classList.remove('drag-over'));
   if(!d.moved)return true;
   ignoreClickUntil=performance.now()+450;suppressClickUntil=ignoreClickUntil;
   const task=find('initiative',d.id);
-  if(!cancelled&&task&&d.status&&d.status!==task.status)updateStatus(d.id,d.status);
+  if(cancelled||!task||!d.status||!STATUS[d.status])return true;
+  const reorder=items=>{
+   // The board shows initiatives in the plan's saved order, so moving a card moves it in that order.
+   const from=items.findIndex(x=>x.id===d.id);if(from<0)return items;
+   const rest=items.filter((_,i)=>i!==from);let at;
+   if(d.targetId){const j=rest.findIndex(x=>x.id===d.targetId);at=j<0?rest.length:d.placement==='before'?j:j+1;}
+   else{const last=rest.map(x=>x.status).lastIndexOf(d.status);at=last>=0?last+1:Math.min(from,rest.length);}
+   return [...rest.slice(0,at),items[from],...rest.slice(at)];
+  };
+  const before=state.plan.initiatives.map(x=>x.id).join(),after=reorder(state.plan.initiatives).map(x=>x.id).join(),statusChanged=d.status!==task.status;
+  if(!statusChanged&&before===after)return true;
+  commit(p=>{
+   const x=p.initiatives.find(i=>i.id===d.id),old=x.status;
+   if(statusChanged){x.status=d.status;if(d.status==='done')x.progress=100;else if(old==='done')x.progress=0;}
+   p.initiatives.splice(0,p.initiatives.length,...reorder(p.initiatives));
+  },statusChanged?`Moved to ${STATUS[d.status]}`:'Initiative reordered');
   return true;
  }
  function pointerUp(event,cancelled=false){
