@@ -102,6 +102,8 @@ const ROADMAP_TABS = [
     { field: 'showLine', type: 'bool' },
     { field: 'increment', type: 'ref', ref: 'Increments' },
     { field: 'initiatives', type: 'list' },
+    // Gantt: the initiative whose row this milestone follows. Blank = top of its workstream group.
+    { field: 'after', header: 'ganttAfter' },
     { field: 'description', wide: true }
   ] },
   { key: 'increments', sheet: 'Increments', cols: [

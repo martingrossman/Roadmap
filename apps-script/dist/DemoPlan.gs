@@ -304,6 +304,7 @@ const ROADMAP_DEMO_PLAN = {
    "id": "m5",
    "title": "Platform freeze",
    "stream": "foundations",
+   "after": "F2",
    "date": "2027-06-25",
    "description": "No breaking platform changes after this date. Shows a milestone that belongs to one workstream.",
    "done": false,
