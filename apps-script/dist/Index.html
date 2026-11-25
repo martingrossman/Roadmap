@@ -60,6 +60,11 @@ body.drawer-open{overflow:hidden}.detail-overlay{height:100dvh}.detail-panel{max
 .swimlane-milestone-label .swimlane-milestone-add:hover{color:#fff;background:#ffffff24}
 .swimlane-lane-milestones{flex:0 0 auto;min-height:54px}
 .lane-add-menu{min-width:230px}
+.canvas-milestone.canvas-dragging{outline:0!important;box-shadow:none!important}
+/* Board: a card dragged with the pointer follows it as a floating copy; the column under it is highlighted. */
+.board-drag-preview{position:fixed;z-index:200;pointer-events:none;margin:0;transform:rotate(1.5deg);box-shadow:0 14px 34px #203d4740;opacity:.95}
+.board-card.is-board-dragging{opacity:.35}
+.board-dragging,.board-dragging *{user-select:none!important;cursor:grabbing!important}
 .gantt-lane-row .canvas-increment-label,.gantt-lane-row.milestone-row .lane-label{background:#fafcfb;font-weight:550;font-size:12px;color:#6b8371}
 .gantt-lane-row.milestone-row{background:#fcfdfc}
 .milestone-row.canvas-drop-target,.canvas-increment-band.canvas-drop-target{outline:1px solid #62aa92;outline-offset:-1px}
@@ -1962,7 +1967,7 @@ let storedIncrementVisibility=true;try{storedIncrementVisibility=localStorage.ge
 const BAR_STYLE_KEY='roadmap.view.barStyle';
 let storedBarStyle='tinted';try{const b=localStorage.getItem(BAR_STYLE_KEY);if(b==='solid'||b==='tinted')storedBarStyle=b;}catch{}
 const state={plan:loadedPlan,section:'roadmap',view:'swimlane',year:loadedPlan.year,range:'year',stream:'all',status:'all',query:'',outcome:'',collapsed:new Set(),dependencies:true,showIncrements:storedIncrementVisibility,barStyle:storedBarStyle,sort:{field:'start',dir:1},undo:[],redo:[],presentation:false};
-let storageOK=true,detail=null,lastFocus=null,confirmCallback=null,settingsStreams=[],activeDrag=null,suppressClickUntil=0,draggedTask=null;
+let storageOK=true,detail=null,lastFocus=null,confirmCallback=null,settingsStreams=[],activeDrag=null,suppressClickUntil=0;
 function hydrateIcons(root=document){root.querySelectorAll('[data-icon]').forEach(e=>{e.innerHTML=icon(e.dataset.icon);e.removeAttribute('data-icon');});}
 function palette(stream){return RoadmapColors.streamPalette(state.plan.workstreams.find(s=>s.id===stream));}
 function streamName(id){return state.plan.workstreams.find(s=>s.id===id)?.name||'Workstream';}
@@ -2262,10 +2267,6 @@ document.addEventListener('click',e=>{
 },true);
 
 document.addEventListener('change',event=>RoadmapCanvas.change(event));
-document.addEventListener('dragstart',event=>{if(event.target.closest('.canvas-inline-name')){event.preventDefault();return;}if(RoadmapDeps.isDrawing()||event.target.closest('[data-dep-port],[data-canvas-show-increment]')||document.activeElement?.matches('[data-canvas-show-increment]')&&event.target.closest('[data-board-task]')){event.preventDefault();return;}const card=event.target.closest('[data-board-task]');if(!card)return;RoadmapCanvas.hideInspector();draggedTask=card.dataset.boardTask;event.dataTransfer.setData('text/plain',draggedTask);event.dataTransfer.effectAllowed='move';card.classList.add('dragging');});
-document.addEventListener('dragover',event=>{const col=event.target.closest('[data-drop-status]');if(col&&draggedTask){event.preventDefault();event.dataTransfer.dropEffect='move';$$('.board-column.drag-over').forEach(x=>x.classList.remove('drag-over'));col.closest('.board-column').classList.add('drag-over');}});
-document.addEventListener('drop',event=>{const col=event.target.closest('[data-drop-status]');if(!col||!draggedTask)return;event.preventDefault();const id=event.dataTransfer.getData('text/plain');if(id===draggedTask&&getTask(id))updateStatus(id,col.dataset.dropStatus);draggedTask=null;suppressClickUntil=performance.now()+500;$$('.drag-over').forEach(x=>x.classList.remove('drag-over'));});
-document.addEventListener('dragend',()=>{draggedTask=null;suppressClickUntil=Math.max(suppressClickUntil,performance.now()+300);$$('.drag-over,.board-card.dragging').forEach(x=>x.classList.remove('drag-over','dragging'));});
 document.addEventListener('keydown',event=>{
  if(event.key==='Escape'&&!$('#filtersPopover').hidden){event.preventDefault();hideFilters(true);return;}
  if(event.target.closest('#filtersPopover'))return;
@@ -2560,7 +2561,7 @@ function renderTimeline(){
 }
 function renderBoard(){
  const tasks=filteredTasks();
- $('#content').innerHTML=`<div class="board-scroll"><div class="board-grid">${Object.entries(STATUS).map(([key,label])=>`<section class="board-column" data-column="${key}"><div class="column-header"><span class="status-dot" data-status="${key}"></span><h3>${label}</h3><span class="column-count">${tasks.filter(t=>t.status===key).length}</span><button class="icon-btn" data-add-status="${key}" aria-label="Add ${label.toLowerCase()} initiative">${icon('plus')}</button></div><div class="column-body" data-drop-status="${key}">${tasks.filter(t=>t.status===key).map(t=>{const c=palette(t.stream),risk=warnings(t);return `<article class="board-card canvas-item" draggable="true" tabindex="0" role="group" data-board-task="${esc(t.id)}" data-entity="initiative" data-id="${esc(t.id)}" data-stream-id="${esc(t.stream)}" data-assigned-increment="${esc(t.increment||'')}" style="${RoadmapColors.style(c)}" aria-label="Initiative: ${esc(t.title)}${t.increment?' · Increment: '+esc(getIncrement(t.increment)?.title||''):''}"><div class="card-meta"><span class="card-stream" title="${esc(streamName(t.stream))}">${esc(streamName(t.stream))}</span><span class="priority-pill" data-priority="${t.priority}">${PRIORITY[t.priority]}</span></div><h3 class="card-title" data-title>${esc(t.title)}</h3><p class="card-description">${esc(t.description)}</p>${canvasIncrementBadge(t)}${risk.length?`<div class="card-risk">${icon('warning')}${t.health==='blocked'?'Blocked':'Needs attention'}</div>`:''}<div class="card-progress"><div class="progress-track"><span class="progress-fill" style="width:${t.progress}%"></span></div><span>${t.progress}%</span></div><div class="card-footer"><span class="card-dates">${icon('calendar')}${fmtDate(t.start)} – ${fmtDate(t.end)}</span><span class="avatar" title="${esc(t.owner||'Unassigned')}">${esc(initial(t.owner))}</span></div>${canvasPorts('initiative',t.id,t.title)}</article>`;}).join('')}<button class="column-add" data-add-status="${key}">${icon('plus')}Add initiative</button></div></section>`).join('')}<svg class="dependency-layer"></svg></div></div>${!tasks.length?emptyHTML():''}`;
+ $('#content').innerHTML=`<div class="board-scroll"><div class="board-grid">${Object.entries(STATUS).map(([key,label])=>`<section class="board-column" data-column="${key}"><div class="column-header"><span class="status-dot" data-status="${key}"></span><h3>${label}</h3><span class="column-count">${tasks.filter(t=>t.status===key).length}</span><button class="icon-btn" data-add-status="${key}" aria-label="Add ${label.toLowerCase()} initiative">${icon('plus')}</button></div><div class="column-body" data-drop-status="${key}">${tasks.filter(t=>t.status===key).map(t=>{const c=palette(t.stream),risk=warnings(t);return `<article class="board-card canvas-item" tabindex="0" role="group" data-board-task="${esc(t.id)}" data-entity="initiative" data-id="${esc(t.id)}" data-stream-id="${esc(t.stream)}" data-assigned-increment="${esc(t.increment||'')}" style="${RoadmapColors.style(c)}" aria-label="Initiative: ${esc(t.title)}${t.increment?' · Increment: '+esc(getIncrement(t.increment)?.title||''):''}"><div class="card-meta"><span class="card-stream" title="${esc(streamName(t.stream))}">${esc(streamName(t.stream))}</span><span class="priority-pill" data-priority="${t.priority}">${PRIORITY[t.priority]}</span></div><h3 class="card-title" data-title>${esc(t.title)}</h3><p class="card-description">${esc(t.description)}</p>${canvasIncrementBadge(t)}${risk.length?`<div class="card-risk">${icon('warning')}${t.health==='blocked'?'Blocked':'Needs attention'}</div>`:''}<div class="card-progress"><div class="progress-track"><span class="progress-fill" style="width:${t.progress}%"></span></div><span>${t.progress}%</span></div><div class="card-footer"><span class="card-dates">${icon('calendar')}${fmtDate(t.start)} – ${fmtDate(t.end)}</span><span class="avatar" title="${esc(t.owner||'Unassigned')}">${esc(initial(t.owner))}</span></div>${canvasPorts('initiative',t.id,t.title)}</article>`;}).join('')}<button class="column-add" data-add-status="${key}">${icon('plus')}Add initiative</button></div></section>`).join('')}<svg class="dependency-layer"></svg></div></div>${!tasks.length?emptyHTML():''}`;
 }
 
 // Shared visual radio controls for the compact inspector and detail forms.
@@ -3339,7 +3340,12 @@ const RoadmapCanvas=(()=>{
    const item=find(target.type,target.id);if(!item)return false;
    if(event.target.closest('button')&&event.target.closest('button')!==target.element&&!event.target.closest('[data-drag-handle]'))return false;
    if(editor){finishEditor(true);if(!target.element.isConnected)target=recordTarget(itemElement(target.type,target.id))||target;}
-   if(target.element.matches('[data-board-task]')){select(target.type,target.id,true);return false;}
+   if(target.element.matches('[data-board-task]')){
+    select(target.type,target.id,true);
+    if(event.pointerType==='touch')return false;
+    gesture={kind:'board',type:target.type,id:target.id,el:target.element,pointerId:event.pointerId,x:event.clientX,y:event.clientY,moved:false,scroll:target.element.closest('.board-scroll')};
+    return true;
+   }
    const track=target.element.closest('[data-canvas-track]');if(!track)return false;
    if(event.pointerType==='touch'&&!event.target.closest('[data-drag-handle],[data-resize]'))return false;
    if(editor)finishEditor(true);
@@ -3456,6 +3462,7 @@ const RoadmapCanvas=(()=>{
  function pointerMove(event,finishing=false){
   if(tapCandidate&&Math.hypot(event.clientX-tapCandidate.x,event.clientY-tapCandidate.y)>8)tapCandidate=null;
   const d=gesture;if(!d||d.pointerId!==event.pointerId)return false;
+  if(d.kind==='board')return boardMove(event,d);
   const distance=Math.hypot(event.clientX-d.x,event.clientY-d.y);if(distance<5&&!d.moved)return true;
   // Moving keeps the item selected without opening its editing controls on render.
   if(!d.moved&&d.kind!=='create'){capture(d.el,d.pointerId);hideInspector();}
@@ -3495,8 +3502,35 @@ const RoadmapCanvas=(()=>{
   const tooltip=document.getElementById('dragTooltip');if(tooltip){tooltip.textContent=(d.type==='milestone'?fmtDate(iso(start),true)+(d.verticalOnly?' · Date unchanged':''): `${fmtDate(iso(start))} – ${fmtDate(iso(end))} · ${d.verticalOnly?'Dates unchanged':end-start+1+' days'}`)+(d.newStream&&d.newStream!==d.stream?' · '+streamName(d.newStream):'')+(d.type==='increment'&&d.newLane!=null&&d.newLane!==(d.stream||'')?' · '+(d.newLane?streamName(d.newLane):'Increments (all workstreams)'):'')+milestoneHint;tooltip.hidden=false;tooltip.style.left=clamp(event.clientX,120,innerWidth-120)+'px';tooltip.style.top=Math.max(10,event.clientY-53)+'px';}
   if(typeof drawDependencies==='function')drawDependencies();return true;
  }
+ // Board: the card follows the pointer; dropping it on another column changes the initiative's status.
+ function boardMove(event,d){
+  if(!d.moved){if(Math.hypot(event.clientX-d.x,event.clientY-d.y)<6)return true;d.moved=true;
+   const b=d.el.getBoundingClientRect();d.dx=d.x-b.left;d.dy=d.y-b.top;
+   d.preview=d.el.cloneNode(true);d.preview.classList.add('board-drag-preview');d.preview.removeAttribute('tabindex');d.preview.setAttribute('aria-hidden','true');d.preview.style.width=b.width+'px';
+   d.preview.querySelectorAll('[data-dep-port],[id]').forEach(n=>{if(n.matches('[data-dep-port]'))n.remove();else n.removeAttribute('id');});
+   document.body.append(d.preview);d.el.classList.add('is-board-dragging');document.body.classList.add('board-dragging');getSelection()?.removeAllRanges();RoadmapCanvas.hideInspector?.();
+  }
+  event.preventDefault?.();
+  d.preview.style.left=event.clientX-d.dx+'px';d.preview.style.top=event.clientY-d.dy+'px';
+  const col=document.elementsFromPoint(event.clientX,event.clientY).map(n=>n.closest?.('[data-drop-status]')).find(Boolean)||null;
+  d.status=col?.dataset.dropStatus||null;
+  document.querySelectorAll('.board-column.drag-over').forEach(x=>{if(x!==col?.closest('.board-column'))x.classList.remove('drag-over');});
+  col?.closest('.board-column')?.classList.add('drag-over');
+  if(d.scroll){const s=d.scroll.getBoundingClientRect();if(event.clientX>s.right-40)d.scroll.scrollLeft+=14;else if(event.clientX<s.left+40)d.scroll.scrollLeft-=14;}
+  return true;
+ }
+ function boardEnd(d,cancelled){
+  d.preview?.remove();d.el.classList.remove('is-board-dragging');document.body.classList.remove('board-dragging');
+  document.querySelectorAll('.board-column.drag-over').forEach(x=>x.classList.remove('drag-over'));
+  if(!d.moved)return true;
+  ignoreClickUntil=performance.now()+450;suppressClickUntil=ignoreClickUntil;
+  const task=find('initiative',d.id);
+  if(!cancelled&&task&&d.status&&d.status!==task.status)updateStatus(d.id,d.status);
+  return true;
+ }
  function pointerUp(event,cancelled=false){
   const d=gesture;if(!d||event&&d.pointerId!==event.pointerId)return false;
+  if(d.kind==='board'){gesture=null;return boardEnd(d,cancelled);}
   if(d.moved&&!cancelled&&event&&['initiative','milestone','increment'].includes(d.type)&&d.kind==='move')pointerMove(event,true);
   gesture=null;if(d.scrollFrame)cancelAnimationFrame(d.scrollFrame);release(d);clearPlacementPreview(d);
   document.querySelectorAll('.canvas-drop-target').forEach(el=>el.classList.remove('canvas-drop-target'));
