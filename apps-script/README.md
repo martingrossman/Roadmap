@@ -7,8 +7,8 @@ This runs `roadmap.html` as a Google Apps Script web app. The Google Sheet is wh
 | **Initiatives** | initiative (the issue list) | `workstream`, `outcome`, `increment` hold ids from those tabs. `dependencies` is a comma-separated list of initiative ids. |
 | **Workstreams** | workstream / swimlane | |
 | **Outcomes** | outcome | |
-| **Milestones** | milestone | `initiatives` is a comma-separated list of initiative ids. |
-| **Increments** | increment | |
+| **Milestones** | milestone | `workstream` puts it in that workstream's lane; blank means the plan-wide Milestones row. `initiatives` is a comma-separated list of initiative ids. |
+| **Increments** | increment | `workstream` puts it in that workstream's lane; blank means the plan-wide Increments row. |
 | **Connections** | extra dependency link | |
 | **Settings** | plan field (key / value) | Plan name, year, reference date, colors. Also `lastSavedAt` / `lastSavedBy`. |
 

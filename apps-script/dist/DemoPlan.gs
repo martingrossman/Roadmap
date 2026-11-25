@@ -88,6 +88,15 @@ const ROADMAP_DEMO_PLAN = {
    "end": "2027-11-19",
    "color": "violet",
    "description": "Scale, collaboration and enterprise features for launch."
+  },
+  {
+   "id": "pilot",
+   "title": "Pilot cohort",
+   "stream": "enterprise",
+   "start": "2027-07-05",
+   "end": "2027-09-24",
+   "color": "violet",
+   "description": "A controlled rollout with three enterprise design partners. Shows an increment that belongs to one workstream."
   }
  ],
  "initiatives": [
@@ -281,11 +290,25 @@ const ROADMAP_DEMO_PLAN = {
   {
    "id": "m3",
    "title": "Enterprise pilot",
+   "stream": "enterprise",
    "date": "2027-08-06",
    "description": "Start a controlled rollout with three enterprise design partners.",
    "done": false,
    "shape": "flag",
    "color": "violet",
+   "showLine": false,
+   "increment": "pilot",
+   "initiatives": []
+  },
+  {
+   "id": "m5",
+   "title": "Platform freeze",
+   "stream": "foundations",
+   "date": "2027-06-25",
+   "description": "No breaking platform changes after this date. Shows a milestone that belongs to one workstream.",
+   "done": false,
+   "shape": "diamond",
+   "color": "blue",
    "showLine": false,
    "increment": "",
    "initiatives": []

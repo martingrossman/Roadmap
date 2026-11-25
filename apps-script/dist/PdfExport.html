@@ -63,7 +63,10 @@
     const incrementSource=Array.isArray(input.increments)?input.increments:(plan.increments||[]).filter(i=>!restrictIncrementFallback||selectedIncrementIDs.has(i.id));
     const milestones=opts.milestones&&!isBoard?(input.milestones||plan.milestones||[]).filter(m=>day(m.date)>=range.start&&day(m.date)<range.end).slice().sort((a,b)=>day(a.date)-day(b.date)||String(a.id).localeCompare(String(b.id))):[];
     const increments=opts.increments?incrementSource.filter(i=>isBoard?selectedIncrementIDs.has(i.id):overlaps(i,range)||milestones.some(m=>m.increment===i.id)).slice().sort((a,b)=>day(a.start)-day(b.start)||day(a.end)-day(b.end)||String(a.id).localeCompare(String(b.id))):[];
-    const workstreams=(plan.workstreams||[]).filter(s=>tasks.some(t=>t.stream===s.id));
+    // '' = plan-wide (top rows); otherwise the workstream the milestone or increment belongs to.
+    const laneOf=x=>x&&x.stream||'',incrementById=new Map((plan.increments||[]).map(i=>[i.id,i]));
+    const laneItems=s=>!isGantt&&!isBoard&&(milestones.some(m=>laneOf(m)===s.id)||increments.some(i=>laneOf(i)===s.id));
+    const workstreams=(plan.workstreams||[]).filter(s=>tasks.some(t=>t.stream===s.id)||laneItems(s));
     const taskIndex=new Map();const ordered=[];
     workstreams.forEach(s=>{const items=tasks.filter(t=>t.stream===s.id);if(!isGantt&&!isBoard)items.sort((a,b)=>a.start.localeCompare(b.start)||a.title.localeCompare(b.title));items.forEach(t=>{ordered.push(t);taskIndex.set(t.id,String(ordered.length).padStart(2,'0'));});});
     const incrementIndex=new Map(increments.map((i,n)=>[i.id,'I'+String(n+1).padStart(2,'0')]));
@@ -390,27 +393,39 @@
     if(!tasks.length&&!increments.length&&!milestones.length){
       rect(M,top+24,CW,120,'#f4f7f7',line);text('No work in this view',M+24,top+50,{size:18,bold:true});text('Choose a wider period or different filters to include initiatives.',M+24,top+82,{size:10,fill:muted,width:CW-48});top+=170;
     }
-    const groupedMilestones=milestones.filter(m=>incrementIndex.has(m.increment));
+    // A milestone is drawn on its increment's bar when both sit in the same lane (always in Gantt).
+    const onIncrement=m=>incrementIndex.has(m.increment)&&(isGantt||laneOf(m)===laneOf(incrementById.get(m.increment)));
+    const topIncrements=isGantt?increments:increments.filter(i=>!laneOf(i)),topMilestones=isGantt?milestones:milestones.filter(m=>!laneOf(m));
+    // One increment with its checkpoints on the bar. A group always has one marker line, regardless of checkpoint proximity.
+    function incrementGroup(increment,assigned,title,tone){
+      const layout=milestoneLayout(assigned,increment),h=assigned.length?64:40;
+      if(top+h>chartBottom)newChartPage();
+      const barY=top+(assigned.length?30:6);
+      labelBlock(title,`${incrementIndex.get(increment.id)} · ${assigned.length} CHECKPOINT${assigned.length===1?'':'S'}`,top,h,tone);
+      rect(trackX,top,trackW,h,'#f4f6f7');grid(top,h);reference(top,h);
+      incrementBar(increment,barY,layout);
+      flatMilestones(layout,top+5,barY+9,increment);
+      top+=h+6;
+    }
+    function milestoneBlock(source,title,tone){
+      let stacked=stackedMilestones(source,top);
+      if(top+stacked.h>chartBottom){newChartPage();stacked=stackedMilestones(source,top);}
+      const h=stacked.h;
+      labelBlock(title,`${source.length} CHECKPOINT${source.length===1?'':'S'}`,top,h,tone);
+      rect(trackX,top,trackW,h,'#f4f6f7');grid(top,h);reference(top,h);
+      stacked.draw();
+      top+=h+6;
+    }
+    const groupedMilestones=topMilestones.filter(onIncrement);
     if(groupedMilestones.length){
-      // A group always has one marker line, regardless of checkpoint proximity.
-      for(const increment of increments){
-        const assigned=groupedMilestones.filter(m=>m.increment===increment.id),layout=milestoneLayout(assigned,increment);
-        const h=assigned.length?64:40,tone=theme(increment);
-        if(top+h>chartBottom)newChartPage();
-        const barY=top+(assigned.length?30:6);
-        labelBlock(overlaps(increment,range)?'Increments':increment.title,`${incrementIndex.get(increment.id)} · ${assigned.length} CHECKPOINT${assigned.length===1?'':'S'}`,top,h,tone);
-        rect(trackX,top,trackW,h,'#f4f6f7');grid(top,h);reference(top,h);
-        incrementBar(increment,barY,layout);
-        flatMilestones(layout,top+5,barY+9,increment);
-        top+=h+6;
-      }
+      for(const increment of topIncrements)incrementGroup(increment,groupedMilestones.filter(m=>m.increment===increment.id),overlaps(increment,range)?'Increments':increment.title,theme(increment));
     }else{
-    const incrementRows=pack(increments,range,0);let incrementOffset=0;
+    const incrementRows=pack(topIncrements,range,0);let incrementOffset=0;
     while(incrementOffset<incrementRows.length){
       const rowH=32;let count=Math.min(incrementRows.length-incrementOffset,Math.floor((chartBottom-top-14)/rowH));
       if(count<1){newChartPage();continue;}
       const h=count*rowH+12;
-      labelBlock('Increments',`${increments.length} DATE WINDOW${increments.length===1?'':'S'}`,top,h,theme({color:'slate'}),incrementOffset>0);
+      labelBlock('Increments',`${topIncrements.length} DATE WINDOW${topIncrements.length===1?'':'S'}`,top,h,theme({color:'slate'}),incrementOffset>0);
       for(let k=0;k<count;k++){
         const y=top+6+k*rowH;rect(trackX,y,trackW,rowH,k%2?'#f7f9fa':stripe);grid(y,rowH);reference(y,rowH);
         incrementRows[incrementOffset+k].forEach(({task:increment})=>incrementBar(increment,y));
@@ -418,19 +433,20 @@
       top+=h+6;incrementOffset+=count;
     }
     }
-    const standaloneMilestones=milestones.filter(m=>!incrementIndex.has(m.increment));
-    if(standaloneMilestones.length){
-      let stacked=stackedMilestones(standaloneMilestones,top);
-      if(top+stacked.h>chartBottom){newChartPage();stacked=stackedMilestones(standaloneMilestones,top);}
-      const h=stacked.h;
-      labelBlock('Milestones',`${standaloneMilestones.length} CHECKPOINT${standaloneMilestones.length===1?'':'S'}`,top,h,theme({color:'slate'}));
-      rect(trackX,top,trackW,h,'#f4f6f7');grid(top,h);reference(top,h);
-      stacked.draw();
-      top+=h+6;
-    }
+    const standaloneMilestones=topMilestones.filter(m=>!onIncrement(m));
+    if(standaloneMilestones.length)milestoneBlock(standaloneMilestones,'Milestones',theme({color:'slate'}));
     for(const stream of workstreams){
       if(isGantt){ganttStream(stream);continue;}
       const rows=pack(tasks.filter(t=>t.stream===stream.id),range,0);const tone=theme(stream);let offset=0;
+      const laneIncrements=increments.filter(i=>laneOf(i)===stream.id),laneMilestones=milestones.filter(m=>laneOf(m)===stream.id);
+      const laneGrouped=laneMilestones.filter(onIncrement),laneFlat=laneMilestones.filter(m=>!onIncrement(m));
+      if(laneIncrements.length||laneFlat.length){
+        // Keep the lane's own rows on the same page as its first initiative row when they fit on one page.
+        const need=laneIncrements.reduce((h,i)=>h+(laneGrouped.some(m=>m.increment===i.id)?64:40)+6,0)+(laneFlat.length?stackedMilestones(laneFlat,top).h+6:0)+(rows.length?40:0);
+        if(top+need>chartBottom&&need<=chartBottom-chartStart)newChartPage();
+        for(const increment of laneIncrements)incrementGroup(increment,laneGrouped.filter(m=>m.increment===increment.id),stream.name,tone);
+        if(laneFlat.length)milestoneBlock(laneFlat,stream.name,tone);
+      }
       const minLabelH=wrap(stream.name,labelW-22,11.1,true).length*13.5+30;
       while(offset<rows.length){
         let count=Math.min(rows.length-offset,Math.floor((chartBottom-top-14)/26));

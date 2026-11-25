@@ -93,6 +93,8 @@ const ROADMAP_TABS = [
   { key: 'milestones', sheet: 'Milestones', cols: [
     { field: 'id' },
     { field: 'title', wide: true },
+    // Blank = the plan-wide Milestones row at the top; otherwise the workstream lane it is shown in.
+    { field: 'stream', header: 'workstream', type: 'ref', ref: 'Workstreams' },
     { field: 'date', type: 'date' },
     { field: 'done', type: 'bool' },
     { field: 'shape', type: 'enum', values: 'shape' },
@@ -105,6 +107,8 @@ const ROADMAP_TABS = [
   { key: 'increments', sheet: 'Increments', cols: [
     { field: 'id' },
     { field: 'title', wide: true },
+    // Blank = the plan-wide Increments row at the top; otherwise the workstream lane it is shown in.
+    { field: 'stream', header: 'workstream', type: 'ref', ref: 'Workstreams' },
     { field: 'start', type: 'date' },
     { field: 'end', type: 'date' },
     { field: 'color', type: 'enum', values: 'color' },
@@ -460,7 +464,9 @@ function roadmapCheckRefs_(plan, rowOf, problems) {
   check('initiatives', 'outcome', 'outcomes');
   check('initiatives', 'increment', 'increments');
   check('initiatives', 'dependencies', 'initiatives', true);
+  check('milestones', 'stream', 'workstreams');
   check('milestones', 'increment', 'increments');
+  check('increments', 'stream', 'workstreams');
   check('milestones', 'initiatives', 'initiatives', true);
 }
 
