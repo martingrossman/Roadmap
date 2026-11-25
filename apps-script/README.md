@@ -47,6 +47,7 @@ The PDF engine (pdf-lib plus Open Sans) is about 1.1 MB, so it lives in separate
 6. Copy the **Web app URL** that the deployment shows. It ends in `/exec`. You can find it again later under **Deploy → Manage deployments**.
 7. Reload the Sheet. A new **🗺️ Roadmap** menu appears in the menu bar, and a note in the corner points to it. Choose **🗺️ Roadmap → Open planner**. The first time, it asks for the link from step 6 and saves it as the `WEB_APP_URL` script property. To change the link later, choose **🗺️ Roadmap → Set planner link…**.
    The first time the planner opens, it writes the plan bundled in the page into the Sheet and creates the tabs.
+   To reset the Sheet to the same example plan the live demo shows, choose **🗺️ Roadmap → 📥 Load demo plan**. It asks first, because it replaces the data on the planner tabs. The build (`build.mjs`) copies that plan from `roadmap.html` into `DemoPlan.gs`, so it always matches the demo.
 
 ## Sharing
 
