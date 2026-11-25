@@ -132,20 +132,50 @@ ARC_TABS.forEach(tab => tab.cols.forEach(c => {
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('Arc')
     .addItem('Open planner', 'openPlanner')
+    .addItem('Set planner link…', 'setPlannerLink')
     .addSeparator()
     .addItem('Reapply tab formatting', 'reapplyFormatting')
     .addToUi();
+}
+
+// The deployed web app link: https://script.google.com/[a/macros/<domain>/]macros/s/<id>/exec
+// (Workspace links look like https://script.google.com/a/macros/<domain>/s/<id>/exec.)
+const ARC_WEB_APP_URL_RE = /^https:\/\/script\.google\.com\/(?:a\/macros\/[^\/\s]+\/|macros\/)s\/[\w-]+\/exec$/;
+
+/**
+ * Asks for the web app's /exec link and stores it as the WEB_APP_URL script property.
+ * ScriptApp.getService().getUrl() is not used: in a Sheet-bound script it often returns
+ * the /dev test link or an older deployment instead of the live one.
+ * Returns the saved link, or null if the person cancelled.
+ */
+function setPlannerLink() {
+  const ui = SpreadsheetApp.getUi();
+  const props = PropertiesService.getScriptProperties();
+  const current = props.getProperty('WEB_APP_URL');
+  let hint = 'In Apps Script choose Deploy → Manage deployments, select the web app, and copy its Web app URL (it ends in /exec).';
+  if (current) hint += '\n\nCurrent link:\n' + current;
+  for (;;) {
+    const res = ui.prompt('Planner link', hint, ui.ButtonSet.OK_CANCEL);
+    if (res.getSelectedButton() !== ui.Button.OK) return null;
+    const url = res.getResponseText().trim().replace(/[?#].*$/, '');
+    if (ARC_WEB_APP_URL_RE.test(url)) {
+      props.setProperty('WEB_APP_URL', url);
+      return url;
+    }
+    hint = (/\/dev$/.test(url)
+      ? 'That is the /dev test link, which only works for editors and runs unsaved code. '
+      : 'That does not look like a web app link. ') +
+      'Paste the Web app URL from Deploy → Manage deployments. It ends in /exec.';
+  }
 }
 
 function openPlanner() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const props = PropertiesService.getScriptProperties();
   props.setProperty('SPREADSHEET_ID', ss.getId());
-  const url = props.getProperty('WEB_APP_URL') || ScriptApp.getService().getUrl();
-  if (!url) {
-    SpreadsheetApp.getUi().alert('Deploy the planner first: in Apps Script choose Deploy → New deployment → Web app. Then use Arc → Open planner again.');
-    return;
-  }
+  let url = props.getProperty('WEB_APP_URL');
+  if (!url || !ARC_WEB_APP_URL_RE.test(url)) url = setPlannerLink();
+  if (!url) return;
   const safe = arcEscapeHtml_(url);
   const html = HtmlService.createHtmlOutput(
     '<div style="font:14px/1.5 Arial,sans-serif;padding:4px 2px">' +

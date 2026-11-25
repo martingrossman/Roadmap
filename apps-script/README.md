@@ -44,8 +44,9 @@ The PDF engine (pdf-lib plus Open Sans) is about 1.1 MB, so it lives in separate
    - **Execute as: User accessing the web app.** This is the recommended setting. People can then only open and edit the plan if they have that access to the Sheet itself, so normal Sheet sharing controls everything.
    - **Who has access: Anyone with a Google account**, or your organization only.
    - Click **Deploy** and approve the permissions.
-6. Reload the Sheet. A new **Arc** menu appears. Choose **Arc → Open planner**.
-   The first time it opens, the planner writes the plan bundled in the page into the Sheet and creates the tabs.
+6. Copy the **Web app URL** that the deployment shows. It ends in `/exec`. You can find it again later under **Deploy → Manage deployments**.
+7. Reload the Sheet. A new **Arc** menu appears. Choose **Arc → Open planner**. The first time, it asks for the link from step 6 and saves it as the `WEB_APP_URL` script property. To change the link later, choose **Arc → Set planner link…**.
+   The first time the planner opens, it writes the plan bundled in the page into the Sheet and creates the tabs.
 
 ## Sharing
 
