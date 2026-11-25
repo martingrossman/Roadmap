@@ -362,6 +362,17 @@
         first=false;
       }
     }
+    const MS_ROW_H=30;
+    // Gantt: one milestone in its own row, like an initiative row (name and date on the left, symbol on the timeline).
+    function ganttMilestoneRow(m,k){
+      if(top+MS_ROW_H>chartBottom)newChartPage();
+      const y=top,x=trackX+(day(m.date)-range.start)/(range.end-range.start)*trackW;
+      rect(M,y,CW,MS_ROW_H,k%2?'#f8fafb':white);grid(y,MS_ROW_H);reference(y,MS_ROW_H);stroke(M,y+MS_ROW_H,M+CW,y+MS_ROW_H,line,.4);
+      text(fit(clean(m.title),labelW-18,8.4,true),M+8,y+5,{size:8.4,bold:true});
+      text(date(m.date)+(m.done?' · Achieved':''),M+8,y+17,{size:6.6,fill:muted});
+      milestoneSymbol(m,x,y+MS_ROW_H/2,6);
+      top+=MS_ROW_H;
+    }
     function ganttHeader(stream,continued){
       const items=tasks.filter(t=>t.stream===stream.id),tone=theme(stream);
       rect(M,top,CW,22,tint(tone.solid,.9));rect(M,top,3,22,tone.solid,tone.outline,.5);
@@ -444,7 +455,10 @@
       const own=milestones.filter(m=>laneOf(m)===stream.id),incs=increments.filter(i=>laneOf(i)===stream.id);
       const grouped=own.filter(onIncrement),flat=own.filter(m=>!onIncrement(m));
       const h=incs.reduce((h,i)=>h+(grouped.some(m=>m.increment===i.id)?64:40)+6,0)+(flat.length?stackedMilestones(flat,top).h+6:0);
-      return{any:incs.length>0||flat.length>0,h,draw:(title,tone)=>{for(const increment of incs)incrementGroup(increment,grouped.filter(m=>m.increment===increment.id),title,tone);if(flat.length)milestoneBlock(flat,title,tone);}};
+      const drawIncrements=(title,tone)=>{for(const increment of incs)incrementGroup(increment,grouped.filter(m=>m.increment===increment.id),title,tone);};
+      // Gantt draws each flat milestone as its own row instead of one stacked block.
+      const ganttH=incs.reduce((h,i)=>h+(grouped.some(m=>m.increment===i.id)?64:40)+6,0)+flat.length*MS_ROW_H;
+      return{any:incs.length>0||flat.length>0,h:isGantt?ganttH:h,flat,drawIncrements,draw:(title,tone)=>{drawIncrements(title,tone);if(flat.length)milestoneBlock(flat,title,tone);}};
     }
     for(const stream of workstreams){
       if(isGantt){
@@ -453,7 +467,8 @@
         if(!lane.any){ganttStream(stream);continue;}
         const need=22+lane.h+40;
         if(top+need>chartBottom&&need<=chartBottom-chartStart)newChartPage();
-        ganttHeader(stream,false);lane.draw('Increments / milestones',theme(stream));
+        ganttHeader(stream,false);lane.drawIncrements('Increments',theme(stream));
+        lane.flat.forEach((m,k)=>ganttMilestoneRow(m,k));
         ganttStream(stream,true);continue;
       }
       const rows=pack(tasks.filter(t=>t.stream===stream.id),range,0);const tone=theme(stream);let offset=0;
