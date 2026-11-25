@@ -60,6 +60,7 @@ body.drawer-open{overflow:hidden}.detail-overlay{height:100dvh}.detail-panel{max
 .swimlane-milestone-label .swimlane-milestone-add:hover{color:#fff;background:#ffffff24}
 .swimlane-lane-milestones{flex:0 0 auto;min-height:54px}
 .lane-add-menu{min-width:230px}
+.canvas-increment-band.canvas-drop-target,.swimlane-milestone-band.canvas-drop-target{outline:1px solid #62aa92;outline-offset:-1px}
 .swimlane-lane-increments{flex:0 0 auto;background:#fbfdfc;border-bottom:1px solid #e8eeee}
 .swimlane-milestone-track{position:relative;min-width:0;background:linear-gradient(to bottom,#fff 0,#fff 9px,#f0f2f3 9px,#f0f2f3 calc(100% - 9px),#fff calc(100% - 9px))}
 .swimlane-milestone{position:absolute;display:flex;align-items:center;gap:8px;max-width:19%;padding:0;border:0;background:transparent;color:#374f58;text-align:left;white-space:nowrap;transform:translateX(-11px);z-index:4;line-height:1.25}
@@ -3328,6 +3329,19 @@ const RoadmapCanvas=(()=>{
   event.preventDefault();const stream=origin.dataset.streamId||origin.closest('[data-stream-id]')?.dataset.streamId||(state.stream!=='all'?state.stream:state.plan.workstreams[0].id),increment=mode==='milestone'?(origin.dataset.incrementId||origin.closest('[data-increment-id]')?.dataset.incrementId||''):'',track=validTrack(mode,stream,increment)||origin,d=dateAt(event.clientX,origin),ghost=ghostFor(track,mode,d,d);
   gesture={kind:'create',type:mode,el:origin,track,pointerId:event.pointerId,x:event.clientX,y:event.clientY,start:d,end:d,newStart:d,newEnd:d,stream,increment,moved:false,ghost};capture(origin,event.pointerId);return true;
  }
+ function incrementDropAt(event,d){
+  if(state.view!=='swimlane')return null;
+  for(const hit of document.elementsFromPoint(event.clientX,event.clientY)){
+   if(d.el.contains(hit)||hit.closest('.roadmap-dependency-layer,.roadmap-dependency-endpoint-layer,.canvas-move-preview,.canvas-row-drop-guide'))continue;
+   if(hit.closest('#freezeDock,#roadmapTools,.topbar,#sidebar,#canvasSelection,#dependencySelection,#toastRegion,dialog,#detailOverlay,.canvas-name-editor'))return null;
+   if(!d.canvas?.contains(hit))continue;
+   const lane=hit.closest('.swimlane-group[data-stream-id]');
+   if(lane)return{stream:lane.dataset.streamId,target:lane};
+   const top=hit.closest('.canvas-increment-band,.swimlane-milestone-band');
+   if(top)return{stream:'',target:top.matches('.canvas-increment-band')?top:document.querySelector('.canvas-increment-band.is-swimlane')||top};
+  }
+  return null;
+ }
  function milestoneDropAt(event,d){
   for(const hit of document.elementsFromPoint(event.clientX,event.clientY)){
    if(d.el.contains(hit)||hit.closest('.roadmap-dependency-layer,.roadmap-dependency-endpoint-layer,.canvas-move-preview,.canvas-row-drop-guide'))continue;
@@ -3433,6 +3447,12 @@ const RoadmapCanvas=(()=>{
    showPlacement(event,d);
    d.lastPoint={pointerId:event.pointerId,clientX:event.clientX,clientY:event.clientY,preventDefault(){}};if(!finishing)scheduleDragScroll(d);
   }
+  if(d.type==='increment'&&d.kind==='move'&&state.view==='swimlane'){
+   const drop=incrementDropAt(event,d);d.newLane=drop?drop.stream:d.stream||'';
+   d.canvas?.querySelectorAll('.canvas-drop-target').forEach(el=>{if(el!==drop?.target)el.classList.remove('canvas-drop-target');});
+   if(drop&&drop.stream!==(d.stream||''))drop.target.classList.add('canvas-drop-target');else drop?.target.classList.remove('canvas-drop-target');
+   d.lastPoint={pointerId:event.pointerId,clientX:event.clientX,clientY:event.clientY,preventDefault(){}};if(!finishing)scheduleDragScroll(d);
+  }
   if(d.type==='milestone'&&['swimlane','timeline'].includes(state.view)){
    d.milestoneDrop=milestoneDropAt(event,d);d.validDrop=!!d.milestoneDrop;d.newIncrement=d.milestoneDrop?.increment??d.increment;d.newLane=d.milestoneDrop?d.milestoneDrop.stream:d.stream;
    showMilestonePlacement(event,d);
@@ -3441,12 +3461,12 @@ const RoadmapCanvas=(()=>{
   const p=barPosition(iso(start),iso(end),d.r);d.el.style.left=p.left+'%';if(d.type!=='milestone')d.el.style.width=p.width+'%';d.el.classList.add('canvas-dragging');
   if(d.type==='milestone')moveMilestoneLine(d.id,start);
   const milestoneHint=d.type==='milestone'&&['swimlane','timeline'].includes(state.view)?(d.validDrop?' · '+(d.newIncrement?find('increment',d.newIncrement)?.title:d.newLane?streamName(d.newLane):'Milestones'):' · Drop on an increment, a workstream or the Milestones lane'):'';
-  const tooltip=document.getElementById('dragTooltip');if(tooltip){tooltip.textContent=(d.type==='milestone'?fmtDate(iso(start),true)+(d.verticalOnly?' · Date unchanged':''): `${fmtDate(iso(start))} – ${fmtDate(iso(end))} · ${d.verticalOnly?'Dates unchanged':end-start+1+' days'}`)+(d.newStream&&d.newStream!==d.stream?' · '+streamName(d.newStream):'')+milestoneHint;tooltip.hidden=false;tooltip.style.left=clamp(event.clientX,120,innerWidth-120)+'px';tooltip.style.top=Math.max(10,event.clientY-53)+'px';}
+  const tooltip=document.getElementById('dragTooltip');if(tooltip){tooltip.textContent=(d.type==='milestone'?fmtDate(iso(start),true)+(d.verticalOnly?' · Date unchanged':''): `${fmtDate(iso(start))} – ${fmtDate(iso(end))} · ${d.verticalOnly?'Dates unchanged':end-start+1+' days'}`)+(d.newStream&&d.newStream!==d.stream?' · '+streamName(d.newStream):'')+(d.type==='increment'&&d.newLane!=null&&d.newLane!==(d.stream||'')?' · '+(d.newLane?streamName(d.newLane):'Increments (all workstreams)'):'')+milestoneHint;tooltip.hidden=false;tooltip.style.left=clamp(event.clientX,120,innerWidth-120)+'px';tooltip.style.top=Math.max(10,event.clientY-53)+'px';}
   if(typeof drawDependencies==='function')drawDependencies();return true;
  }
  function pointerUp(event,cancelled=false){
   const d=gesture;if(!d||event&&d.pointerId!==event.pointerId)return false;
-  if(d.moved&&!cancelled&&event&&['initiative','milestone'].includes(d.type)&&d.kind==='move')pointerMove(event,true);
+  if(d.moved&&!cancelled&&event&&['initiative','milestone','increment'].includes(d.type)&&d.kind==='move')pointerMove(event,true);
   gesture=null;if(d.scrollFrame)cancelAnimationFrame(d.scrollFrame);release(d);clearPlacementPreview(d);
   document.querySelectorAll('.canvas-drop-target').forEach(el=>el.classList.remove('canvas-drop-target'));
   const tooltip=document.getElementById('dragTooltip');if(tooltip)tooltip.hidden=true;
@@ -3463,9 +3483,10 @@ const RoadmapCanvas=(()=>{
    const rowChanged=!cancelled&&d.drop?placeInitiative(clone(state.plan),d.id,d.drop):false;
    const laneChanged=d.type==='milestone'&&d.newLane!=null&&d.newLane!==(d.stream||'');
    const membershipChanged=d.type==='milestone'&&(d.increment!==d.newIncrement||laneChanged);
-   if(!cancelled&&(d.start!==d.newStart||d.end!==d.newEnd||rowChanged||membershipChanged)){
+   const incrementLaneChanged=d.type==='increment'&&d.newLane!=null&&d.newLane!==(d.stream||'');
+   if(!cancelled&&(d.start!==d.newStart||d.end!==d.newEnd||rowChanged||membershipChanged||incrementLaneChanged)){
     if(d.drop)state.collapsed.delete(d.drop.stream);
-    commit(p=>{const x=find(d.type,d.id,p);if(d.type==='milestone'){x.date=iso(d.newStart);x.increment=d.newIncrement;if(d.newLane!=null)x.stream=d.newLane;}else{x.start=iso(d.newStart);x.end=iso(d.newEnd);}if(d.drop)placeInitiative(p,d.id,d.drop);},membershipChanged?(d.newIncrement?`Milestone moved into ${find('increment',d.newIncrement)?.title}`:d.newLane?`Milestone moved to ${streamName(d.newLane)}`:'Milestone moved to the Milestones lane'):d.newStream!==d.stream?`Moved to ${streamName(d.newStream)}`:rowChanged?'Initiative reordered':d.kind==='move'?`${names[d.type]} rescheduled`:'Duration updated');
+    commit(p=>{const x=find(d.type,d.id,p);if(d.type==='milestone'){x.date=iso(d.newStart);x.increment=d.newIncrement;if(d.newLane!=null)x.stream=d.newLane;}else{x.start=iso(d.newStart);x.end=iso(d.newEnd);}if(incrementLaneChanged){const old=x.stream||'';x.stream=d.newLane;p.milestones.forEach(m=>{if(m.increment===x.id&&(m.stream||'')===old)m.stream=d.newLane;});}if(d.drop)placeInitiative(p,d.id,d.drop);},incrementLaneChanged?(d.newLane?`Increment moved to ${streamName(d.newLane)}`:'Increment moved to the Increments row'):membershipChanged?(d.newIncrement?`Milestone moved into ${find('increment',d.newIncrement)?.title}`:d.newLane?`Milestone moved to ${streamName(d.newLane)}`:'Milestone moved to the Milestones lane'):d.newStream!==d.stream?`Moved to ${streamName(d.newStream)}`:rowChanged?'Initiative reordered':d.kind==='move'?`${names[d.type]} rescheduled`:'Duration updated');
    }else{if(d.type==='milestone')moveMilestoneLine(d.id,d.start);if(typeof drawDependencies==='function')drawDependencies();}
   }return true;
  }
