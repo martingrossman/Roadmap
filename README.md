@@ -38,7 +38,7 @@ A copy never opens or saves to the original Sheet: the original's web app link a
 **Things to know:**
 
 - Viewers can't run a Sheet's menu. Send them the web app link instead, and they see the plan read-only.
-- Google limits how large a window on top of the Sheet can be, so on a small screen **🚀 Open planner** may not fill it.
+- Google keeps a margin around the window on top of the Sheet, so **🚀 Open planner** scales the planner down a little (never below 70%) to fit a full year. **↗️ Open in new tab** shows it at full size.
 - PDF export may be blocked inside the window on top of the Sheet. If it is, use **↗️ Open in new tab** to export.
 
 Full setup, permissions and limits: [`apps-script/README.md`](apps-script/README.md).

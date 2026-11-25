@@ -134,6 +134,6 @@ What it can't cover is how the real Google services behave: sign-in and permissi
 - The whole plan is rewritten on each save. That's fine for hundreds of rows. At thousands of initiatives, saves will take several seconds.
 - A single cell holds at most 50,000 characters, which is more than enough for initiative notes (the planner allows 10,000).
 - People's edits are merged per save, not per field. If two people edit at the same moment, the second person is asked to choose a version.
-- **🚀 Open planner** sizes its window to the screen, but Google limits how large a window on top of the Sheet can be. On a small screen it may not fill the screen. **↗️ Open in new tab** always gets a full tab.
+- **🚀 Open planner** asks for a window as large as the browser, but Google keeps a margin and its own title bar around it. To make up for that, the planner inside is scaled down to fit about 1,600 pixels of layout (never below 70%), so a full year fits. **↗️ Open in new tab** shows it at full size.
 - Downloads, such as PDF and HTML export, may be blocked inside the window on top of the Sheet. If they are, export from **↗️ Open in new tab**.
 - Viewers can't run the Sheet's menu, so they can't use **🚀 Open planner**. Send them the web app link.

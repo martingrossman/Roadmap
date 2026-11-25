@@ -212,17 +212,44 @@ function openPlanner() {
     '<div style="font:14px/1.5 Arial,sans-serif;padding:6px 2px;color:#334">Opening the planner…</div>' +
     '<script>google.script.run' +
     '.withFailureHandler(function(e){document.body.textContent="The planner could not open: "+(e&&e.message||e);})' +
-    '.showPlannerWindow(Math.min(screen.availWidth-80,2000),Math.min(screen.availHeight-180,1300));</script>'
+    '.showPlannerWindow(Math.min(screen.availWidth,window.outerWidth||screen.availWidth)-24,screen.availHeight-180);</script>'
   ).setWidth(260).setHeight(70);
   SpreadsheetApp.getUi().showModalDialog(launcher, '🗺️ Roadmap');
 }
 
 /** Called by the launcher in openPlanner(); replaces it with the planner window. */
 function showPlannerWindow(width, height) {
-  const w = Math.max(760, Math.min(2000, Math.round(Number(width) || 1200)));
-  const h = Math.max(520, Math.min(1300, Math.round(Number(height) || 760)));
+  // Google may make the window smaller than asked to fit the browser; the page then scales itself to fit.
+  const w = Math.max(760, Math.min(3840, Math.round(Number(width) || 1200)));
+  const h = Math.max(520, Math.min(2160, Math.round(Number(height) || 760)));
   const page = roadmapPage_();
-  SpreadsheetApp.getUi().showModalDialog(page.output.setWidth(w).setHeight(h), '🗺️ ' + page.name);
+  const output = HtmlService.createHtmlOutput(roadmapFitPage_(page.output.getContent()));
+  SpreadsheetApp.getUi().showModalDialog(output.setWidth(w).setHeight(h), '🗺️ ' + page.name);
+}
+
+/**
+ * Google's window on top of the Sheet leaves less room than a browser tab. This wraps the
+ * planner in an inner frame that is laid out about FIT px wide and scaled down to fit, so
+ * more of the timeline shows. The planner keeps its own coordinates inside the frame, so
+ * dragging and dependency arrows stay accurate. If the inner frame cannot reach Google's
+ * script API (a stricter sandbox), the wrapper shows the planner unscaled instead.
+ */
+function roadmapFitPage_(html) {
+  const json = JSON.stringify(html).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
+  return '<!doctype html><html><head><meta charset="utf-8"><style>' +
+    'html,body{margin:0;height:100%;overflow:hidden;background:#fff}' +
+    '#app{position:absolute;left:0;top:0;border:0;transform-origin:0 0}</style></head><body>' +
+    '<iframe id="app" title="Roadmap planner"></iframe><script>' +
+    '(function(){var FIT=1600,MIN=0.7,html=' + json + ',f=document.getElementById("app");' +
+    'function plain(){document.open();document.write(html);document.close();}' +
+    'function fit(){var s=Math.max(MIN,Math.min(1,innerWidth/FIT));' +
+    'f.style.width=Math.ceil(innerWidth/s)+"px";f.style.height=Math.ceil(innerHeight/s)+"px";' +
+    'f.style.transform=s<1?"scale("+s+")":"";}' +
+    'try{if(!window.google||!google.script)throw 0;' +
+    'f.onload=function(){try{if(!f.contentWindow.google)throw 0;f.contentWindow.focus();}catch(e){plain();}};' +
+    'f.srcdoc=html.replace("<head>","<head><script>window.google=parent.google;<\\/script>");' +
+    'fit();addEventListener("resize",fit);}catch(e){plain();}})();' +
+    '</script></body></html>';
 }
 
 /**
@@ -300,7 +327,9 @@ function reapplyFormatting() {
 /* Web app                                                             */
 /* ------------------------------------------------------------------ */
 
-/** Builds the planner page with the Sheet's plan baked in. Used by the web app and the in-Sheet window. */
+/**
+ * Builds the planner page with the Sheet's plan baked in. Used by the web app and the in-Sheet window.
+ */
 function roadmapPage_() {
   const boot = { plan: null, revision: null, error: null };
   try {
