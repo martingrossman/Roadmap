@@ -84,6 +84,18 @@ node ../build.mjs
 clasp push
 ```
 
+### Deploy with one command
+
+Once clasp is set up, this builds the files, uploads them, deploys a new version of the web app and saves its link for the **Arc** menu:
+
+```powershell
+node apps-script/deploy.mjs
+```
+
+It reuses your existing web app deployment, so the link stays the same. If there is none, it creates one. If there are several, it lists them and asks you to choose one with `--id <deploymentId>`. Use `-d "What changed"` to set the version description. If you leave it out, the last commit message is used.
+
+The link is saved in `dist/Deployment.gs`. Git ignores that file because the link belongs to your own project. With it in place, **Arc → Open planner** opens the right page without asking. A link you set by hand with **Arc → Set planner link…** still takes priority.
+
 ## Local test harness
 
 `apps-script/test/index.html` runs the real `Code.gs` and `Index.html` against a fake, in-memory Sheet, with no Google account. To use it, serve the repository folder:

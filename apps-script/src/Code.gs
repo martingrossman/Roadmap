@@ -174,6 +174,8 @@ function openPlanner() {
   const props = PropertiesService.getScriptProperties();
   props.setProperty('SPREADSHEET_ID', ss.getId());
   let url = props.getProperty('WEB_APP_URL');
+  // Set by apps-script/deploy.mjs in Deployment.gs; used when no link was saved by hand.
+  if (!url || !ARC_WEB_APP_URL_RE.test(url)) url = typeof ARC_DEPLOYED_URL === 'string' ? ARC_DEPLOYED_URL : '';
   if (!url || !ARC_WEB_APP_URL_RE.test(url)) url = setPlannerLink();
   if (!url) return;
   const safe = arcEscapeHtml_(url);
