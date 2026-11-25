@@ -3683,7 +3683,9 @@ const RoadmapCanvas=(()=>{
   const action=event.target.closest('[data-canvas-action]');if(action){
    const target=recordTarget(action);if(target)select(target.type,target.id);
    const a=action.dataset.canvasAction;
-   if(a==='close')clearSelection();else if(a==='rename'&&selection)rename(selection.type,selection.id);else if(a==='details'&&selection){finishEditor(true);openDetail(selection.type,selection.id);}else if(a==='delete')removeSelected();else if(a==='duplicate')duplicateSelected();else if(a==='add-in-increment'&&selection?.type==='increment'){const increment=selected();state.section='roadmap';if(!['timeline','swimlane'].includes(state.view))state.view='timeline';showRecordPeriod(increment);render();quickAdd('initiative',{increment:increment.id,start:increment.start,end:increment.end});}
+   if(a==='close')clearSelection();else if(a==='rename'&&selection)rename(selection.type,selection.id);else if(a==='details'&&selection){finishEditor(true);const {type,id}=selection;
+    // Full details replace the small panel: closing them returns to the roadmap, not to the panel.
+    hideInspector();itemElement(type,id)?.focus({preventScroll:true});openDetail(type,id);}else if(a==='delete')removeSelected();else if(a==='duplicate')duplicateSelected();else if(a==='add-in-increment'&&selection?.type==='increment'){const increment=selected();state.section='roadmap';if(!['timeline','swimlane'].includes(state.view))state.view='timeline';showRecordPeriod(increment);render();quickAdd('initiative',{increment:increment.id,start:increment.start,end:increment.end});}
    else if(a==='add-milestone-in-increment'){const increment=find('increment',action.dataset.incrementId||(selection?.type==='increment'?selection.id:''));if(increment){state.section='roadmap';if(!['timeline','swimlane'].includes(state.view))state.view='swimlane';showRecordPeriod({date:increment.end});render();quickAdd('milestone',{increment:increment.id,date:increment.end,lane:laneOf(increment)});}}
    return true;
   }
