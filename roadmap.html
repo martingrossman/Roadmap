@@ -3798,6 +3798,10 @@ const RoadmapCanvas=(()=>{
   for(const hit of hits){
    if(d.el.contains(hit)||hit.closest('.roadmap-dependency-layer,.roadmap-dependency-endpoint-layer,.canvas-move-preview,.canvas-row-drop-guide'))continue;
    if(hit.closest('#freezeDock,#roadmapTools,.topbar,#sidebar,#canvasSelection,#dependencySelection,#toastRegion,dialog,#detailOverlay,.canvas-name-editor'))return null;
+   // A Gantt group's own increments and milestones rows sit between its header and its initiatives:
+   // dropping there puts the initiative first in that group.
+   const laneRow=state.view==='timeline'&&hit.closest('.gantt-lane-row[data-lane-id]');
+   if(laneRow&&d.canvas?.contains(laneRow)&&state.plan.workstreams.some(s=>s.id===laneRow.dataset.laneId))return{stream:laneRow.dataset.laneId,targetId:null,placement:'first',target:laneRow,own:false};
    const group=hit.closest('[data-stream-id]');if(!group||!d.canvas?.contains(group))continue;
    const stream=group.dataset.streamId;if(!state.plan.workstreams.some(s=>s.id===stream))continue;
    if(state.view==='swimlane'){
