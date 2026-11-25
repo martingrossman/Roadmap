@@ -65,7 +65,7 @@
     const increments=opts.increments?incrementSource.filter(i=>isBoard?selectedIncrementIDs.has(i.id):overlaps(i,range)||milestones.some(m=>m.increment===i.id)).slice().sort((a,b)=>day(a.start)-day(b.start)||day(a.end)-day(b.end)||String(a.id).localeCompare(String(b.id))):[];
     // '' = plan-wide (top rows); otherwise the workstream the milestone or increment belongs to.
     const laneOf=x=>x&&x.stream||'',incrementById=new Map((plan.increments||[]).map(i=>[i.id,i]));
-    const laneItems=s=>!isGantt&&!isBoard&&(milestones.some(m=>laneOf(m)===s.id)||increments.some(i=>laneOf(i)===s.id));
+    const laneItems=s=>!isBoard&&(milestones.some(m=>laneOf(m)===s.id)||increments.some(i=>laneOf(i)===s.id));
     const workstreams=(plan.workstreams||[]).filter(s=>tasks.some(t=>t.stream===s.id)||laneItems(s));
     const taskIndex=new Map();const ordered=[];
     workstreams.forEach(s=>{const items=tasks.filter(t=>t.stream===s.id);if(!isGantt&&!isBoard)items.sort((a,b)=>a.start.localeCompare(b.start)||a.title.localeCompare(b.title));items.forEach(t=>{ordered.push(t);taskIndex.set(t.id,String(ordered.length).padStart(2,'0'));});});
@@ -362,14 +362,19 @@
         first=false;
       }
     }
-    function ganttStream(stream){
-      const items=tasks.filter(t=>t.stream===stream.id),tone=theme(stream);let offset=0;
+    function ganttHeader(stream,continued){
+      const items=tasks.filter(t=>t.stream===stream.id),tone=theme(stream);
+      rect(M,top,CW,22,tint(tone.solid,.9));rect(M,top,3,22,tone.solid,tone.outline,.5);
+      text(`${stream.name} · ${items.length}${continued?' · continued':''}`,M+9,top+5,{size:8.5,bold:true,width:CW-18});top+=22;
+    }
+    function ganttStream(stream,headed=false){
+      // started: the header was already drawn once, so a header after a page break says "continued".
+      const items=tasks.filter(t=>t.stream===stream.id),tone=theme(stream);let offset=0,started=headed;
       const rowData=task=>{const title=limitedLines(task.title,labelW-18,8.4,true,5),dates=wrap(date(task.start)+' - '+date(task.end),labelW-18,6.6);return{task,title,dates,h:Math.max(36,12+title.length*10.5+dates.length*9)};};
       const rows=items.map(rowData);
       while(offset<rows.length){
-        if(top+22+rows[offset].h>chartBottom)newChartPage();
-        rect(M,top,CW,22,tint(tone.solid,.9));rect(M,top,3,22,tone.solid,tone.outline,.5);
-        text(`${stream.name} · ${items.length}${offset?' · continued':''}`,M+9,top+5,{size:8.5,bold:true,width:CW-18});top+=22;
+        if(top+(headed?0:22)+rows[offset].h>chartBottom){newChartPage();headed=false;}
+        if(!headed)ganttHeader(stream,offset>0||started);headed=false;started=true;
         while(offset<rows.length&&top+rows[offset].h<=chartBottom){
           const row=rows[offset],task=row.task,y=top;
           rect(M,y,CW,row.h,offset%2?'#f8fafb':white);grid(y,row.h);reference(y,row.h);stroke(M,y+row.h,M+CW,y+row.h,line,.4);
@@ -393,9 +398,9 @@
     if(!tasks.length&&!increments.length&&!milestones.length){
       rect(M,top+24,CW,120,'#f4f7f7',line);text('No work in this view',M+24,top+50,{size:18,bold:true});text('Choose a wider period or different filters to include initiatives.',M+24,top+82,{size:10,fill:muted,width:CW-48});top+=170;
     }
-    // A milestone is drawn on its increment's bar when both sit in the same lane (always in Gantt).
-    const onIncrement=m=>incrementIndex.has(m.increment)&&(isGantt||laneOf(m)===laneOf(incrementById.get(m.increment)));
-    const topIncrements=isGantt?increments:increments.filter(i=>!laneOf(i)),topMilestones=isGantt?milestones:milestones.filter(m=>!laneOf(m));
+    // A milestone is drawn on its increment's bar when both sit in the same lane.
+    const onIncrement=m=>incrementIndex.has(m.increment)&&laneOf(m)===laneOf(incrementById.get(m.increment));
+    const topIncrements=increments.filter(i=>!laneOf(i)),topMilestones=milestones.filter(m=>!laneOf(m));
     // One increment with its checkpoints on the bar. A group always has one marker line, regardless of checkpoint proximity.
     function incrementGroup(increment,assigned,title,tone){
       const layout=milestoneLayout(assigned,increment),h=assigned.length?64:40;
@@ -435,17 +440,29 @@
     }
     const standaloneMilestones=topMilestones.filter(m=>!onIncrement(m));
     if(standaloneMilestones.length)milestoneBlock(standaloneMilestones,'Milestones',theme({color:'slate'}));
+    function laneParts(stream){
+      const own=milestones.filter(m=>laneOf(m)===stream.id),incs=increments.filter(i=>laneOf(i)===stream.id);
+      const grouped=own.filter(onIncrement),flat=own.filter(m=>!onIncrement(m));
+      const h=incs.reduce((h,i)=>h+(grouped.some(m=>m.increment===i.id)?64:40)+6,0)+(flat.length?stackedMilestones(flat,top).h+6:0);
+      return{any:incs.length>0||flat.length>0,h,draw:(title,tone)=>{for(const increment of incs)incrementGroup(increment,grouped.filter(m=>m.increment===increment.id),title,tone);if(flat.length)milestoneBlock(flat,title,tone);}};
+    }
     for(const stream of workstreams){
-      if(isGantt){ganttStream(stream);continue;}
-      const rows=pack(tasks.filter(t=>t.stream===stream.id),range,0);const tone=theme(stream);let offset=0;
-      const laneIncrements=increments.filter(i=>laneOf(i)===stream.id),laneMilestones=milestones.filter(m=>laneOf(m)===stream.id);
-      const laneGrouped=laneMilestones.filter(onIncrement),laneFlat=laneMilestones.filter(m=>!onIncrement(m));
-      if(laneIncrements.length||laneFlat.length){
-        // Keep the lane's own rows on the same page as its first initiative row when they fit on one page.
-        const need=laneIncrements.reduce((h,i)=>h+(laneGrouped.some(m=>m.increment===i.id)?64:40)+6,0)+(laneFlat.length?stackedMilestones(laneFlat,top).h+6:0)+(rows.length?40:0);
+      if(isGantt){
+        // Gantt: the group header, then the group's own increments and milestones, then its initiatives.
+        const lane=laneParts(stream);
+        if(!lane.any){ganttStream(stream);continue;}
+        const need=22+lane.h+40;
         if(top+need>chartBottom&&need<=chartBottom-chartStart)newChartPage();
-        for(const increment of laneIncrements)incrementGroup(increment,laneGrouped.filter(m=>m.increment===increment.id),stream.name,tone);
-        if(laneFlat.length)milestoneBlock(laneFlat,stream.name,tone);
+        ganttHeader(stream,false);lane.draw('Increments / milestones',theme(stream));
+        ganttStream(stream,true);continue;
+      }
+      const rows=pack(tasks.filter(t=>t.stream===stream.id),range,0);const tone=theme(stream);let offset=0;
+      const lane=laneParts(stream);
+      if(lane.any){
+        // Keep the lane's own rows on the same page as its first initiative row when they fit on one page.
+        const need=lane.h+(rows.length?40:0);
+        if(top+need>chartBottom&&need<=chartBottom-chartStart)newChartPage();
+        lane.draw(stream.name,tone);
       }
       const minLabelH=wrap(stream.name,labelW-22,11.1,true).length*13.5+30;
       while(offset<rows.length){

@@ -60,6 +60,9 @@ body.drawer-open{overflow:hidden}.detail-overlay{height:100dvh}.detail-panel{max
 .swimlane-milestone-label .swimlane-milestone-add:hover{color:#fff;background:#ffffff24}
 .swimlane-lane-milestones{flex:0 0 auto;min-height:54px}
 .lane-add-menu{min-width:230px}
+.gantt-lane-row .canvas-increment-label,.gantt-lane-row.milestone-row .lane-label{background:#fafcfb;font-weight:550;font-size:12px;color:#6b8371}
+.gantt-lane-row.milestone-row{background:#fcfdfc}
+.milestone-row.canvas-drop-target,.canvas-increment-band.canvas-drop-target{outline:1px solid #62aa92;outline-offset:-1px}
 .canvas-increment-band.canvas-drop-target,.swimlane-milestone-band.canvas-drop-target{outline:1px solid #62aa92;outline-offset:-1px}
 .swimlane-lane-increments{flex:0 0 auto;background:#fbfdfc;border-bottom:1px solid #e8eeee}
 .swimlane-milestone-track{position:relative;min-width:0;background:linear-gradient(to bottom,#fff 0,#fff 9px,#f0f2f3 9px,#f0f2f3 calc(100% - 9px),#fff calc(100% - 9px))}
@@ -1968,11 +1971,11 @@ function getOutcome(id){return state.plan.outcomes.find(t=>t.id===id);}
 function getIncrement(id){return state.plan.increments.find(t=>t.id===id);}
 // Where a milestone or increment sits: '' is the plan-wide rows at the top, otherwise a workstream id.
 function laneOf(x){return x&&x.stream||'';}
-// lane: '' = plan-wide rows, a workstream id = that lane, null = every lane (Gantt, which has one shared row).
-function inLane(x,lane){return lane==null?(!laneOf(x)||state.stream==='all'||laneOf(x)===state.stream):laneOf(x)===lane;}
-// A milestone is drawn on its increment when increments are shown and both sit in the same lane
-// (in Gantt, which has one shared row, whenever it has an increment). Otherwise it goes in its lane's milestone row.
-function milestoneOnIncrement(m,lane){if(!state.showIncrements||!m.increment)return false;const x=getIncrement(m.increment);return !!x&&(lane==null||laneOf(x)===laneOf(m));}
+// lane: '' = plan-wide rows, a workstream id = that lane.
+function inLane(x,lane){return laneOf(x)===lane;}
+// A milestone is drawn on its increment when increments are shown and both sit in the same lane.
+// Otherwise it goes in its lane's milestone row.
+function milestoneOnIncrement(m){if(!state.showIncrements||!m.increment)return false;const x=getIncrement(m.increment);return !!x&&laneOf(x)===laneOf(m);}
 function metricProgress(o){const d=o.target-o.baseline;return d===0?(o.current===o.target?100:0):clamp(Math.round((o.current-o.baseline)/d*100),0,100);}
 function metricValue(n,unit){return fmtNum(n)+(unit==='%'?'%':unit?' '+esc(unit):'');}
 function conflicts(t){return t.dependencies.map(getTask).filter(d=>d&&d.end>=t.start);}
@@ -2355,12 +2358,22 @@ const RoadmapLaneAdd=(()=>{
  addEventListener('resize',close);
  return{open,close};
 })();
+function ganttLaneIncrements(r,lane){
+ const inner=canvasIncrementBand(r,false,lane);if(!inner)return '';
+ return `<div class="canvas-increment-band gantt-lane-row" data-lane-id="${esc(lane)}"><div class="canvas-increment-label"><span>${icon('layers')}Increments</span></div>${inner}</div>`;
+}
+function ganttLaneMilestones(r,lane){
+ const ms=canvasOutcomeContext().milestones.filter(m=>inLane(m,lane)&&!milestoneOnIncrement(m)&&day(m.date)>=r.start&&day(m.date)<r.end);if(!ms.length)return '';
+ const layout=canvasFlatMilestoneLayout(ms,r),markers=layout.placed.map(p=>canvasMilestoneMarker(p.milestone,r,0,false,null,p)).join('');
+ return `<div class="milestone-row gantt-lane-row" data-lane-id="${esc(lane)}" style="height:54px"><div class="lane-label">${icon('flag')}<span>Milestones</span></div><div class="milestone-track" data-canvas-track="milestone" data-lane-id="${esc(lane)}" style="height:54px">${gridHTML(r)}${markers}</div></div>`;
+}
+function ganttLaneRows(r,lane){return ganttLaneIncrements(r,lane)+ganttLaneMilestones(r,lane);}
 function laneItemCount(stream){
  const plural=(n,w)=>`${n} ${w}${n===1?'':'s'}`,n=state.plan.initiatives.filter(t=>t.stream===stream).length,m=state.plan.milestones.filter(x=>laneOf(x)===stream).length,i=state.plan.increments.filter(x=>laneOf(x)===stream).length;
  return [n||!(m||i)?plural(n,'initiative'):'',m?plural(m,'milestone'):'',i?plural(i,'increment'):''].filter(Boolean).join(' · ');
 }
 function swimlaneMilestones(r,lane=''){
- const ms=canvasOutcomeContext().milestones.filter(m=>inLane(m,lane)&&!milestoneOnIncrement(m,lane)&&day(m.date)>=r.start&&day(m.date)<r.end),layout=canvasFlatMilestoneLayout(ms,r);
+ const ms=canvasOutcomeContext().milestones.filter(m=>inLane(m,lane)&&!milestoneOnIncrement(m)&&day(m.date)>=r.start&&day(m.date)<r.end),layout=canvasFlatMilestoneLayout(ms,r);
  const markers=layout.placed.map(p=>canvasMilestoneMarker(p.milestone,r,0,true,null,p)).join('');
  if(lane)return ms.length?`<div class="swimlane-lane-milestones swimlane-milestone-track" data-canvas-track="milestone" data-lane-id="${esc(lane)}">${gridHTML(r)}${markers}</div>`:'';
  const height=ms.length?54:42;
@@ -2485,9 +2498,9 @@ function canvasIncrementItem(x,r){
  const titleLayout=canvasIncrementTitleLayout(x,r,context.milestones.filter(t=>t.increment===x.id&&day(t.date)>=r.start&&day(t.date)<r.end));
  return `<div class="canvas-item canvas-increment ${day(x.start)<r.start?'clipped-start':''} ${day(x.end)>=r.end?'clipped-end':''}" data-entity="increment" data-id="${esc(x.id)}" data-increment="${esc(x.id)}" tabindex="0" role="group" style="left:${p.left}%;width:${p.width}%;--increment-color:${c.solid};--increment-text:${c.text};--increment-outline:${canvasFillOutline(c)};--increment-title-left:${titleLayout.left}%;--increment-title-width:${titleLayout.width}%" title="${esc(x.title)} · ${fmtDate(x.start,true)} – ${fmtDate(x.end,true)} · ${count}" aria-label="Increment: ${esc(x.title)} · ${count}"><span class="resize-handle start" data-resize="start" title="Resize increment start"></span><div class="bar-content">${canvasGrip()}<strong data-title>${esc(x.title)}</strong></div><span class="resize-handle end" data-resize="end" title="Resize increment end"></span>${canvasPorts('increment',x.id,x.title)}</div>`;
 }
-function canvasIncrementBand(r,swimlane=false,lane=null){
+function canvasIncrementBand(r,swimlane=false,lane=''){
  if(!state.showIncrements)return '';
- const context=canvasOutcomeContext(),visibleMilestone=m=>day(m.date)>=r.start&&day(m.date)<r.end&&milestoneOnIncrement(m,lane);
+ const context=canvasOutcomeContext(),visibleMilestone=m=>day(m.date)>=r.start&&day(m.date)<r.end&&milestoneOnIncrement(m);
  const increments=context.increments.filter(x=>inLane(x,lane)&&(day(x.end)>=r.start&&day(x.start)<r.end||context.milestones.some(m=>m.increment===x.id&&visibleMilestone(m)))).slice().sort((a,b)=>a.start.localeCompare(b.start)||a.id.localeCompare(b.id));
  const label=`<div class="canvas-increment-label"><span>${icon('layers')}Increments</span><button class="icon-btn" data-action="new-increment" aria-label="Add increment">${icon('plus')}</button></div>`;
  let tracks;
@@ -2527,14 +2540,15 @@ function renderTimeline(){
  const r=timelineRange(),all=filteredTasks(),tasks=all.filter(t=>day(t.end)>=r.start&&day(t.start)<r.end),n=tasks.length,rd=day(state.plan.reviewDate);let axis='';
  for(let m=r.month;m<r.endMonth;m++){const a=Date.UTC(state.year,m,1)/DAY,b=Date.UTC(state.year,m+1,1)/DAY,left=(a-r.start)/(r.end-r.start)*100,width=(b-a)/(r.end-r.start)*100;if(m%3===0)axis+=`<span class="quarter-label" style="left:${left}%">${rangeMonths(r)>12||m>=12?`${state.year+Math.floor(m/12)} `:''}Q${m%12/3+1}</span>`;axis+=`<span class="month-label" style="left:${left}%;width:${width}%">${new Date(a*DAY).toLocaleString('en-GB',{month:rangeMonths(r)>3?'short':'long',timeZone:'UTC'})}</span>`;}
  axis+=gridHTML(r);if(rd>=r.start&&rd<r.end)axis+=`<span class="today-label" style="left:${(rd-r.start)/(r.end-r.start)*100}%">${state.plan.reviewDateMode==='today'?'Today':state.plan.example?'Snapshot':'Reference'}</span>`;
- const milestones=canvasOutcomeContext().milestones.filter(m=>inLane(m,null)&&!milestoneOnIncrement(m,null)&&day(m.date)>=r.start&&day(m.date)<r.end),layout=canvasFlatMilestoneLayout(milestones,r);
+ const milestones=canvasOutcomeContext().milestones.filter(m=>inLane(m,'')&&!milestoneOnIncrement(m)&&day(m.date)>=r.start&&day(m.date)<r.end),layout=canvasFlatMilestoneLayout(milestones,r);
  const markers=layout.placed.map(p=>canvasMilestoneMarker(p.milestone,r,0,false,null,p)).join('');
  const markerHeight=milestones.length?54:42;
- let rows=`<div class="timeline-header"><div class="lane-heading">INITIATIVES <span>${n}</span><span class="freeze-locks">${rangeMonths(r)>12?'<button type="button" class="freeze-lock freeze-names-lock" data-freeze-names aria-pressed="false" title="Keep names visible when scrolling sideways" aria-label="Keep names visible when scrolling sideways">'+icon('columnLock')+'</button>':''}<button type="button" class="freeze-lock" data-freeze-toggle aria-pressed="false" aria-label="Keep dates and tools visible while scrolling" title="Keep dates and tools visible while scrolling">${icon('unlock')}</button></span></div><div class="time-axis">${axis}</div></div>${canvasIncrementBand(r)}<div class="milestone-row" style="height:${markerHeight}px"><div class="lane-label">${icon('flag')}<span>Milestones</span><button class="icon-btn" data-action="new-milestone" aria-label="Add milestone">${icon('plus')}</button></div><div class="milestone-track" data-canvas-track="milestone" style="height:${markerHeight}px">${gridHTML(r)}${markers||'<button class="canvas-empty-prompt" data-action="new-milestone">'+icon('plus')+'Add milestone</button>'}</div></div>`;
+ let rows=`<div class="timeline-header"><div class="lane-heading">INITIATIVES <span>${n}</span><span class="freeze-locks">${rangeMonths(r)>12?'<button type="button" class="freeze-lock freeze-names-lock" data-freeze-names aria-pressed="false" title="Keep names visible when scrolling sideways" aria-label="Keep names visible when scrolling sideways">'+icon('columnLock')+'</button>':''}<button type="button" class="freeze-lock" data-freeze-toggle aria-pressed="false" aria-label="Keep dates and tools visible while scrolling" title="Keep dates and tools visible while scrolling">${icon('unlock')}</button></span></div><div class="time-axis">${axis}</div></div>${canvasIncrementBand(r,false,'')}<div class="milestone-row" style="height:${markerHeight}px"><div class="lane-label">${icon('flag')}<span>Milestones</span><button class="icon-btn" data-action="new-milestone" aria-label="Add milestone">${icon('plus')}</button></div><div class="milestone-track" data-canvas-track="milestone" style="height:${markerHeight}px">${gridHTML(r)}${markers||'<button class="canvas-empty-prompt" data-action="new-milestone">'+icon('plus')+'Add milestone</button>'}</div></div>`;
  for(const s of state.plan.workstreams.filter(s=>state.stream==='all'||state.stream===s.id)){
   // The saved initiative order owns each row; date edits must not move rows.
   const st=tasks.filter(t=>t.stream===s.id);if(!st.length&&(state.query||state.status!=='all'||state.outcome))continue;const collapsed=state.collapsed.has(s.id),c=RoadmapColors.streamPalette(s);
-  rows+=`<div class="stream-header${collapsed?' is-collapsed':''}" data-stream-id="${esc(s.id)}"><div class="stream-label"><button type="button" class="icon-btn workstream-collapse ${collapsed?'is-collapsed':''}" data-collapse="${esc(s.id)}" aria-expanded="${!collapsed}" aria-label="${collapsed?'Expand':'Collapse'} ${esc(s.name)}" title="${collapsed?'Expand':'Collapse'} ${esc(s.name)}">${icon('chevron')}</button><button type="button" class="stream-toggle workstream-name" data-workstream-details="${esc(s.id)}" aria-label="${esc(s.name)} workstream details" title="Double-click to edit ${esc(s.name)}"><span class="stream-dot" style="background:${c.solid}"></span><strong>${esc(s.name)}</strong><span class="stream-count">${st.length}</span></button><button class="icon-btn stream-add" data-add-stream="${esc(s.id)}" aria-label="Add to ${esc(s.name)}">${icon('plus')}</button></div><div class="stream-filler">${gridHTML(r)}${collapsed?collapsedWorkstreamSummary(s,st,r):''}</div></div>`;
+  rows+=`<div class="stream-header${collapsed?' is-collapsed':''}" data-stream-id="${esc(s.id)}"><div class="stream-label"><button type="button" class="icon-btn workstream-collapse ${collapsed?'is-collapsed':''}" data-collapse="${esc(s.id)}" aria-expanded="${!collapsed}" aria-label="${collapsed?'Expand':'Collapse'} ${esc(s.name)}" title="${collapsed?'Expand':'Collapse'} ${esc(s.name)}">${icon('chevron')}</button><button type="button" class="stream-toggle workstream-name" data-workstream-details="${esc(s.id)}" aria-label="${esc(s.name)} workstream details" title="Double-click to edit ${esc(s.name)}"><span class="stream-dot" style="background:${c.solid}"></span><strong>${esc(s.name)}</strong><span class="stream-count">${st.length}</span></button><button class="icon-btn stream-add" data-lane-add="${esc(s.id)}" aria-haspopup="menu" aria-label="Add to ${esc(s.name)}">${icon('plus')}</button></div><div class="stream-filler">${gridHTML(r)}${collapsed?collapsedWorkstreamSummary(s,st,r):''}</div></div>`;
+  if(!collapsed)rows+=ganttLaneRows(r,s.id);
   if(!collapsed)for(const t of st)rows+=`<div class="initiative-row" data-task-row="${esc(t.id)}" data-stream-id="${esc(s.id)}"><button class="initiative-label" data-canvas-select="initiative" data-record-id="${esc(t.id)}" title="Select ${esc(t.title)}"><span class="item-title" data-title>${esc(t.title)}</span><span class="item-meta"><span class="status-dot" data-status="${t.status}"></span>${STATUS[t.status]}</span></button><div class="timeline-track" data-track="${esc(t.id)}" data-canvas-track="initiative" data-stream-id="${esc(s.id)}">${gridHTML(r)}${canvasInitiativeBar(t,r,c)}</div></div>`;
   if(!collapsed)rows+=`<div class="initiative-row canvas-add-row" data-stream-id="${esc(s.id)}"><div class="initiative-label"><button class="canvas-empty-prompt" data-add-stream="${esc(s.id)}">${icon('plus')}Add initiative</button></div><div class="timeline-track" data-canvas-track="initiative" data-stream-id="${esc(s.id)}">${gridHTML(r)}</div></div>`;
  }
@@ -3173,6 +3187,14 @@ const RoadmapCanvas=(()=>{
  // A lane without milestones or increments has no row for them yet: add a temporary one
  // for the new item. The next render draws the real rows.
  function laneTrack(type,lane){
+  const header=document.querySelector(`.stream-header[data-stream-id="${CSS.escape(lane)}"]`);
+  if(header&&state.view==='timeline'){
+   const holder=document.createElement('div'),r=timelineRange();
+   holder.innerHTML=type==='milestone'?`<div class="milestone-row gantt-lane-row" data-lane-id="${esc(lane)}" data-temporary-lane-row="true" style="height:54px"><div class="lane-label">${icon('flag')}<span>Milestones</span></div><div class="milestone-track" data-canvas-track="milestone" data-lane-id="${esc(lane)}" style="height:54px">${gridHTML(r)}</div></div>`
+    :`<div class="canvas-increment-band gantt-lane-row" data-lane-id="${esc(lane)}" data-temporary-lane-row="true"><div class="canvas-increment-label"><span>${icon('layers')}Increments</span></div><div class="canvas-increment-lanes"><div class="canvas-increment-track" data-canvas-track="increment">${gridHTML(r)}</div></div></div>`;
+   const row=holder.firstElementChild,after=type==='milestone'?header.nextElementSibling?.matches('.canvas-increment-band[data-lane-id]')?header.nextElementSibling:header:header;
+   after.after(row);return row.querySelector('[data-canvas-track]');
+  }
   const lanes=document.querySelector(`.swimlane-group[data-stream-id="${CSS.escape(lane)}"] .swimlane-lanes`);if(!lanes)return null;
   const row=document.createElement('div'),grid=gridHTML(timelineRange());row.dataset.laneId=lane;row.dataset.temporaryLaneRow='true';
   if(type==='milestone'){row.className='swimlane-lane-milestones swimlane-milestone-track';row.dataset.canvasTrack='milestone';row.innerHTML=grid;}
@@ -3329,16 +3351,18 @@ const RoadmapCanvas=(()=>{
   event.preventDefault();const stream=origin.dataset.streamId||origin.closest('[data-stream-id]')?.dataset.streamId||(state.stream!=='all'?state.stream:state.plan.workstreams[0].id),increment=mode==='milestone'?(origin.dataset.incrementId||origin.closest('[data-increment-id]')?.dataset.incrementId||''):'',track=validTrack(mode,stream,increment)||origin,d=dateAt(event.clientX,origin),ghost=ghostFor(track,mode,d,d);
   gesture={kind:'create',type:mode,el:origin,track,pointerId:event.pointerId,x:event.clientX,y:event.clientY,start:d,end:d,newStart:d,newEnd:d,stream,increment,moved:false,ghost};capture(origin,event.pointerId);return true;
  }
+ // The lane under the pointer: a lane's own row, a swimlane group, or a Gantt group's header or initiative row.
+ function laneTargetAt(hit){return hit.closest('[data-lane-id]')||hit.closest('.swimlane-group[data-stream-id],.stream-header[data-stream-id],.initiative-row[data-stream-id]');}
  function incrementDropAt(event,d){
-  if(state.view!=='swimlane')return null;
+  if(!['swimlane','timeline'].includes(state.view))return null;
   for(const hit of document.elementsFromPoint(event.clientX,event.clientY)){
    if(d.el.contains(hit)||hit.closest('.roadmap-dependency-layer,.roadmap-dependency-endpoint-layer,.canvas-move-preview,.canvas-row-drop-guide'))continue;
    if(hit.closest('#freezeDock,#roadmapTools,.topbar,#sidebar,#canvasSelection,#dependencySelection,#toastRegion,dialog,#detailOverlay,.canvas-name-editor'))return null;
    if(!d.canvas?.contains(hit))continue;
-   const lane=hit.closest('.swimlane-group[data-stream-id]');
-   if(lane)return{stream:lane.dataset.streamId,target:lane};
-   const top=hit.closest('.canvas-increment-band,.swimlane-milestone-band');
-   if(top)return{stream:'',target:top.matches('.canvas-increment-band')?top:document.querySelector('.canvas-increment-band.is-swimlane')||top};
+   const lane=laneTargetAt(hit);
+   if(lane)return{stream:lane.dataset.laneId||lane.dataset.streamId,target:lane};
+   const top=hit.closest('.canvas-increment-band,.swimlane-milestone-band,.milestone-row');
+   if(top)return{stream:'',target:top.matches('.canvas-increment-band')?top:document.querySelector('.canvas-increment-band:not([data-lane-id])')||top};
   }
   return null;
  }
@@ -3350,13 +3374,12 @@ const RoadmapCanvas=(()=>{
    const group=hit.closest('.canvas-increment-group[data-increment-id]');
    if(group&&find('increment',group.dataset.incrementId)){const stream=laneOf(find('increment',group.dataset.incrementId));return{increment:group.dataset.incrementId,stream,target:group,own:group.dataset.incrementId===d.increment&&stream===d.stream};}
    // A workstream: its milestone row, or anywhere in the lane when it has no milestone row yet.
-   const laneRow=hit.closest('.swimlane-lane-milestones[data-lane-id]')||hit.closest('.swimlane-group[data-stream-id]');
+   const laneRow=laneTargetAt(hit);
    if(laneRow){const stream=laneRow.dataset.laneId||laneRow.dataset.streamId;return{increment:'',stream,target:laneRow,own:stream===d.stream&&!d.increment};}
    const lane=hit.closest('.swimlane-milestone-band,.milestone-row');
    // The shared lane is only a visual fallback while increments are hidden.
    // Rescheduling here must preserve the milestone's delivery assignment.
-   // In Gantt (.milestone-row) every lane shares one row, so the milestone keeps its lane there.
-   if(lane){const stream=lane.matches('.milestone-row')?d.stream:'';return{increment:state.showIncrements?'':d.increment,stream,target:lane,own:(!state.showIncrements||!d.increment)&&stream===d.stream};}
+   if(lane){const stream='';return{increment:state.showIncrements?'':d.increment,stream,target:lane,own:(!state.showIncrements||!d.increment)&&stream===d.stream};}
   }
   return null;
  }
@@ -3447,7 +3470,7 @@ const RoadmapCanvas=(()=>{
    showPlacement(event,d);
    d.lastPoint={pointerId:event.pointerId,clientX:event.clientX,clientY:event.clientY,preventDefault(){}};if(!finishing)scheduleDragScroll(d);
   }
-  if(d.type==='increment'&&d.kind==='move'&&state.view==='swimlane'){
+  if(d.type==='increment'&&d.kind==='move'&&['swimlane','timeline'].includes(state.view)){
    const drop=incrementDropAt(event,d);d.newLane=drop?drop.stream:d.stream||'';
    d.canvas?.querySelectorAll('.canvas-drop-target').forEach(el=>{if(el!==drop?.target)el.classList.remove('canvas-drop-target');});
    if(drop&&drop.stream!==(d.stream||''))drop.target.classList.add('canvas-drop-target');else drop?.target.classList.remove('canvas-drop-target');
