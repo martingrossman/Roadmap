@@ -50,6 +50,7 @@ Full setup, permissions and limits: [`apps-script/README.md`](apps-script/README
 - **Workstreams hold any mix:** a workstream can hold initiatives, milestones and increments, or only some of them. Milestones and increments without a workstream stay in the plan-wide rows at the top
 - **Dependencies:** drag from an item's edge to another item; arrows route around labels
 - **Timeline:** full year, a quarter, or a custom range of months (longer ranges scroll sideways)
+- **Zoom:** − and + switch the roadmap and Gantt between years, months, weeks and days; a trackpad or touch pinch does the same. Wider scales scroll sideways
 - **Look:** colour templates, custom palettes and a configurable timeline colour
 - **Export:** PDF (selected period or all dates) and standalone HTML
 - **Presentation mode**, undo/redo, search and show/hide filters

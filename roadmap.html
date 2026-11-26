@@ -60,6 +60,18 @@ body.drawer-open{overflow:hidden}.detail-overlay{height:100dvh}.detail-panel{max
 .swimlane-milestone-label .swimlane-milestone-add:hover{color:#fff;background:#ffffff24}
 .swimlane-lane-milestones{flex:0 0 auto;min-height:54px}
 .lane-add-menu{min-width:230px}
+.zoom-scale{display:inline-flex;align-items:center;height:36px;border:1px solid #E2E8F0;border-radius:8px;background:#fff;overflow:hidden}
+.zoom-scale .icon-btn{width:30px;min-width:30px;height:34px;border:0;border-radius:0;font-size:18px;line-height:1;color:#334155}
+.zoom-scale .icon-btn:disabled{opacity:.35;cursor:default}
+.zoom-scale .icon-btn:hover:not(:disabled){background:#F1F5F9}
+.zoom-scale-label{min-width:56px;text-align:center;font-size:13px;font-weight:600;color:#0F172A}
+.timeline-scroll{touch-action:pan-x pan-y}
+.grid-fine{position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(to right,#eef1f3 0 1px,transparent 1px);background-repeat:repeat-x}
+.zoom-days .swimlane-month,.zoom-days .month-label{font-size:10px;padding-left:0;text-align:center;letter-spacing:0}
+.zoom-days .is-weekend{color:#b8c3c7}
+.zoom-weeks .swimlane-month,.zoom-weeks .month-label{font-size:11px;letter-spacing:0}
+.zoom-weeks .swimlane-quarter,.zoom-days .swimlane-quarter{font-size:14px;text-align:left;padding-left:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.zoom-days .month-label,.zoom-weeks .month-label{padding-left:0;text-align:center}
 .canvas-gesture,.canvas-gesture *{-webkit-user-select:none!important;user-select:none!important}
 /* Gantt: a workstream milestone in its own row. The name is in the row label, so the marker shows only its symbol. */
 .milestone-item-row .milestone-item-track{position:relative;container-type:inline-size}
@@ -1188,7 +1200,7 @@ body.bar-style-solid .canvas-item.canvas-increment{border-radius:6px;box-shadow:
               <button class="icon-btn freeze-toggle" id="freezeTimelineBtn" type="button" aria-label="Freeze timeline &amp; tools" aria-pressed="false" aria-controls="roadmapTools content" title="Keep tools and dates visible while scrolling"><span data-icon="pin"></span><span class="freeze-label">Freeze</span></button>
               <button class="icon-btn" id="dependenciesBtn" title="Show dependencies" aria-label="Show dependencies" aria-pressed="true" data-icon="link"></button>
               <div class="zoom-control"><button class="icon-btn" id="prevPeriod" title="Previous year" aria-label="Previous year" data-icon="left"></button><button class="period-label" id="periodLabel" title="Show reference year">2027</button><button class="icon-btn" id="nextPeriod" title="Next year" aria-label="Next year" data-icon="right"></button></div>
-              <div class="select-wrap"><select id="rangeSelect" aria-label="Timeline range"><option value="year">Full year</option><option value="0">Q1 · Jan–Mar</option><option value="1">Q2 · Apr–Jun</option><option value="2">Q3 · Jul–Sep</option><option value="3">Q4 · Oct–Dec</option><option value="custom">Custom…</option></select></div><span class="custom-range" id="customRange" hidden><input type="month" id="customStart" aria-label="Timeline starts in month" title="First month"><span aria-hidden="true">–</span><input type="month" id="customEnd" aria-label="Timeline ends in month" title="Last month"></span>
+              <div class="zoom-scale" id="zoomScale" role="group" aria-label="Time scale"><button class="icon-btn" id="zoomOutBtn" type="button" aria-label="Zoom out" title="Zoom out (pinch in)">−</button><span class="zoom-scale-label" id="zoomLabel" aria-live="polite">Months</span><button class="icon-btn" id="zoomInBtn" type="button" aria-label="Zoom in" title="Zoom in (pinch out)">+</button></div><div class="select-wrap"><select id="rangeSelect" aria-label="Timeline range"><option value="year">Full year</option><option value="0">Q1 · Jan–Mar</option><option value="1">Q2 · Apr–Jun</option><option value="2">Q3 · Jul–Sep</option><option value="3">Q4 · Oct–Dec</option><option value="custom">Custom…</option></select></div><span class="custom-range" id="customRange" hidden><input type="month" id="customStart" aria-label="Timeline starts in month" title="First month"><span aria-hidden="true">–</span><input type="month" id="customEnd" aria-label="Timeline ends in month" title="Last month"></span>
             </div>
           </div>
         </section>
@@ -2412,6 +2424,22 @@ let loadedPlan=initialPlan;try{const s=localStorage.getItem(STORAGE_KEY);if(s)lo
 const INCREMENT_VISIBILITY_KEY='roadmap.view.showIncrements.'+initialPlan.id;
 let storedIncrementVisibility=true;try{storedIncrementVisibility=localStorage.getItem(INCREMENT_VISIBILITY_KEY)!=='false';}catch{}
 const BAR_STYLE_KEY='roadmap.view.barStyle';
+// Time scale of the roadmap and Gantt: how wide a day is. The period (year, quarter, custom) does not change;
+// a wider timeline scrolls sideways. Months is the original scale.
+const ZOOM_LEVELS=['years','months','weeks','days'],ZOOM_LABELS={years:'Years',months:'Months',weeks:'Weeks',days:'Days'},ZOOM_PX={years:.9,weeks:9,days:34},ZOOM_KEY='roadmap.view.zoom';
+let timeZoom='months';try{const z=localStorage.getItem(ZOOM_KEY);if(ZOOM_LEVELS.includes(z))timeZoom=z;}catch{}
+// step: +1 zooms in (towards days), -1 out. anchorX: the screen x whose date stays put (default: middle of the view).
+function stepZoom(step,anchorX){
+ const next=ZOOM_LEVELS[ZOOM_LEVELS.indexOf(timeZoom)+step];if(!next)return false;
+ const scroll=document.querySelector('#content .timeline-scroll'),axis=scroll?.querySelector('.swimlane-axis,.time-axis');
+ let frac=null,x=anchorX;
+ if(scroll&&axis){const s=scroll.getBoundingClientRect(),a=axis.getBoundingClientRect();if(x==null)x=s.left+(Math.max(a.left,s.left)+s.right)/2-s.left;frac=Math.min(1,Math.max(0,(x-a.left)/a.width));}
+ timeZoom=next;try{localStorage.setItem(ZOOM_KEY,next);}catch{}
+ render();
+ const scroll2=document.querySelector('#content .timeline-scroll'),axis2=scroll2?.querySelector('.swimlane-axis,.time-axis');
+ if(scroll2&&axis2&&frac!=null){const a=axis2.getBoundingClientRect();scroll2.scrollLeft+=a.left+frac*a.width-x;}
+ return true;
+}
 let storedBarStyle='tinted';try{const b=localStorage.getItem(BAR_STYLE_KEY);if(b==='solid'||b==='tinted')storedBarStyle=b;}catch{}
 const state={plan:loadedPlan,section:'roadmap',view:'swimlane',year:loadedPlan.year,range:'year',stream:'all',status:'all',query:'',outcome:'',collapsed:new Set(),dependencies:true,showIncrements:storedIncrementVisibility,barStyle:storedBarStyle,sort:{field:'order',dir:1},undo:[],redo:[],presentation:false};
 let storageOK=true,detail=null,lastFocus=null,confirmCallback=null,settingsStreams=[],activeDrag=null,suppressClickUntil=0;
@@ -2483,6 +2511,7 @@ function render(){
  $('#roadmapDisplayOptions').hidden=state.section!=='roadmap'||!['timeline','swimlane'].includes(state.view);$('#showIncrements').checked=state.showIncrements;
  $('#timelineControls').hidden=state.section!=='roadmap';$('#rangeSelect').closest('.select-wrap').hidden=!['timeline','swimlane'].includes(state.view);$('#timelineControls .zoom-control').hidden=!['timeline','swimlane'].includes(state.view);$('#dependenciesBtn').hidden=state.view==='table';applyTimelineColor();$('#periodLabel').textContent=state.range==='custom'?periodText():state.year;$('#rangeSelect').value=state.range;$('#customRange').hidden=state.range!=='custom';if(state.range==='custom'){$('#customStart').value=state.customStart;$('#customEnd').value=state.customEnd;}$('#prevPeriod').title=$('#prevPeriod').ariaLabel=state.range==='custom'?'Move range back a year':'Previous year';$('#nextPeriod').title=$('#nextPeriod').ariaLabel=state.range==='custom'?'Move range forward a year':'Next year';
  $('#prevPeriod').disabled=state.year<=2000;$('#nextPeriod').disabled=state.year>=2099;
+ $('#zoomScale').hidden=state.section!=='roadmap'||!['timeline','swimlane'].includes(state.view);$('#zoomLabel').textContent=ZOOM_LABELS[timeZoom];$('#zoomOutBtn').disabled=timeZoom==='years';$('#zoomInBtn').disabled=timeZoom==='days';
  $('#dependenciesBtn').classList.toggle('is-active',state.dependencies);$('#dependenciesBtn').setAttribute('aria-pressed',String(state.dependencies));$('#dependenciesBtn').title=state.dependencies?'Hide dependencies':'Show dependencies';$('#dependenciesBtn').setAttribute('aria-label',$('#dependenciesBtn').title);
  if(state.section==='outcomes')renderOutcomes();else if(state.section==='milestones')renderMilestones();else if(state.section==='initiatives'||state.view==='table')renderTable();else if(state.view==='board')renderBoard();else if(state.view==='swimlane')renderSwimlanes();else renderTimeline();
  $('#undoBtn').disabled=!state.undo.length;$('#redoBtn').disabled=!state.redo.length;
@@ -2504,7 +2533,42 @@ function applyTimelineColor(){const c=state.plan.timelineColor||TIMELINE_DEFAULT
 function timelineRange(){
  if(state.range==='custom'){const a=ymParts(state.customStart)||[state.year,0],b=ymParts(state.customEnd)||[state.year,11];const month=(a[0]-state.year)*12+a[1],endMonth=Math.max(month+1,(b[0]-state.year)*12+b[1]+1);return{start:Date.UTC(state.year,month,1)/DAY,end:Date.UTC(state.year,endMonth,1)/DAY,month,endMonth};}
  const month=state.range==='year'?0:Number(state.range)*3,endMonth=state.range==='year'?12:month+3;return{start:Date.UTC(state.year,month,1)/DAY,end:Date.UTC(state.year,endMonth,1)/DAY,month,endMonth};}
-function gridHTML(r){let html='';for(let m=r.month;m<=r.endMonth;m++){const d=Date.UTC(state.year,m,1)/DAY,left=(d-r.start)/(r.end-r.start)*100;html+=`<span class="grid-line ${m%3===0?'quarter-line':''}" style="left:${left}%"></span>`;}const rd=day(state.plan.reviewDate);if(rd>=r.start&&rd<r.end)html+=`<span class="today-line" style="left:${(rd-r.start)/(r.end-r.start)*100}%"></span>`;return html;}
+function timelineMinWidth(r,gantt){
+ const base=gantt?(state.range==='year'?1100:state.range==='custom'?Math.max(930,rangeMonths(r)*92):930):(state.range==='year'?1080:state.range==='custom'?Math.max(900,rangeMonths(r)*90):900);
+ if(timeZoom==='months')return base;
+ const days=r.end-r.start,label=gantt?240:250;
+ return timeZoom==='years'?Math.min(base,Math.max(600,Math.round(days*ZOOM_PX.years)+label)):Math.max(base,Math.round(days*ZOOM_PX[timeZoom])+label);
+}
+function wideTimeline(r){return rangeMonths(r)>12||timeZoom==='weeks'||timeZoom==='days';}
+// Axis labels for the zoom level: a top row and a bottom row of {a,b,label} spans in days.
+function axisUnits(r){
+ const y0=state.year,top=[],bottom=[],clip=(a,b)=>({a:Math.max(a,r.start),b:Math.min(b,r.end)});
+ if(timeZoom==='years'){
+  for(let y=Math.floor(r.month/12);y<Math.ceil(r.endMonth/12);y++)top.push({...clip(Date.UTC(y0+y,0,1)/DAY,Date.UTC(y0+y+1,0,1)/DAY),label:String(y0+y)});
+  for(let q=Math.floor(r.month/3);q<Math.ceil(r.endMonth/3);q++)bottom.push({...clip(Date.UTC(y0,q*3,1)/DAY,Date.UTC(y0,q*3+3,1)/DAY),label:'Q'+((q%4+4)%4+1)});
+ }else{
+  // Days: the top row is weeks (a month label would be wider than the view); weeks: months.
+  if(timeZoom==='days')for(let d=r.start-(new Date(r.start*DAY).getUTCDay()+6)%7;d<r.end;d+=7){const c=clip(d,d+7);top.push({...c,label:c.b-c.a<4?'':new Date(d*DAY).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'})});}
+  else for(let m=r.month;m<r.endMonth;m++){const a=Date.UTC(y0,m,1)/DAY;top.push({...clip(a,Date.UTC(y0,m+1,1)/DAY),label:new Date(a*DAY).toLocaleString('en-GB',{month:'long',year:'numeric',timeZone:'UTC'})});}
+  if(timeZoom==='weeks'){
+   // Weeks start on Monday; the first one may begin before the period.
+   for(let d=r.start-(new Date(r.start*DAY).getUTCDay()+6)%7;d<r.end;d+=7){const c=clip(d,d+7);bottom.push({...c,label:c.b-c.a<4?'':new Date(d*DAY).toLocaleString('en-GB',{day:'numeric',month:'short',timeZone:'UTC'}),title:'Week of '+fmtDate(iso(d),true)});}
+  }else{
+   for(let d=r.start;d<r.end;d++){const w=new Date(d*DAY).getUTCDay();bottom.push({a:d,b:d+1,label:String(new Date(d*DAY).getUTCDate()),title:fmtDate(iso(d),true),weekend:w===0||w===6});}
+  }
+ }
+ return{top,bottom};
+}
+// Fine lines for weeks (Mondays) or days, drawn as one repeating background instead of hundreds of lines.
+function fineGridHTML(r){
+ if(timeZoom!=='weeks'&&timeZoom!=='days')return '';
+ const dur=r.end-r.start,step=timeZoom==='days'?1:7,first=timeZoom==='days'?0:(8-new Date(r.start*DAY).getUTCDay())%7;
+ if(step>=dur)return '';
+ // background-position % aligns that point of the tile with the same point of the box.
+ const size=step/dur*100,pos=first/dur/(1-step/dur)*100;
+ return `<span class="grid-fine" style="background-size:${size}% 100%;background-position:${pos}% 0"></span>`;
+}
+function gridHTML(r){let html=fineGridHTML(r);for(let m=r.month;m<=r.endMonth;m++){const d=Date.UTC(state.year,m,1)/DAY,left=(d-r.start)/(r.end-r.start)*100;html+=`<span class="grid-line ${m%3===0?'quarter-line':''}" style="left:${left}%"></span>`;}const rd=day(state.plan.reviewDate);if(rd>=r.start&&rd<r.end)html+=`<span class="today-line" style="left:${(rd-r.start)/(r.end-r.start)*100}%"></span>`;return html;}
 function barPosition(start,end,r){const a=Math.max(day(start),r.start),b=Math.min(day(end)+1,r.end);return{left:(a-r.start)/(r.end-r.start)*100,width:Math.max(.25,(b-a)/(r.end-r.start)*100)};}
 function emptyHTML(title='No initiatives match',desc='Try another filter, or create an initiative to get started.'){return `<div class="empty-state">${icon('layers')}<h3>${esc(title)}</h3><p>${esc(desc)}</p><div><button class="btn secondary" data-action="clear-filters">Clear filters</button><button class="btn" data-action="new-initiative">${icon('plus')}New initiative</button></div></div>`;}
 function drawDependencies(){RoadmapDeps.draw();}
@@ -2666,6 +2730,21 @@ document.addEventListener('change',event=>{if(event.target.matches('[data-task-s
 $('#detailOverlay').addEventListener('click',event=>{if(event.target===$('#detailOverlay'))closeDetail();});$('#mobileScrim').addEventListener('click',closeMobile);
 $('#importFile').addEventListener('change',event=>importJSON(event.target.files?.[0]));
 document.addEventListener('pointerdown',event=>{if(!RoadmapDeps.pointerDown(event))RoadmapCanvas.pointerDown(event);});document.addEventListener('pointermove',event=>{RoadmapDeps.pointerMove(event);RoadmapCanvas.pointerMove(event);},{passive:false});document.addEventListener('pointerup',event=>{RoadmapDeps.pointerUp(event);RoadmapCanvas.pointerUp(event);});document.addEventListener('pointercancel',event=>{RoadmapDeps.pointerUp(event,true);RoadmapCanvas.pointerUp(event,true);});
+document.addEventListener('click',event=>{const b=event.target.closest('#zoomInBtn,#zoomOutBtn');if(b&&!b.disabled)stepZoom(b.id==='zoomInBtn'?1:-1);});
+// Trackpad pinch arrives as a wheel event with ctrlKey. One level per clear pinch; plain scrolling still scrolls.
+{let pinch=0,lastStep=0;document.addEventListener('wheel',event=>{
+ if(!event.ctrlKey||state.section!=='roadmap'||!['timeline','swimlane'].includes(state.view)||!event.target.closest?.('#content .timeline-scroll'))return;
+ event.preventDefault();pinch+=event.deltaY;
+ if(Math.abs(pinch)>=40&&performance.now()-lastStep>250){stepZoom(pinch<0?1:-1,event.clientX);pinch=0;lastStep=performance.now();}
+},{passive:false});
+// Two-finger touch pinch on the timeline.
+const touches=new Map();let base=0;
+const spread=()=>{const p=[...touches.values()];return p.length<2?0:Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);};
+document.addEventListener('pointerdown',event=>{if(event.pointerType!=='touch'||!event.target.closest?.('#content .timeline-scroll'))return;touches.set(event.pointerId,{x:event.clientX,y:event.clientY});if(touches.size===2)base=spread();},true);
+document.addEventListener('pointermove',event=>{if(!touches.has(event.pointerId))return;touches.set(event.pointerId,{x:event.clientX,y:event.clientY});if(touches.size!==2||!base)return;const s=spread(),p=[...touches.values()],mid=(p[0].x+p[1].x)/2;
+ if(s>base*1.35){if(stepZoom(1,mid))base=s;else base=s;}else if(s<base/1.35){if(stepZoom(-1,mid))base=s;else base=s;}},true);
+const lift=event=>{touches.delete(event.pointerId);if(touches.size<2)base=0;};
+document.addEventListener('pointerup',lift,true);document.addEventListener('pointercancel',lift,true);}
 document.addEventListener('dblclick',event=>RoadmapCanvas.doubleClick(event));
 // Connector dots appear only when a mouse comes near an item's left or right end
 // (inside or just outside it). The thin edge itself stays the resize handle; the dot
@@ -2772,6 +2851,10 @@ function packSwimlaneTasks(tasks,r){
 function swimlaneStar(){return '<svg class="swimlane-star" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 1.6 3.1 6.3 7 .9-5.1 5 1.2 7-6.2-3.3-6.2 3.3 1.2-7-5.1-5 7-.9Z"/></svg>';}
 function swimlaneAxis(r){
  const duration=r.end-r.start;let html='';
+ if(timeZoom!=='months'){
+  const u=axisUnits(r),span=(cls,x)=>`<span class="${cls}${x.weekend?' is-weekend':''}" style="left:${(x.a-r.start)/duration*100}%;width:${(x.b-x.a)/duration*100}%"${x.title?` title="${esc(x.title)}"`:''}>${esc(x.label)}</span>`;
+  return u.top.map(x=>span('swimlane-quarter',x)).join('')+u.bottom.map(x=>span('swimlane-month',x)).join('')+gridHTML(r);
+ }
  for(let q=Math.floor(r.month/3);q<Math.ceil(r.endMonth/3);q++){
   // Custom ranges can start mid-quarter and cross years: clip to the range, label with the real year.
   const a=Math.max(r.start,Date.UTC(state.year,q*3,1)/DAY),b=Math.min(r.end,Date.UTC(state.year,q*3+3,1)/DAY),yr=state.year+Math.floor(q/4);
@@ -2846,7 +2929,7 @@ function swimlaneBar(t,r,c){return canvasInitiativeBar(t,r,c,true);}
 function renderSwimlanes(){
  const r=timelineRange(),all=filteredTasks(),tasks=all.filter(t=>day(t.end)>=r.start&&day(t.start)<r.end);
  const streams=state.plan.workstreams.filter(s=>(state.stream==='all'||state.stream===s.id)&&(!(state.query||state.status!=='all'||state.outcome)||tasks.some(t=>t.stream===s.id)));
- let html=`<div class="swimlane-axis-row"><div class="swimlane-axis-label" title="Workstreams">STREAMS <span>${streams.length}</span><span class="freeze-locks">${rangeMonths(r)>12?'<button type="button" class="freeze-lock freeze-names-lock" data-freeze-names aria-pressed="false" title="Keep names visible when scrolling sideways" aria-label="Keep names visible when scrolling sideways">'+icon('columnLock')+'</button>':''}<button type="button" class="freeze-lock" data-freeze-toggle aria-pressed="false" aria-label="Keep dates and tools visible while scrolling" title="Keep dates and tools visible while scrolling">${icon('unlock')}</button></span></div><div class="swimlane-axis">${swimlaneAxis(r)}</div></div>${canvasIncrementBand(r,true,'')}${swimlaneMilestones(r,'')}`;
+ let html=`<div class="swimlane-axis-row"><div class="swimlane-axis-label" title="Workstreams">STREAMS <span>${streams.length}</span><span class="freeze-locks">${wideTimeline(r)?'<button type="button" class="freeze-lock freeze-names-lock" data-freeze-names aria-pressed="false" title="Keep names visible when scrolling sideways" aria-label="Keep names visible when scrolling sideways">'+icon('columnLock')+'</button>':''}<button type="button" class="freeze-lock" data-freeze-toggle aria-pressed="false" aria-label="Keep dates and tools visible while scrolling" title="Keep dates and tools visible while scrolling">${icon('unlock')}</button></span></div><div class="swimlane-axis">${swimlaneAxis(r)}</div></div>${canvasIncrementBand(r,true,'')}${swimlaneMilestones(r,'')}`;
  for(const s of streams){
   const items=tasks.filter(t=>t.stream===s.id),rows=packSwimlaneTasks(items,r),collapsed=false,c=swimlaneColor(s);
   const laneRows=canvasIncrementBand(r,true,s.id)+swimlaneMilestones(r,s.id),laneCount=laneItemCount(s.id);
@@ -2858,7 +2941,7 @@ function renderSwimlanes(){
   if(!collapsed&&rows.length)html+=`<div class="timeline-track swimlane-lane canvas-add-row" data-canvas-track="initiative" data-stream-id="${esc(s.id)}">${gridHTML(r)}</div>`;
   html+='</div></section>';
  }
- $('#content').innerHTML=`<section class="roadmap-panel swimlane-view"><div class="roadmap-caption"><span>${periodText()}</span><span class="roadmap-count">${tasks.length} initiative${tasks.length===1?'':'s'}${all.length>tasks.length?` · ${all.length-tasks.length} outside this period`:''}</span></div><div class="timeline-scroll swimlane-scroll"><div class="timeline swimlane-timeline" style="min-width:${state.range==='year'?1080:state.range==='custom'?Math.max(900,rangeMonths(r)*90):900}px">${html}${canvasMilestoneLines(r)}<svg class="dependency-layer"></svg></div></div>${!tasks.length?(all.length?'<div class="timeline-empty-note">No initiatives in this period. Change the year or quarter to see scheduled work.</div>':emptyHTML(state.plan.initiatives.length?'No initiatives match these filters':'Your next chapter starts here',state.plan.initiatives.length?'Clear your filters or add an initiative to this plan.':'Create an initiative to start shaping your product roadmap.')):''}</section>`;
+ $('#content').innerHTML=`<section class="roadmap-panel swimlane-view zoom-${timeZoom}"><div class="roadmap-caption"><span>${periodText()}</span><span class="roadmap-count">${tasks.length} initiative${tasks.length===1?'':'s'}${all.length>tasks.length?` · ${all.length-tasks.length} outside this period`:''}</span></div><div class="timeline-scroll swimlane-scroll"><div class="timeline swimlane-timeline" style="min-width:${timelineMinWidth(r,false)}px">${html}${canvasMilestoneLines(r)}<svg class="dependency-layer"></svg></div></div>${!tasks.length?(all.length?'<div class="timeline-empty-note">No initiatives in this period. Change the year or quarter to see scheduled work.</div>':emptyHTML(state.plan.initiatives.length?'No initiatives match these filters':'Your next chapter starts here',state.plan.initiatives.length?'Clear your filters or add an initiative to this plan.':'Create an initiative to start shaping your product roadmap.')):''}</section>`;
  requestAnimationFrame(drawDependencies);
 }
 
@@ -3005,12 +3088,13 @@ function canvasIncrementBand(r,swimlane=false,lane='',onlyId=''){
 }
 function renderTimeline(){
  const r=timelineRange(),all=filteredTasks(),tasks=all.filter(t=>day(t.end)>=r.start&&day(t.start)<r.end),n=tasks.length,rd=day(state.plan.reviewDate);let axis='';
- for(let m=r.month;m<r.endMonth;m++){const a=Date.UTC(state.year,m,1)/DAY,b=Date.UTC(state.year,m+1,1)/DAY,left=(a-r.start)/(r.end-r.start)*100,width=(b-a)/(r.end-r.start)*100;if(m%3===0)axis+=`<span class="quarter-label" style="left:${left}%">${rangeMonths(r)>12||m>=12?`${state.year+Math.floor(m/12)} `:''}Q${m%12/3+1}</span>`;axis+=`<span class="month-label" style="left:${left}%;width:${width}%">${new Date(a*DAY).toLocaleString('en-GB',{month:rangeMonths(r)>3?'short':'long',timeZone:'UTC'})}</span>`;}
+ if(timeZoom==='months'){for(let m=r.month;m<r.endMonth;m++){const a=Date.UTC(state.year,m,1)/DAY,b=Date.UTC(state.year,m+1,1)/DAY,left=(a-r.start)/(r.end-r.start)*100,width=(b-a)/(r.end-r.start)*100;if(m%3===0)axis+=`<span class="quarter-label" style="left:${left}%">${rangeMonths(r)>12||m>=12?`${state.year+Math.floor(m/12)} `:''}Q${m%12/3+1}</span>`;axis+=`<span class="month-label" style="left:${left}%;width:${width}%">${new Date(a*DAY).toLocaleString('en-GB',{month:rangeMonths(r)>3?'short':'long',timeZone:'UTC'})}</span>`;}}
+ else{const u=axisUnits(r),dur=r.end-r.start;u.top.forEach(x=>{axis+=`<span class="quarter-label" style="left:${(x.a-r.start)/dur*100}%">${esc(x.label)}</span>`;});u.bottom.forEach(x=>{axis+=`<span class="month-label${x.weekend?' is-weekend':''}" style="left:${(x.a-r.start)/dur*100}%;width:${(x.b-x.a)/dur*100}%"${x.title?` title="${esc(x.title)}"`:''}>${esc(x.label)}</span>`;});}
  axis+=gridHTML(r);if(rd>=r.start&&rd<r.end)axis+=`<span class="today-label" style="left:${(rd-r.start)/(r.end-r.start)*100}%">${state.plan.reviewDateMode==='today'?'Today':state.plan.example?'Snapshot':'Reference'}</span>`;
  const milestones=canvasOutcomeContext().milestones.filter(m=>inLane(m,'')&&!milestoneOnIncrement(m)&&day(m.date)>=r.start&&day(m.date)<r.end),layout=canvasFlatMilestoneLayout(milestones,r);
  const markers=layout.placed.map(p=>canvasMilestoneMarker(p.milestone,r,0,false,null,p)).join('');
  const markerHeight=milestones.length?54:42;
- let rows=`<div class="timeline-header"><div class="lane-heading">INITIATIVES <span>${n}</span><span class="freeze-locks">${rangeMonths(r)>12?'<button type="button" class="freeze-lock freeze-names-lock" data-freeze-names aria-pressed="false" title="Keep names visible when scrolling sideways" aria-label="Keep names visible when scrolling sideways">'+icon('columnLock')+'</button>':''}<button type="button" class="freeze-lock" data-freeze-toggle aria-pressed="false" aria-label="Keep dates and tools visible while scrolling" title="Keep dates and tools visible while scrolling">${icon('unlock')}</button></span></div><div class="time-axis">${axis}</div></div>${canvasIncrementBand(r,false,'')}<div class="milestone-row" style="height:${markerHeight}px"><div class="lane-label">${icon('flag')}<span>Milestones</span><button class="icon-btn" data-action="new-milestone" aria-label="Add milestone">${icon('plus')}</button></div><div class="milestone-track" data-canvas-track="milestone" style="height:${markerHeight}px">${gridHTML(r)}${markers||'<button class="canvas-empty-prompt" data-action="new-milestone">'+icon('plus')+'Add milestone</button>'}</div></div>`;
+ let rows=`<div class="timeline-header"><div class="lane-heading">INITIATIVES <span>${n}</span><span class="freeze-locks">${wideTimeline(r)?'<button type="button" class="freeze-lock freeze-names-lock" data-freeze-names aria-pressed="false" title="Keep names visible when scrolling sideways" aria-label="Keep names visible when scrolling sideways">'+icon('columnLock')+'</button>':''}<button type="button" class="freeze-lock" data-freeze-toggle aria-pressed="false" aria-label="Keep dates and tools visible while scrolling" title="Keep dates and tools visible while scrolling">${icon('unlock')}</button></span></div><div class="time-axis">${axis}</div></div>${canvasIncrementBand(r,false,'')}<div class="milestone-row" style="height:${markerHeight}px"><div class="lane-label">${icon('flag')}<span>Milestones</span><button class="icon-btn" data-action="new-milestone" aria-label="Add milestone">${icon('plus')}</button></div><div class="milestone-track" data-canvas-track="milestone" style="height:${markerHeight}px">${gridHTML(r)}${markers||'<button class="canvas-empty-prompt" data-action="new-milestone">'+icon('plus')+'Add milestone</button>'}</div></div>`;
  for(const s of state.plan.workstreams.filter(s=>state.stream==='all'||state.stream===s.id)){
   // The saved initiative order owns each row; date edits must not move rows.
   const st=tasks.filter(t=>t.stream===s.id);if(!st.length&&(state.query||state.status!=='all'||state.outcome))continue;const collapsed=state.collapsed.has(s.id),c=RoadmapColors.streamPalette(s);
@@ -3021,7 +3105,7 @@ function renderTimeline(){
   if(!collapsed)for(const t of st)rows+=`<div class="initiative-row" data-task-row="${esc(t.id)}" data-stream-id="${esc(s.id)}"><button class="initiative-label" data-canvas-select="initiative" data-record-id="${esc(t.id)}" title="Select ${esc(t.title)}"><span class="item-title" data-title>${esc(t.title)}</span><span class="item-meta"><span class="status-dot" data-status="${t.status}"></span>${STATUS[t.status]}</span></button><div class="timeline-track" data-track="${esc(t.id)}" data-canvas-track="initiative" data-stream-id="${esc(s.id)}">${gridHTML(r)}${canvasInitiativeBar(t,r,c)}</div></div>${incRows.get(t.id)||''}${msRows.get(t.id)||''}`;
   if(!collapsed)rows+=`<div class="initiative-row canvas-add-row" data-stream-id="${esc(s.id)}"><div class="initiative-label"><button class="canvas-empty-prompt" data-add-stream="${esc(s.id)}">${icon('plus')}Add initiative</button></div><div class="timeline-track" data-canvas-track="initiative" data-stream-id="${esc(s.id)}">${gridHTML(r)}</div></div>`;
  }
- $('#content').innerHTML=`<section class="roadmap-panel gantt-view"><div class="roadmap-caption"><span>${periodText()}</span><span class="roadmap-count">${n} initiatives</span></div><div class="timeline-scroll"><div class="timeline" style="min-width:${state.range==='year'?1100:state.range==='custom'?Math.max(930,rangeMonths(r)*92):930}px">${rows}${canvasMilestoneLines(r)}<svg class="dependency-layer"></svg></div></div></section>`;
+ $('#content').innerHTML=`<section class="roadmap-panel gantt-view zoom-${timeZoom}"><div class="roadmap-caption"><span>${periodText()}</span><span class="roadmap-count">${n} initiatives</span></div><div class="timeline-scroll"><div class="timeline" style="min-width:${timelineMinWidth(r,true)}px">${rows}${canvasMilestoneLines(r)}<svg class="dependency-layer"></svg></div></div></section>`;
 }
 function renderBoard(){
  const tasks=filteredTasks();
