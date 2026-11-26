@@ -120,8 +120,13 @@
       let guide=solid;if(contrast(solid,'#FFFFFF')<3)for(let n=0;contrast(guide,'#FFFFFF')<3&&n<14;n++)guide=blend(guide,'#172A32',.14);
       const value={solid,text:contrast(solid,preferred)>=4.5?preferred:'#000000',guide,outline:contrast(solid,'#FFFFFF')<2?guide:'none'};customTones.set(hex,value);return value;
     }
-    function theme(s){const extra=/^#[0-9a-f]{6}$/i.test(s?.customColor||'')?customTone(s.customColor):input.palette?.[s.color]||{};const d=SOLID[s.color]||SOLID.slate,solid=extra.solid||extra.fill||d.solid,outline=extra.outline&&extra.outline!=='none'?extra.outline:null;return {solid,text:extra.text||extra.ink||d.text,outline,guide:extra.guide||outline||solid};}
+    function theme(s){const extra=/^#[0-9a-f]{6}$/i.test(s?.customColor||'')?customTone(s.customColor):input.palette?.[s.color]||{};const d=SOLID[s.color]||SOLID.slate,solid=extra.solid||extra.fill||d.solid,outline=extra.outline&&extra.outline!=='none'?extra.outline:null;return {solid,text:extra.text||extra.ink||d.text,outline,guide:extra.guide||outline||solid,tint:s?.id&&input.tintText?.[s.id]||null};}
     const milestoneTone=m=>theme({color:m.color||'amber'}).solid;
+    const tinted=input.barStyle==='tinted';
+    function bar(tone,{label=false,text=null}={}){
+      if(!tinted)return{fill:tone.solid,border:tone.outline,edge:null,text:tone.text};
+      return{fill:tint(tone.solid,label?.89:.86),border:tint(tone.solid,label?.75:.72),edge:tone.solid,text:text||(label?'#0F172A':tone.tint||'#0F172A')};
+    }
     function tint(hex,amount=.82){const n=parseInt(String(hex).replace('#',''),16);return '#'+[n>>16&255,n>>8&255,n&255].map(v=>Math.round(v+(255-v)*amount).toString(16).padStart(2,'0')).join('');}
     const unsupported=(s,type)=>Array.from(s).some(c=>!assets[type].cmap[c.codePointAt(0)]);
     function canvasForText(s,size,bold){
@@ -211,8 +216,8 @@
     function milestoneLines(y,h){milestones.filter(m=>m.showLine===true).forEach(m=>{const x=trackX+(day(m.date)-range.start)/(range.end-range.start)*trackW;stroke(x,y,x,y+h,theme({color:m.color||'amber'}).guide,.7,[4,3]);});}
     function reference(y,h){const d=day(plan.reviewDate);if(d>=range.start&&d<range.end){const x=trackX+(d-range.start)/(range.end-range.start)*trackW;stroke(x,y,x,y+h,theme({color:'teal'}).guide,.65,[2,3]);}milestoneLines(y,h);}
     function labelBlock(title,count,y,h,tone,continued=false){
-      rect(M,y,labelW,h,tone.solid,tone.outline,.7);const titleLines=wrap(title,labelW-22,11.1,true);const max=Math.max(1,Math.floor((h-24)/13.5));let shown=titleLines.slice(0,max);if(titleLines.length>max)shown[shown.length-1]=fit(shown[shown.length-1]+'…',labelW-22,11.1,true);
-      lines(shown,M+11,y+Math.max(10,(h-shown.length*13.5-18)/2),{size:11.1,bold:true,fill:tone.text,leading:13.5});text(continued?'CONTINUED':count,M+11,y+h-17,{size:7.2,bold:true,fill:tone.text,width:labelW-22});
+      const lp=bar(tone,{label:true});rect(M,y,labelW,h,lp.fill,lp.border,.7);if(lp.edge)rect(M,y,4,h,lp.edge);const titleLines=wrap(title,labelW-22,11.1,true);const max=Math.max(1,Math.floor((h-24)/13.5));let shown=titleLines.slice(0,max);if(titleLines.length>max)shown[shown.length-1]=fit(shown[shown.length-1]+'…',labelW-22,11.1,true);
+      lines(shown,M+11,y+Math.max(10,(h-shown.length*13.5-18)/2),{size:11.1,bold:true,fill:lp.text,leading:13.5});text(continued?'CONTINUED':count,M+11,y+h-17,{size:7.2,bold:true,fill:lp.text,width:labelW-22});
     }
     function milestoneCaption(m,increment=null){
       const outside=increment&&(m.date<increment.start||m.date>increment.end);
@@ -249,10 +254,10 @@
         text(`${date(increment.start)} - ${date(increment.end)} · Increment window outside this view`,trackX+5,y+21,{size:6.5,fill:muted,width:trackW-10});
         return{x:trackX,w:0,tone,centerY:y+9};
       }
-      rect(x,y,Math.max(.5,w),18,tone.solid,tone.outline,.7);
+      const bp=bar(tone,{text:'#0F172A'});rect(x,y,Math.max(.5,w),18,bp.fill,bp.border,.7);if(bp.edge)rect(x,y,Math.min(3.5,Math.max(.5,w)),18,bp.edge);
       const clippedLeft=day(increment.start)<range.start,clippedRight=day(increment.end)+1>range.end;
-      if(clippedLeft&&w>14){stroke(x+7,y+4,x+3,y+9,tone.text,.8);stroke(x+3,y+9,x+7,y+14,tone.text,.8);}
-      if(clippedRight&&w>14){stroke(x+w-7,y+4,x+w-3,y+9,tone.text,.8);stroke(x+w-3,y+9,x+w-7,y+14,tone.text,.8);}
+      if(clippedLeft&&w>14){stroke(x+7,y+4,x+3,y+9,bp.text,.8);stroke(x+3,y+9,x+7,y+14,bp.text,.8);}
+      if(clippedRight&&w>14){stroke(x+w-7,y+4,x+w-3,y+9,bp.text,.8);stroke(x+w-3,y+9,x+w-7,y+14,bp.text,.8);}
       // Put the title in the largest clear segment so a checkpoint never masks it.
       const startLabel=x+7+(clippedLeft?4:0),endLabel=x+w-7-(clippedRight?4:0),slots=[];
       let cursor=startLabel;
@@ -263,10 +268,10 @@
       if(shown!==full)truncatedLabels++;
       if(shown&&glyph){
         // Layers glyph, like the icon on screen, then the label; centred together in the slot.
-        const lw=measure(shown,8.2,true),gx=slot.x+(slot.w-glyph-lw)/2,c=tone.text,rh=(cx,cy)=>{stroke(cx-3,cy,cx,cy-1.7,c,.7);stroke(cx,cy-1.7,cx+3,cy,c,.7);stroke(cx+3,cy,cx,cy+1.7,c,.7);stroke(cx,cy+1.7,cx-3,cy,c,.7);};
+        const lw=measure(shown,8.2,true),gx=slot.x+(slot.w-glyph-lw)/2,c=bp.text,rh=(cx,cy)=>{stroke(cx-3,cy,cx,cy-1.7,c,.7);stroke(cx,cy-1.7,cx+3,cy,c,.7);stroke(cx+3,cy,cx,cy+1.7,c,.7);stroke(cx,cy+1.7,cx-3,cy,c,.7);};
         rh(gx+3,y+7.6);rh(gx+3,y+10.2);
-        text(shown,gx+glyph,y+4,{size:8.2,bold:true,fill:tone.text});
-      }else if(shown)text(shown,slot.x+slot.w/2,y+4,{size:8.2,bold:true,fill:tone.text,align:'center'});
+        text(shown,gx+glyph,y+4,{size:8.2,bold:true,fill:bp.text});
+      }else if(shown)text(shown,slot.x+slot.w/2,y+4,{size:8.2,bold:true,fill:bp.text,align:'center'});
       text(`${date(increment.start)} - ${date(increment.end)}`,x,y+21,{size:6.5,fill:muted,width:w});
       return{x,w,tone,centerY:y+9};
     }
@@ -396,12 +401,12 @@
           rect(M,y,CW,row.h,offset%2?'#f8fafb':white);grid(y,row.h);reference(y,row.h);stroke(M,y+row.h,M+CW,y+row.h,line,.4);
           lines(row.title,M+8,y+6,{size:8.4,bold:true,leading:10.5});lines(row.dates,M+8,y+6+row.title.length*10.5,{size:6.6,fill:muted,leading:9});
           const start=Math.max(range.start,day(task.start)),end=Math.min(range.end,day(task.end)+1),x=trackX+(start-range.start)/(range.end-range.start)*trackW,w=(end-start)/(range.end-range.start)*trackW,barY=y+(row.h-18)/2;
-          rect(x,barY,Math.max(.5,w),18,tone.solid,tone.outline,.7);
+          const bp=bar(tone);rect(x,barY,Math.max(.5,w),18,bp.fill,bp.border,.7);if(bp.edge)rect(x,barY,Math.min(3.5,Math.max(.5,w)),18,bp.edge);
           const clippedLeft=day(task.start)<range.start,clippedRight=day(task.end)+1>range.end;
-          if(clippedLeft&&w>12){stroke(x+6,barY+4,x+2,barY+9,tone.text,.75);stroke(x+2,barY+9,x+6,barY+14,tone.text,.75);}
-          if(clippedRight&&w>12){stroke(x+w-6,barY+4,x+w-2,barY+9,tone.text,.75);stroke(x+w-2,barY+9,x+w-6,barY+14,tone.text,.75);}
+          if(clippedLeft&&w>12){stroke(x+6,barY+4,x+2,barY+9,bp.text,.75);stroke(x+2,barY+9,x+6,barY+14,bp.text,.75);}
+          if(clippedRight&&w>12){stroke(x+w-6,barY+4,x+w-2,barY+9,bp.text,.75);stroke(x+w-2,barY+9,x+w-6,barY+14,bp.text,.75);}
           const progress=clamp(Number(task.progress)||0,0,100);
-          if(progress){rect(x,barY+16,Math.max(.2,w*progress/100),2,tone.text);if(w>30)text(progress+'%',x+w/2,barY+4,{size:7.1,bold:true,fill:tone.text,align:'center',width:w-12});}
+          if(progress){rect(x,barY+16,Math.max(.2,w*progress/100),2,bp.text);if(w>30)text(progress+'%',x+w/2,barY+4,{size:7.1,bold:true,fill:bp.text,align:'center',width:w-12});}
           top+=row.h;offset++;
           if(drawIncs)drawIncs(incrementsAfter.get(task.id));
           (milestonesAfter.get(task.id)||[]).forEach((m,k)=>ganttMilestoneRow(m,k,stream));
@@ -503,13 +508,13 @@
           const y=baseY+k*26;rect(trackX,y,trackW,26,k%2?'#f7f9fa':stripe);grid(y,26);reference(y,26);
           rows[offset+k].forEach(({task,start,end})=>{
             const x=trackX+(start-range.start)/(range.end-range.start)*trackW,w=(end-start)/(range.end-range.start)*trackW;
-            rect(x,y+3,Math.max(.5,w),20,tone.solid,tone.outline,.7);
+            const bp=bar(tone);rect(x,y+3,Math.max(.5,w),20,bp.fill,bp.border,.7);if(bp.edge)rect(x,y+3,Math.min(3.5,Math.max(.5,w)),20,bp.edge);
             const clippedLeft=day(task.start)<range.start,clippedRight=day(task.end)+1>range.end;
-            if(clippedLeft&&w>12){stroke(x+6,y+8,x+2,y+13,tone.text,.75);stroke(x+2,y+13,x+6,y+18,tone.text,.75);}
-            if(clippedRight&&w>12){stroke(x+w-6,y+8,x+w-2,y+13,tone.text,.75);stroke(x+w-2,y+13,x+w-6,y+18,tone.text,.75);}
+            if(clippedLeft&&w>12){stroke(x+6,y+8,x+2,y+13,bp.text,.75);stroke(x+2,y+13,x+6,y+18,bp.text,.75);}
+            if(clippedRight&&w>12){stroke(x+w-6,y+8,x+w-2,y+13,bp.text,.75);stroke(x+w-2,y+13,x+w-6,y+18,bp.text,.75);}
             const pad=6+(clippedLeft?3:0),label=`${taskIndex.get(task.id)} ${clean(task.title).replace(/\s+/g,' ').trim()}`,available=w-pad-6-(clippedRight?3:0),shown=fit(label,available,8.2,true);
-            if(shown!==label)truncatedLabels++;if(shown)text(shown,x+pad,y+8,{size:8.2,bold:true,fill:tone.text});
-            if(task.progress>0)rect(x,y+21,Math.max(.2,w*clamp(task.progress,0,100)/100),2,tone.text);
+            if(shown!==label)truncatedLabels++;if(shown)text(shown,x+pad,y+8,{size:8.2,bold:true,fill:bp.text});
+            if(task.progress>0)rect(x,y+21,Math.max(.2,w*clamp(task.progress,0,100)/100),2,bp.text);
           });
         }
         top+=h+6;offset+=count;

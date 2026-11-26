@@ -3988,7 +3988,7 @@ function pdfSelection(){
  const filters=[];
  if(filtered){if(state.stream!=='all')filters.push(streamName(state.stream));if(state.status!=='all')filters.push(STATUS[state.status]);if(state.outcome)filters.push('Outcome: '+getOutcome(state.outcome)?.title);if(state.query)filters.push('Search: '+state.query);}
  const periodLabel=allDates?'All dates':f.period.value==='year'||state.range==='year'?String(state.year):state.range==='rolling'?rangeText(period):periodText();
- return{plan:clone(state.plan),tasks:clone(selected),milestones:clone(milestones),increments:clone(increments),range:period,options:{view,paper:f.paper.value,orientation:f.orientation.value,allDates,milestones:!board&&f.milestones.checked,increments:f.increments.checked,hasFilters:!!hasFilters,includeDetails:f.details.checked,scopeLabel:filtered?'Current filters':'All initiatives',filterSummary:filters.join(' · ')||'All workstreams and statuses',periodLabel},palette:typeof SWIMLANE_COLORS!=='undefined'?clone(SWIMLANE_COLORS):undefined};
+ return{plan:clone(state.plan),tasks:clone(selected),milestones:clone(milestones),increments:clone(increments),range:period,options:{view,paper:f.paper.value,orientation:f.orientation.value,allDates,milestones:!board&&f.milestones.checked,increments:f.increments.checked,hasFilters:!!hasFilters,includeDetails:f.details.checked,scopeLabel:filtered?'Current filters':'All initiatives',filterSummary:filters.join(' · ')||'All workstreams and statuses',periodLabel},palette:typeof SWIMLANE_COLORS!=='undefined'?clone(SWIMLANE_COLORS):undefined,barStyle:state.barStyle,tintText:Object.fromEntries(state.plan.workstreams.map(s=>[s.id,RoadmapColors.streamPalette(s).color]))};
 }
 function pdfPreview(){
  if(pdfBusy)return;
