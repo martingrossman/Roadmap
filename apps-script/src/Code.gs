@@ -114,6 +114,8 @@ const ROADMAP_TABS = [
     { field: 'start', type: 'date' },
     { field: 'end', type: 'date' },
     { field: 'color', type: 'enum', values: 'color' },
+    // Gantt: the initiative whose row this increment follows. Blank = top of its workstream group.
+    { field: 'after', header: 'ganttAfter' },
     { field: 'description', wide: true }
   ] },
   { key: 'connections', sheet: 'Connections', cols: [

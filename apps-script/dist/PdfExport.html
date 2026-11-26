@@ -378,7 +378,7 @@
       rect(M,top,CW,22,tint(tone.solid,.9));rect(M,top,3,22,tone.solid,tone.outline,.5);
       text(`${stream.name} · ${items.length}${continued?' · continued':''}`,M+9,top+5,{size:8.5,bold:true,width:CW-18});top+=22;
     }
-    function ganttStream(stream,headed=false,milestonesAfter=new Map()){
+    function ganttStream(stream,headed=false,milestonesAfter=new Map(),incrementsAfter=new Map(),drawIncs=null){
       // started: the header was already drawn once, so a header after a page break says "continued".
       const items=tasks.filter(t=>t.stream===stream.id),tone=theme(stream);let offset=0,started=headed;
       const rowData=task=>{const title=limitedLines(task.title,labelW-18,8.4,true,5),dates=wrap(date(task.start)+' - '+date(task.end),labelW-18,6.6);return{task,title,dates,h:Math.max(36,12+title.length*10.5+dates.length*9)};};
@@ -398,6 +398,7 @@
           const progress=clamp(Number(task.progress)||0,0,100);
           if(progress){rect(x,barY+16,Math.max(.2,w*progress/100),2,tone.text);if(w>30)text(progress+'%',x+w/2,barY+4,{size:7.1,bold:true,fill:tone.text,align:'center',width:w-12});}
           top+=row.h;offset++;
+          if(drawIncs)drawIncs(incrementsAfter.get(task.id));
           (milestonesAfter.get(task.id)||[]).forEach((m,k)=>ganttMilestoneRow(m,k,stream));
         }
         if(offset<rows.length)newChartPage();
@@ -459,7 +460,7 @@
       const drawIncrements=(title,tone)=>{for(const increment of incs)incrementGroup(increment,grouped.filter(m=>m.increment===increment.id),title,tone);};
       // Gantt draws each flat milestone as its own row instead of one stacked block.
       const ganttH=incs.reduce((h,i)=>h+(grouped.some(m=>m.increment===i.id)?64:40)+6,0)+flat.length*MS_ROW_H;
-      return{any:incs.length>0||flat.length>0,h:isGantt?ganttH:h,flat,drawIncrements,draw:(title,tone)=>{drawIncrements(title,tone);if(flat.length)milestoneBlock(flat,title,tone);}};
+      return{any:incs.length>0||flat.length>0,h:isGantt?ganttH:h,flat,incs,grouped,drawIncrements,draw:(title,tone)=>{drawIncrements(title,tone);if(flat.length)milestoneBlock(flat,title,tone);}};
     }
     for(const stream of workstreams){
       if(isGantt){
@@ -468,11 +469,13 @@
         if(!lane.any){ganttStream(stream);continue;}
         const need=22+lane.h+40;
         if(top+need>chartBottom&&need<=chartBottom-chartStart)newChartPage();
-        ganttHeader(stream,false);lane.drawIncrements('Increments',theme(stream));
-        const ids=new Set(tasks.filter(t=>t.stream===stream.id).map(t=>t.id)),byAnchor=new Map();
-        lane.flat.forEach(m=>{const a=ids.has(m.after)?m.after:'';byAnchor.set(a,[...(byAnchor.get(a)||[]),m]);});
-        (byAnchor.get('')||[]).forEach((m,k)=>ganttMilestoneRow(m,k,stream));
-        ganttStream(stream,true,byAnchor);continue;
+        ganttHeader(stream,false);
+        const ids=new Set(tasks.filter(t=>t.stream===stream.id).map(t=>t.id)),byAnchor=new Map(),incByAnchor=new Map(),anchorOf=x=>ids.has(x.after)?x.after:'';
+        lane.flat.forEach(m=>byAnchor.set(anchorOf(m),[...(byAnchor.get(anchorOf(m))||[]),m]));
+        lane.incs.forEach(i=>incByAnchor.set(anchorOf(i),[...(incByAnchor.get(anchorOf(i))||[]),i]));
+        const drawIncs=list=>(list||[]).forEach(i=>{const assigned=lane.grouped.filter(m=>m.increment===i.id),h=assigned.length?64:40;if(top+h>chartBottom){newChartPage();ganttHeader(stream,true);}incrementGroup(i,assigned,i.title,theme(stream));});
+        drawIncs(incByAnchor.get(''));(byAnchor.get('')||[]).forEach((m,k)=>ganttMilestoneRow(m,k,stream));
+        ganttStream(stream,true,byAnchor,incByAnchor,drawIncs);continue;
       }
       const rows=pack(tasks.filter(t=>t.stream===stream.id),range,0);const tone=theme(stream);let offset=0;
       const lane=laneParts(stream);
