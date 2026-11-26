@@ -59,7 +59,9 @@ const ROADMAP_TABS = [
     { field: 'name' },
     { field: 'color', type: 'enum', values: 'color' },
     { field: 'customColor', header: 'customColor (#hex)' },
-    { field: 'description', wide: true }
+    { field: 'description', wide: true },
+    // Custom icon: a small PNG as a data URL, set from the planner (Choose image… or Ctrl+V).
+    { field: 'icon', header: 'icon', wide: false }
   ] },
   { key: 'initiatives', sheet: 'Initiatives', cols: [
     { field: 'id' },
@@ -76,7 +78,9 @@ const ROADMAP_TABS = [
     { field: 'increment', type: 'ref', ref: 'Increments' },
     { field: 'dependencies', type: 'list' },
     { field: 'description', wide: true },
-    { field: 'notes', wide: true }
+    { field: 'notes', wide: true },
+    // Custom icon: a small PNG as a data URL, set from the planner (Choose image… or Ctrl+V).
+    { field: 'icon', header: 'icon', wide: false }
   ] },
   { key: 'outcomes', sheet: 'Outcomes', cols: [
     { field: 'id' },
@@ -104,7 +108,9 @@ const ROADMAP_TABS = [
     { field: 'initiatives', type: 'list' },
     // Gantt: the initiative whose row this milestone follows. Blank = top of its workstream group.
     { field: 'after', header: 'ganttAfter' },
-    { field: 'description', wide: true }
+    { field: 'description', wide: true },
+    // Custom icon: a small PNG as a data URL, set from the planner (Choose image… or Ctrl+V).
+    { field: 'icon', header: 'icon', wide: false }
   ] },
   { key: 'increments', sheet: 'Increments', cols: [
     { field: 'id' },
@@ -116,7 +122,9 @@ const ROADMAP_TABS = [
     { field: 'color', type: 'enum', values: 'color' },
     // Gantt: the initiative whose row this increment follows. Blank = top of its workstream group.
     { field: 'after', header: 'ganttAfter' },
-    { field: 'description', wide: true }
+    { field: 'description', wide: true },
+    // Custom icon: a small PNG as a data URL, set from the planner (Choose image… or Ctrl+V).
+    { field: 'icon', header: 'icon', wide: false }
   ] },
   { key: 'connections', sheet: 'Connections', cols: [
     { field: 'id' },

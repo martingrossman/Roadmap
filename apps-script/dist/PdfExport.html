@@ -102,7 +102,16 @@
     const labelW=isGantt?(opts.orientation==='portrait'?Math.min(152,CW*.3):Math.min(194,CW*.27)):(opts.orientation==='portrait'?Math.min(116,CW*.24):Math.min(136,CW*.19));
     const gap=8,trackX=M+labelW+gap,trackW=CW-labelW-gap;
     const ink='#253c43',muted='#63777e',line='#dce4e7',stripe='#f1f4f5',white='#ffffff';
-    const pending=[],fallbackCache=new Map();let page=null,top=0,chartPages=0,truncatedLabels=0,coincidentMilestones=false;
+    const pending=[],fallbackCache=new Map(),iconCache=new Map();
+    const hasIcon=rec=>!!rec&&typeof rec.icon==='string'&&/^data:image\/(png|jpeg);base64,/.test(rec.icon);
+    function drawIcon(rec,x,y,size){
+      if(!hasIcon(rec))return 0;
+      let entry=iconCache.get(rec.icon);
+      if(!entry){entry=(rec.icon.startsWith('data:image/png')?pdf.embedPng(rec.icon):pdf.embedJpg(rec.icon)).catch(()=>null);iconCache.set(rec.icon,entry);}
+      const target=page;
+      pending.push(entry.then(img=>{if(!img)return;const s=Math.min(size/img.width,size/img.height),w=img.width*s,h=img.height*s;target.drawImage(img,{x:x+(size-w)/2,y:H-y-size+(size-h)/2,width:w,height:h});}));
+      return size;
+    }let page=null,top=0,chartPages=0,truncatedLabels=0,coincidentMilestones=false;
     const pagesMeta=[];
     const color=hex=>{const n=parseInt(String(hex).replace('#','').slice(0,6),16);return rgb(((n>>16)&255)/255,((n>>8)&255)/255,(n&255)/255);};
     const customTones=new Map();
@@ -215,9 +224,9 @@
     function grid(y,h){axisMonths.forEach(m=>{const x=trackX+(m.start-range.start)/(range.end-range.start)*trackW;stroke(x,y,x,y+h,line,m.month%3===0?.8:.35);});stroke(trackX+trackW,y,trackX+trackW,y+h,line,.5);}
     function milestoneLines(y,h){milestones.filter(m=>m.showLine===true).forEach(m=>{const x=trackX+(day(m.date)-range.start)/(range.end-range.start)*trackW;stroke(x,y,x,y+h,theme({color:m.color||'amber'}).guide,.7,[4,3]);});}
     function reference(y,h){const d=day(plan.reviewDate);if(d>=range.start&&d<range.end){const x=trackX+(d-range.start)/(range.end-range.start)*trackW;stroke(x,y,x,y+h,theme({color:'teal'}).guide,.65,[2,3]);}milestoneLines(y,h);}
-    function labelBlock(title,count,y,h,tone,continued=false){
-      const lp=bar(tone,{label:true});rect(M,y,labelW,h,lp.fill,lp.border,.7);if(lp.edge)rect(M,y,4,h,lp.edge);const titleLines=wrap(title,labelW-22,11.1,true);const max=Math.max(1,Math.floor((h-24)/13.5));let shown=titleLines.slice(0,max);if(titleLines.length>max)shown[shown.length-1]=fit(shown[shown.length-1]+'…',labelW-22,11.1,true);
-      lines(shown,M+11,y+Math.max(10,(h-shown.length*13.5-18)/2),{size:11.1,bold:true,fill:lp.text,leading:13.5});text(continued?'CONTINUED':count,M+11,y+h-17,{size:7.2,bold:true,fill:lp.text,width:labelW-22});
+    function labelBlock(title,count,y,h,tone,continued=false,rec=null){
+      const lp=bar(tone,{label:true});rect(M,y,labelW,h,lp.fill,lp.border,.7);if(lp.edge)rect(M,y,4,h,lp.edge);const ic=hasIcon(rec)?15:0,titleLines=wrap(title,labelW-22-ic,11.1,true);const max=Math.max(1,Math.floor((h-24)/13.5));let shown=titleLines.slice(0,max);if(titleLines.length>max)shown[shown.length-1]=fit(shown[shown.length-1]+'…',labelW-22-ic,11.1,true);
+      const ty=y+Math.max(10,(h-shown.length*13.5-18)/2);if(ic)drawIcon(rec,M+11,ty+.5,11);lines(shown,M+11+ic,ty,{size:11.1,bold:true,fill:lp.text,leading:13.5});text(continued?'CONTINUED':count,M+11,y+h-17,{size:7.2,bold:true,fill:lp.text,width:labelW-22});
     }
     function milestoneCaption(m,increment=null){
       const outside=increment&&(m.date<increment.start||m.date>increment.end);
@@ -264,12 +273,12 @@
       markers.map(v=>trackX+v.center).filter(px=>px>=x-8&&px<=x+w+8).sort((a,b)=>a-b).forEach(px=>{if(px-11>cursor)slots.push({x:cursor,w:px-11-cursor});cursor=Math.max(cursor,px+11);});
       if(endLabel>cursor)slots.push({x:cursor,w:endLabel-cursor});
       const slot=slots.sort((a,b)=>b.w-a.w)[0]||{x:startLabel,w:0};
-      const full=`${incrementIndex.get(increment.id)} ${clean(increment.title).replace(/\s+/g,' ').trim()}`,glyph=slot.w>=40&&measure(full,8.2,true)+11<=slot.w?11:0,shown=fit(full,slot.w-glyph,8.2,true);
+      const full=`${incrementIndex.get(increment.id)} ${clean(increment.title).replace(/\s+/g,' ').trim()}`,gi=hasIcon(increment)?10:0,glyph=slot.w>=40+gi&&measure(full,8.2,true)+11+gi<=slot.w?11+gi:0,shown=fit(full,slot.w-glyph,8.2,true);
       if(shown!==full)truncatedLabels++;
       if(shown&&glyph){
         // Layers glyph, like the icon on screen, then the label; centred together in the slot.
         const lw=measure(shown,8.2,true),gx=slot.x+(slot.w-glyph-lw)/2,c=bp.text,rh=(cx,cy)=>{stroke(cx-3,cy,cx,cy-1.7,c,.7);stroke(cx,cy-1.7,cx+3,cy,c,.7);stroke(cx+3,cy,cx,cy+1.7,c,.7);stroke(cx,cy+1.7,cx-3,cy,c,.7);};
-        rh(gx+3,y+7.6);rh(gx+3,y+10.2);
+        rh(gx+3,y+7.6);rh(gx+3,y+10.2);if(gi)drawIcon(increment,gx+10.5,y+4.7,8.6);
         text(shown,gx+glyph,y+4,{size:8.2,bold:true,fill:bp.text});
       }else if(shown)text(shown,slot.x+slot.w/2,y+4,{size:8.2,bold:true,fill:bp.text,align:'center'});
       text(`${date(increment.start)} - ${date(increment.end)}`,x,y+21,{size:6.5,fill:muted,width:w});
@@ -285,10 +294,10 @@
         const caption=milestoneCaption(m),capW=measure(caption.text,6.6),full=clean(m.title);
         const titleW=Math.min(measure(full,8.2,true),Math.max(30,MAXW-capW-5));
         const title=fit(full,titleW+0.5,8.2,true);if(title!==full)truncatedLabels++;
-        const w=measure(title,8.2,true)+5+capW,center=(day(m.date)-range.start)/(range.end-range.start)*trackW;
+        const ic=hasIcon(m)?11:0,w=measure(title,8.2,true)+5+capW+ic,center=(day(m.date)-range.start)/(range.end-range.start)*trackW;
         const start=Math.max(0,Math.min(center-w/2,trackW-w));
         let tier=ends.findIndex(end=>start>=end+GAP);if(tier<0){tier=ends.length;ends.push(0);}ends[tier]=start+w;
-        return {m,caption,title,titleW:measure(title,8.2,true),w,center,start,tier};
+        return {m,caption,title,ic,titleW:measure(title,8.2,true),w,center,start,tier};
       });
       const rows=Math.max(1,ends.length),labelTop=y+6,symbolY=labelTop+rows*ROW+11,h=symbolY-y+13;
       return {items,rows,h,draw(){
@@ -296,8 +305,8 @@
         items.forEach(v=>{
           const ty=labelTop+v.tier*ROW,x=trackX+v.start;
           rect(x-2,ty-1.5,v.w+4,ROW-1,'#f4f6f7');
-          text(v.title,x,ty,{size:8.2,bold:true});
-          text(v.caption.text,x+v.titleW+5,ty+1.4,{size:6.6,fill:v.caption.outside?OUTSIDE_INCREMENT_COLOR:muted});
+          if(v.ic)drawIcon(v.m,x,ty-.3,9);text(v.title,x+v.ic,ty,{size:8.2,bold:true});
+          text(v.caption.text,x+v.ic+v.titleW+5,ty+1.4,{size:6.6,fill:v.caption.outside?OUTSIDE_INCREMENT_COLOR:muted});
         });
         items.forEach(v=>{const x=trackX+v.center;page.drawCircle({x,y:H-symbolY,size:7.3,color:color(white)});milestoneSymbol(v.m,x,symbolY,5.5);});
       }};
@@ -309,9 +318,9 @@
         // Coincident items intentionally share their position in stable date/ID
         // order, just as on the canvas. The register retains every individual.
         rect(trackX+v.left,labelY-1,v.right-v.left,22,'#f4f6f7');
-        const full=clean(v.m.title),label=fit(full,v.width,8.2,true);if(label!==full)truncatedLabels++;
+        const ic=hasIcon(v.m)&&v.width>30?11:0,full=clean(v.m.title),label=fit(full,v.width-ic,8.2,true);if(label!==full)truncatedLabels++;
         const captionLabel=fit(caption.text,v.width,6.6);if(captionLabel!==caption.text)truncatedLabels++;
-        text(label,trackX+v.labelLeft,labelY,{size:8.2,bold:true});
+        if(ic)drawIcon(v.m,trackX+v.labelLeft,labelY-.3,9);text(label,trackX+v.labelLeft+ic,labelY,{size:8.2,bold:true});
         text(captionLabel,trackX+v.labelLeft,labelY+12,{size:6.6,fill:caption.outside?OUTSIDE_INCREMENT_COLOR:muted});
       });
       layout.forEach(v=>{
@@ -339,7 +348,7 @@
     function boardCard(card,x,y,w){
       const {task,stream,tone}=card;rect(x,y,w,card.h,white,line,.6);rect(x,y,w,3,tone.solid,tone.outline,.5);
       page.drawCircle({x:x+12,y:H-y-13,size:2.5,color:color(tone.solid),...(tone.outline?{borderColor:color(tone.outline),borderWidth:.5}:{})});
-      text(stream?.name||'Workstream',x+19,y+8,{size:6.8,bold:true,fill:muted,width:w-29});
+      const bic=drawIcon(task,x+w-20,y+6,11)?14:0;text(stream?.name||'Workstream',x+19,y+8,{size:6.8,bold:true,fill:muted,width:w-29-bic});
       let cy=y+22;lines(card.title,x+10,cy,{size:8.8,bold:true,leading:11.5});cy+=card.title.length*11.5+5;
       if(card.description.length){lines(card.description,x+10,cy,{size:7.2,fill:muted,leading:10});cy+=card.description.length*10+5;}
       if(card.assignment.length){
@@ -378,7 +387,7 @@
       if(top+MS_ROW_H>chartBottom){newChartPage();if(stream)ganttHeader(stream,true);}
       const y=top,x=trackX+(day(m.date)-range.start)/(range.end-range.start)*trackW;
       rect(M,y,CW,MS_ROW_H,k%2?'#f8fafb':white);grid(y,MS_ROW_H);reference(y,MS_ROW_H);stroke(M,y+MS_ROW_H,M+CW,y+MS_ROW_H,line,.4);
-      text(fit(clean(m.title),labelW-18,8.4,true),M+8,y+5,{size:8.4,bold:true});
+      const mic=drawIcon(m,M+8,y+5.2,9)?11:0;text(fit(clean(m.title),labelW-18-mic,8.4,true),M+8+mic,y+5,{size:8.4,bold:true});
       text(date(m.date)+(m.done?' · Achieved':''),M+8,y+17,{size:6.6,fill:muted});
       milestoneSymbol(m,x,y+MS_ROW_H/2,6);
       top+=MS_ROW_H;
@@ -386,12 +395,12 @@
     function ganttHeader(stream,continued){
       const items=tasks.filter(t=>t.stream===stream.id),tone=theme(stream);
       rect(M,top,CW,22,tint(tone.solid,.9));rect(M,top,3,22,tone.solid,tone.outline,.5);
-      text(`${stream.name} · ${items.length}${continued?' · continued':''}`,M+9,top+5,{size:8.5,bold:true,width:CW-18});top+=22;
+      const sic=drawIcon(stream,M+9,top+5.5,10)?13:0;text(`${stream.name} · ${items.length}${continued?' · continued':''}`,M+9+sic,top+5,{size:8.5,bold:true,width:CW-18-sic});top+=22;
     }
     function ganttStream(stream,headed=false,milestonesAfter=new Map(),incrementsAfter=new Map(),drawIncs=null){
       // started: the header was already drawn once, so a header after a page break says "continued".
       const items=tasks.filter(t=>t.stream===stream.id),tone=theme(stream);let offset=0,started=headed;
-      const rowData=task=>{const title=limitedLines(task.title,labelW-18,8.4,true,5),dates=wrap(date(task.start)+' - '+date(task.end),labelW-18,6.6);return{task,title,dates,h:Math.max(36,12+title.length*10.5+dates.length*9)};};
+      const rowData=task=>{const ic=hasIcon(task)?11:0,title=limitedLines(task.title,labelW-18-ic,8.4,true,5),dates=wrap(date(task.start)+' - '+date(task.end),labelW-18,6.6);return{task,ic,title,dates,h:Math.max(36,12+title.length*10.5+dates.length*9)};};
       const rows=items.map(rowData);
       while(offset<rows.length){
         if(top+(headed?0:22)+rows[offset].h>chartBottom){newChartPage();headed=false;}
@@ -399,7 +408,7 @@
         while(offset<rows.length&&top+rows[offset].h<=chartBottom){
           const row=rows[offset],task=row.task,y=top;
           rect(M,y,CW,row.h,offset%2?'#f8fafb':white);grid(y,row.h);reference(y,row.h);stroke(M,y+row.h,M+CW,y+row.h,line,.4);
-          lines(row.title,M+8,y+6,{size:8.4,bold:true,leading:10.5});lines(row.dates,M+8,y+6+row.title.length*10.5,{size:6.6,fill:muted,leading:9});
+          if(row.ic)drawIcon(task,M+8,y+6.4,9);lines(row.title,M+8+row.ic,y+6,{size:8.4,bold:true,leading:10.5});lines(row.dates,M+8,y+6+row.title.length*10.5,{size:6.6,fill:muted,leading:9});
           const start=Math.max(range.start,day(task.start)),end=Math.min(range.end,day(task.end)+1),x=trackX+(start-range.start)/(range.end-range.start)*trackW,w=(end-start)/(range.end-range.start)*trackW,barY=y+(row.h-18)/2;
           const bp=bar(tone);rect(x,barY,Math.max(.5,w),18,bp.fill,bp.border,.7);if(bp.edge)rect(x,barY,Math.min(3.5,Math.max(.5,w)),18,bp.edge);
           const clippedLeft=day(task.start)<range.start,clippedRight=day(task.end)+1>range.end;
@@ -502,7 +511,7 @@
         const entireH=Math.max(minLabelH,(rows.length-offset)*26+14);
         if(offset===0&&entireH<=chartBottom-chartStart&&entireH>chartBottom-top){newChartPage();continue;}
         let h=Math.max(Math.min(minLabelH,chartBottom-top),count*26+14);if(h>chartBottom-top){count=Math.max(1,count-1);h=Math.max(minLabelH,count*26+14);}
-        labelBlock(stream.name,`${tasks.filter(t=>t.stream===stream.id).length} INITIATIVE${tasks.filter(t=>t.stream===stream.id).length===1?'':'S'}`,top,h,tone,offset>0);
+        labelBlock(stream.name,`${tasks.filter(t=>t.stream===stream.id).length} INITIATIVE${tasks.filter(t=>t.stream===stream.id).length===1?'':'S'}`,top,h,tone,offset>0,stream);
         const baseY=top+(h-count*26)/2;
         for(let k=0;k<count;k++){
           const y=baseY+k*26;rect(trackX,y,trackW,26,k%2?'#f7f9fa':stripe);grid(y,26);reference(y,26);
@@ -512,8 +521,8 @@
             const clippedLeft=day(task.start)<range.start,clippedRight=day(task.end)+1>range.end;
             if(clippedLeft&&w>12){stroke(x+6,y+8,x+2,y+13,bp.text,.75);stroke(x+2,y+13,x+6,y+18,bp.text,.75);}
             if(clippedRight&&w>12){stroke(x+w-6,y+8,x+w-2,y+13,bp.text,.75);stroke(x+w-2,y+13,x+w-6,y+18,bp.text,.75);}
-            const pad=6+(clippedLeft?3:0),label=`${taskIndex.get(task.id)} ${clean(task.title).replace(/\s+/g,' ').trim()}`,available=w-pad-6-(clippedRight?3:0),shown=fit(label,available,8.2,true);
-            if(shown!==label)truncatedLabels++;if(shown)text(shown,x+pad,y+8,{size:8.2,bold:true,fill:bp.text});
+            const pad=6+(clippedLeft?3:0),label=`${taskIndex.get(task.id)} ${clean(task.title).replace(/\s+/g,' ').trim()}`,ic=hasIcon(task)&&w-pad-6>34?11:0,available=w-pad-6-ic-(clippedRight?3:0),shown=fit(label,available,8.2,true);
+            if(ic)drawIcon(task,x+pad,y+7.4,9);if(shown!==label)truncatedLabels++;if(shown)text(shown,x+pad+ic,y+8,{size:8.2,bold:true,fill:bp.text});
             if(task.progress>0)rect(x,y+21,Math.max(.2,w*clamp(task.progress,0,100)/100),2,bp.text);
           });
         }

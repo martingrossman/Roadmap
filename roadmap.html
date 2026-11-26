@@ -91,7 +91,19 @@ body.drawer-open{overflow:hidden}.detail-overlay{height:100dvh}.detail-panel{max
 .canvas-increment .increment-icon .icon,.canvas-increment .increment-icon svg{width:100%;height:100%}
 /* The icon is what marks an increment, so it stays even where the name has to shorten (for example between milestones); only a bar too small for it drops it. */
 .canvas-increment>.bar-content{container-name:roadmap-incrementtitle;container-type:inline-size}
+@container roadmap-incrementtitle (max-width:60px){.canvas-increment .bar-content>.item-icon{display:none}}
 @container roadmap-incrementtitle (max-width:22px){.canvas-increment .increment-icon{display:none}}
+/* Custom item icons. */
+.item-icon{display:inline-block;flex:none;width:16px;height:16px;object-fit:contain;vertical-align:-3px;margin-right:5px;border-radius:3px;pointer-events:none;user-select:none}
+.bar-content>.item-icon{margin-right:0}
+.canvas-increment .increment-icon+.item-icon{margin-left:2px}
+.workstream-name>.item-icon,.stream-label .item-icon{width:18px;height:18px;margin-right:6px}
+.icon-picker{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+.icon-picker-preview{width:28px;height:28px;object-fit:contain;border:1px solid #E2E8F0;border-radius:6px;background:#fff;padding:2px;box-sizing:border-box}
+.icon-picker-preview.is-empty{display:inline-flex;align-items:center;justify-content:center;color:#94A3B8;border-style:dashed}
+.icon-picker-preview.is-empty .icon{width:16px;height:16px}
+.icon-picker-hint{color:#64748B;font-size:11px}
+.canvas-icon-field .icon-picker{min-height:32px}
 .canvas-palette-ghost{position:fixed;z-index:220;pointer-events:none;display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;background:#1f2937;color:#fff;font-size:12px;font-weight:600;box-shadow:0 8px 24px #0f172a33;white-space:nowrap}
 .canvas-palette-ghost .icon{width:13px;height:13px}
 .canvas-palette-ghost.is-invalid{background:#64748b;opacity:.85}
@@ -1260,7 +1272,7 @@ body.bar-style-solid .canvas-item.canvas-increment{border-radius:6px;box-shadow:
 <div class="detail-overlay" id="detailOverlay" hidden=""><section class="detail-panel" role="dialog" aria-modal="true" aria-labelledby="detailTitle" tabindex="-1" id="detailPanel"><div class="detail-header"><div><span class="eyebrow" id="detailEyebrow">INITIATIVE</span><h2 id="detailTitle">New initiative</h2></div><button class="icon-btn" id="closeDetail" aria-label="Close editor" data-icon="close"></button></div><form id="detailForm" class="detail-form"><div class="detail-body" id="detailBody"></div><div class="detail-footer"><div id="detailSecondary"></div><button type="button" class="btn secondary" id="cancelDetail">Cancel</button><button type="submit" class="btn">Save changes</button></div></form></section></div>
 <dialog class="modal" id="settingsModal" aria-labelledby="settingsTitle"><form id="settingsForm"><div class="modal-header"><div><div class="eyebrow">YOUR WORKSPACE</div><h2 id="settingsTitle">Plan settings</h2></div><button type="button" class="icon-btn" data-close-dialog="" aria-label="Close settings" data-icon="close"></button></div><div class="modal-body" id="settingsBody"></div><div class="modal-footer"><button type="button" class="btn secondary" data-close-dialog="">Cancel</button><button type="submit" class="btn">Save settings</button></div></form></dialog>
 <dialog class="modal" id="confirmModal" aria-labelledby="confirmTitle"><div class="modal-header"><h2 id="confirmTitle">Confirm</h2><button class="icon-btn" data-close-dialog="" aria-label="Close confirmation" data-icon="close"></button></div><div class="modal-body" id="confirmBody"></div><div class="modal-footer"><button class="btn secondary" data-close-dialog="">Cancel</button><button class="btn" id="confirmAction">Continue</button></div></dialog>
-<dialog class="modal help-modal" id="helpModal" aria-labelledby="helpTitle"><div class="modal-header"><div><div class="eyebrow">Quick guide</div><h2 id="helpTitle">How to use the planner</h2></div><button class="icon-btn" data-close-dialog="" aria-label="Close guide" data-icon="close"></button></div><div class="modal-body"><div class="help-grid"><section class="help-card"><h3><span data-icon="plus"></span>Get started</h3><ul><li><b>Rename the plan:</b> click its title.</li><li><b>Add a workstream:</b> choose <b>Add workstream</b>, type a name, press Enter.</li><li><b>Add work:</b> drag <b>Initiative</b>, <b>Milestone</b> or <b>Increment</b> from the toolbar onto the roadmap.</li><li>Or use the <b>+</b> on a workstream to add something to it.</li></ul></section><section class="help-card"><h3><span data-icon="cursor"></span>Edit and move</h3><ul><li><b>Rename:</b> click an item and type.</li><li><b>Details:</b> double-click an item, or press Enter.</li><li><b>Reschedule:</b> drag an item left or right. Drag an edge to change its length.</li><li><b>Move to another workstream:</b> drag it up or down. A straight drag keeps its dates.</li><li><b>Board and Table:</b> drag cards or rows to reorder them.</li></ul></section><section class="help-card"><h3><span data-icon="calendar"></span>Move through time</h3><ul><li><b>Today</b> jumps back to today. <b>‹ ›</b> move earlier or later.</li><li><b>− / +</b> zoom between years, months, weeks and days. You can also pinch.</li><li><b>Fit</b> shows every item at once.</li><li>Scrolling stays straight. <b>Shift + wheel</b> scrolls sideways.</li><li>The period menu also offers <b>Full year</b>, a quarter or a custom range.</li></ul></section><section class="help-card"><h3><span data-icon="link"></span>Connect delivery</h3><ul><li><b>Dependency:</b> drag from an item’s connector circle to another item.</li><li>Select an arrow to reconnect or remove it. Dates never move on their own.</li><li><b>Increments</b> are delivery windows. Click one to highlight its work.</li><li><b>Milestones</b> are checkpoints. Drop one on an increment bar to attach it.</li></ul></section><section class="help-card"><h3><span data-icon="layers"></span>Views and display</h3><ul><li><b>Roadmap</b> for the overview, <b>Gantt</b> for a row per item, <b>Board</b> by status, <b>Table</b> as a list.</li><li><b>Show/hide</b> filters work and hides the Increments or Milestones row.</li><li><b>Colors</b> changes the palette for the whole plan.</li></ul></section><section class="help-card"><h3><span data-icon="target"></span>Outcomes</h3><ul><li>An <b>outcome</b> is a result you measure, with a target.</li><li>Link an initiative to it under <b>Linked outcome</b> in the initiative’s details.</li><li>Progress follows the metric, not the number of finished initiatives.</li></ul></section><section class="help-card"><h3><span data-icon="download"></span>Save and share</h3><ul><li>Changes save automatically in this browser (or to the Google Sheet).</li><li><b>Export</b> a PDF, an HTML copy with your plan, a JSON backup of the whole roadmap, or the initiatives as CSV.</li><li><b>Import</b> a JSON backup, or initiatives and milestones from CSV or Excel. Matching rows update existing items.</li><li><b>Plan settings → Load example</b> offers five ready-made roadmaps.</li></ul></section></div><h3 class="help-keys-title">Keyboard shortcuts</h3><div class="help-keys"><div class="help-key"><span>Search</span><span><kbd>/</kbd></span></div><div class="help-key"><span>New initiative</span><span><kbd>N</kbd></span></div><div class="help-key"><span>Jump to today</span><span><kbd>T</kbd></span></div><div class="help-key"><span>Fit all items</span><span><kbd>F</kbd></span></div><div class="help-key"><span>Rename selected item</span><span><kbd>F2</kbd></span></div><div class="help-key"><span>Open details</span><span><kbd>Enter</kbd></span></div><div class="help-key"><span>Undo</span><span><kbd>Ctrl/⌘</kbd> <kbd>Z</kbd></span></div><div class="help-key"><span>Redo</span><span><kbd>Ctrl/⌘</kbd> <kbd>Shift</kbd> <kbd>Z</kbd></span></div><div class="help-key"><span>Close or cancel</span><span><kbd>Esc</kbd></span></div><div class="help-key"><span>This guide</span><span><kbd>?</kbd></span></div></div><p class="guide-note">On a phone: swipe to scroll, tap an item to rename it, double-tap for details.</p><p class="guide-note" id="sampleHelp">Example plans contain fictional data. The reference date is in Plan settings.</p></div><div class="modal-footer"><button class="btn" data-close-dialog="">Got it</button></div></dialog>
+<dialog class="modal help-modal" id="helpModal" aria-labelledby="helpTitle"><div class="modal-header"><div><div class="eyebrow">Quick guide</div><h2 id="helpTitle">How to use the planner</h2></div><button class="icon-btn" data-close-dialog="" aria-label="Close guide" data-icon="close"></button></div><div class="modal-body"><div class="help-grid"><section class="help-card"><h3><span data-icon="plus"></span>Get started</h3><ul><li><b>Rename the plan:</b> click its title.</li><li><b>Add a workstream:</b> choose <b>Add workstream</b>, type a name, press Enter.</li><li><b>Add work:</b> drag <b>Initiative</b>, <b>Milestone</b> or <b>Increment</b> from the toolbar onto the roadmap.</li><li>Or use the <b>+</b> on a workstream to add something to it.</li></ul></section><section class="help-card"><h3><span data-icon="cursor"></span>Edit and move</h3><ul><li><b>Rename:</b> click an item and type.</li><li><b>Details:</b> double-click an item, or press Enter.</li><li><b>Icon:</b> select an item and paste an image (Ctrl+V), or use <b>Choose image…</b> in its details. Workstreams have the same field in their details.</li><li><b>Reschedule:</b> drag an item left or right. Drag an edge to change its length.</li><li><b>Move to another workstream:</b> drag it up or down. A straight drag keeps its dates.</li><li><b>Board and Table:</b> drag cards or rows to reorder them.</li></ul></section><section class="help-card"><h3><span data-icon="calendar"></span>Move through time</h3><ul><li><b>Today</b> jumps back to today. <b>‹ ›</b> move earlier or later.</li><li><b>− / +</b> zoom between years, months, weeks and days. You can also pinch.</li><li><b>Fit</b> shows every item at once.</li><li>Scrolling stays straight. <b>Shift + wheel</b> scrolls sideways.</li><li>The period menu also offers <b>Full year</b>, a quarter or a custom range.</li></ul></section><section class="help-card"><h3><span data-icon="link"></span>Connect delivery</h3><ul><li><b>Dependency:</b> drag from an item’s connector circle to another item.</li><li>Select an arrow to reconnect or remove it. Dates never move on their own.</li><li><b>Increments</b> are delivery windows. Click one to highlight its work.</li><li><b>Milestones</b> are checkpoints. Drop one on an increment bar to attach it.</li></ul></section><section class="help-card"><h3><span data-icon="layers"></span>Views and display</h3><ul><li><b>Roadmap</b> for the overview, <b>Gantt</b> for a row per item, <b>Board</b> by status, <b>Table</b> as a list.</li><li><b>Show/hide</b> filters work and hides the Increments or Milestones row.</li><li><b>Colors</b> changes the palette for the whole plan.</li></ul></section><section class="help-card"><h3><span data-icon="target"></span>Outcomes</h3><ul><li>An <b>outcome</b> is a result you measure, with a target.</li><li>Link an initiative to it under <b>Linked outcome</b> in the initiative’s details.</li><li>Progress follows the metric, not the number of finished initiatives.</li></ul></section><section class="help-card"><h3><span data-icon="download"></span>Save and share</h3><ul><li>Changes save automatically in this browser (or to the Google Sheet).</li><li><b>Export</b> a PDF, an HTML copy with your plan, a JSON backup of the whole roadmap, or the initiatives as CSV.</li><li><b>Import</b> a JSON backup, or initiatives and milestones from CSV or Excel. Matching rows update existing items.</li><li><b>Plan settings → Load example</b> offers five ready-made roadmaps.</li></ul></section></div><h3 class="help-keys-title">Keyboard shortcuts</h3><div class="help-keys"><div class="help-key"><span>Search</span><span><kbd>/</kbd></span></div><div class="help-key"><span>New initiative</span><span><kbd>N</kbd></span></div><div class="help-key"><span>Jump to today</span><span><kbd>T</kbd></span></div><div class="help-key"><span>Fit all items</span><span><kbd>F</kbd></span></div><div class="help-key"><span>Rename selected item</span><span><kbd>F2</kbd></span></div><div class="help-key"><span>Open details</span><span><kbd>Enter</kbd></span></div><div class="help-key"><span>Undo</span><span><kbd>Ctrl/⌘</kbd> <kbd>Z</kbd></span></div><div class="help-key"><span>Redo</span><span><kbd>Ctrl/⌘</kbd> <kbd>Shift</kbd> <kbd>Z</kbd></span></div><div class="help-key"><span>Close or cancel</span><span><kbd>Esc</kbd></span></div><div class="help-key"><span>This guide</span><span><kbd>?</kbd></span></div></div><p class="guide-note">On a phone: swipe to scroll, tap an item to rename it, double-tap for details.</p><p class="guide-note" id="sampleHelp">Example plans contain fictional data. The reference date is in Plan settings.</p></div><div class="modal-footer"><button class="btn" data-close-dialog="">Got it</button></div></dialog>
 <dialog class="modal pdf-modal" id="pdfModal" aria-labelledby="pdfTitle">
  <form id="pdfForm">
   <div class="modal-header"><div><div class="eyebrow">READY TO SHARE</div><h2 id="pdfTitle">Export view as PDF</h2><p class="pdf-intro">Your selected board or timeline, ready to share.</p></div><button type="button" class="icon-btn" data-close-dialog="" aria-label="Close PDF export" data-icon="close"></button></div>
@@ -1465,7 +1477,16 @@ License: Apache-2.0
     const labelW=isGantt?(opts.orientation==='portrait'?Math.min(152,CW*.3):Math.min(194,CW*.27)):(opts.orientation==='portrait'?Math.min(116,CW*.24):Math.min(136,CW*.19));
     const gap=8,trackX=M+labelW+gap,trackW=CW-labelW-gap;
     const ink='#253c43',muted='#63777e',line='#dce4e7',stripe='#f1f4f5',white='#ffffff';
-    const pending=[],fallbackCache=new Map();let page=null,top=0,chartPages=0,truncatedLabels=0,coincidentMilestones=false;
+    const pending=[],fallbackCache=new Map(),iconCache=new Map();
+    const hasIcon=rec=>!!rec&&typeof rec.icon==='string'&&/^data:image\/(png|jpeg);base64,/.test(rec.icon);
+    function drawIcon(rec,x,y,size){
+      if(!hasIcon(rec))return 0;
+      let entry=iconCache.get(rec.icon);
+      if(!entry){entry=(rec.icon.startsWith('data:image/png')?pdf.embedPng(rec.icon):pdf.embedJpg(rec.icon)).catch(()=>null);iconCache.set(rec.icon,entry);}
+      const target=page;
+      pending.push(entry.then(img=>{if(!img)return;const s=Math.min(size/img.width,size/img.height),w=img.width*s,h=img.height*s;target.drawImage(img,{x:x+(size-w)/2,y:H-y-size+(size-h)/2,width:w,height:h});}));
+      return size;
+    }let page=null,top=0,chartPages=0,truncatedLabels=0,coincidentMilestones=false;
     const pagesMeta=[];
     const color=hex=>{const n=parseInt(String(hex).replace('#','').slice(0,6),16);return rgb(((n>>16)&255)/255,((n>>8)&255)/255,(n&255)/255);};
     const customTones=new Map();
@@ -1578,9 +1599,9 @@ License: Apache-2.0
     function grid(y,h){axisMonths.forEach(m=>{const x=trackX+(m.start-range.start)/(range.end-range.start)*trackW;stroke(x,y,x,y+h,line,m.month%3===0?.8:.35);});stroke(trackX+trackW,y,trackX+trackW,y+h,line,.5);}
     function milestoneLines(y,h){milestones.filter(m=>m.showLine===true).forEach(m=>{const x=trackX+(day(m.date)-range.start)/(range.end-range.start)*trackW;stroke(x,y,x,y+h,theme({color:m.color||'amber'}).guide,.7,[4,3]);});}
     function reference(y,h){const d=day(plan.reviewDate);if(d>=range.start&&d<range.end){const x=trackX+(d-range.start)/(range.end-range.start)*trackW;stroke(x,y,x,y+h,theme({color:'teal'}).guide,.65,[2,3]);}milestoneLines(y,h);}
-    function labelBlock(title,count,y,h,tone,continued=false){
-      const lp=bar(tone,{label:true});rect(M,y,labelW,h,lp.fill,lp.border,.7);if(lp.edge)rect(M,y,4,h,lp.edge);const titleLines=wrap(title,labelW-22,11.1,true);const max=Math.max(1,Math.floor((h-24)/13.5));let shown=titleLines.slice(0,max);if(titleLines.length>max)shown[shown.length-1]=fit(shown[shown.length-1]+'…',labelW-22,11.1,true);
-      lines(shown,M+11,y+Math.max(10,(h-shown.length*13.5-18)/2),{size:11.1,bold:true,fill:lp.text,leading:13.5});text(continued?'CONTINUED':count,M+11,y+h-17,{size:7.2,bold:true,fill:lp.text,width:labelW-22});
+    function labelBlock(title,count,y,h,tone,continued=false,rec=null){
+      const lp=bar(tone,{label:true});rect(M,y,labelW,h,lp.fill,lp.border,.7);if(lp.edge)rect(M,y,4,h,lp.edge);const ic=hasIcon(rec)?15:0,titleLines=wrap(title,labelW-22-ic,11.1,true);const max=Math.max(1,Math.floor((h-24)/13.5));let shown=titleLines.slice(0,max);if(titleLines.length>max)shown[shown.length-1]=fit(shown[shown.length-1]+'…',labelW-22-ic,11.1,true);
+      const ty=y+Math.max(10,(h-shown.length*13.5-18)/2);if(ic)drawIcon(rec,M+11,ty+.5,11);lines(shown,M+11+ic,ty,{size:11.1,bold:true,fill:lp.text,leading:13.5});text(continued?'CONTINUED':count,M+11,y+h-17,{size:7.2,bold:true,fill:lp.text,width:labelW-22});
     }
     function milestoneCaption(m,increment=null){
       const outside=increment&&(m.date<increment.start||m.date>increment.end);
@@ -1627,12 +1648,12 @@ License: Apache-2.0
       markers.map(v=>trackX+v.center).filter(px=>px>=x-8&&px<=x+w+8).sort((a,b)=>a-b).forEach(px=>{if(px-11>cursor)slots.push({x:cursor,w:px-11-cursor});cursor=Math.max(cursor,px+11);});
       if(endLabel>cursor)slots.push({x:cursor,w:endLabel-cursor});
       const slot=slots.sort((a,b)=>b.w-a.w)[0]||{x:startLabel,w:0};
-      const full=`${incrementIndex.get(increment.id)} ${clean(increment.title).replace(/\s+/g,' ').trim()}`,glyph=slot.w>=40&&measure(full,8.2,true)+11<=slot.w?11:0,shown=fit(full,slot.w-glyph,8.2,true);
+      const full=`${incrementIndex.get(increment.id)} ${clean(increment.title).replace(/\s+/g,' ').trim()}`,gi=hasIcon(increment)?10:0,glyph=slot.w>=40+gi&&measure(full,8.2,true)+11+gi<=slot.w?11+gi:0,shown=fit(full,slot.w-glyph,8.2,true);
       if(shown!==full)truncatedLabels++;
       if(shown&&glyph){
         // Layers glyph, like the icon on screen, then the label; centred together in the slot.
         const lw=measure(shown,8.2,true),gx=slot.x+(slot.w-glyph-lw)/2,c=bp.text,rh=(cx,cy)=>{stroke(cx-3,cy,cx,cy-1.7,c,.7);stroke(cx,cy-1.7,cx+3,cy,c,.7);stroke(cx+3,cy,cx,cy+1.7,c,.7);stroke(cx,cy+1.7,cx-3,cy,c,.7);};
-        rh(gx+3,y+7.6);rh(gx+3,y+10.2);
+        rh(gx+3,y+7.6);rh(gx+3,y+10.2);if(gi)drawIcon(increment,gx+10.5,y+4.7,8.6);
         text(shown,gx+glyph,y+4,{size:8.2,bold:true,fill:bp.text});
       }else if(shown)text(shown,slot.x+slot.w/2,y+4,{size:8.2,bold:true,fill:bp.text,align:'center'});
       text(`${date(increment.start)} - ${date(increment.end)}`,x,y+21,{size:6.5,fill:muted,width:w});
@@ -1648,10 +1669,10 @@ License: Apache-2.0
         const caption=milestoneCaption(m),capW=measure(caption.text,6.6),full=clean(m.title);
         const titleW=Math.min(measure(full,8.2,true),Math.max(30,MAXW-capW-5));
         const title=fit(full,titleW+0.5,8.2,true);if(title!==full)truncatedLabels++;
-        const w=measure(title,8.2,true)+5+capW,center=(day(m.date)-range.start)/(range.end-range.start)*trackW;
+        const ic=hasIcon(m)?11:0,w=measure(title,8.2,true)+5+capW+ic,center=(day(m.date)-range.start)/(range.end-range.start)*trackW;
         const start=Math.max(0,Math.min(center-w/2,trackW-w));
         let tier=ends.findIndex(end=>start>=end+GAP);if(tier<0){tier=ends.length;ends.push(0);}ends[tier]=start+w;
-        return {m,caption,title,titleW:measure(title,8.2,true),w,center,start,tier};
+        return {m,caption,title,ic,titleW:measure(title,8.2,true),w,center,start,tier};
       });
       const rows=Math.max(1,ends.length),labelTop=y+6,symbolY=labelTop+rows*ROW+11,h=symbolY-y+13;
       return {items,rows,h,draw(){
@@ -1659,8 +1680,8 @@ License: Apache-2.0
         items.forEach(v=>{
           const ty=labelTop+v.tier*ROW,x=trackX+v.start;
           rect(x-2,ty-1.5,v.w+4,ROW-1,'#f4f6f7');
-          text(v.title,x,ty,{size:8.2,bold:true});
-          text(v.caption.text,x+v.titleW+5,ty+1.4,{size:6.6,fill:v.caption.outside?OUTSIDE_INCREMENT_COLOR:muted});
+          if(v.ic)drawIcon(v.m,x,ty-.3,9);text(v.title,x+v.ic,ty,{size:8.2,bold:true});
+          text(v.caption.text,x+v.ic+v.titleW+5,ty+1.4,{size:6.6,fill:v.caption.outside?OUTSIDE_INCREMENT_COLOR:muted});
         });
         items.forEach(v=>{const x=trackX+v.center;page.drawCircle({x,y:H-symbolY,size:7.3,color:color(white)});milestoneSymbol(v.m,x,symbolY,5.5);});
       }};
@@ -1672,9 +1693,9 @@ License: Apache-2.0
         // Coincident items intentionally share their position in stable date/ID
         // order, just as on the canvas. The register retains every individual.
         rect(trackX+v.left,labelY-1,v.right-v.left,22,'#f4f6f7');
-        const full=clean(v.m.title),label=fit(full,v.width,8.2,true);if(label!==full)truncatedLabels++;
+        const ic=hasIcon(v.m)&&v.width>30?11:0,full=clean(v.m.title),label=fit(full,v.width-ic,8.2,true);if(label!==full)truncatedLabels++;
         const captionLabel=fit(caption.text,v.width,6.6);if(captionLabel!==caption.text)truncatedLabels++;
-        text(label,trackX+v.labelLeft,labelY,{size:8.2,bold:true});
+        if(ic)drawIcon(v.m,trackX+v.labelLeft,labelY-.3,9);text(label,trackX+v.labelLeft+ic,labelY,{size:8.2,bold:true});
         text(captionLabel,trackX+v.labelLeft,labelY+12,{size:6.6,fill:caption.outside?OUTSIDE_INCREMENT_COLOR:muted});
       });
       layout.forEach(v=>{
@@ -1702,7 +1723,7 @@ License: Apache-2.0
     function boardCard(card,x,y,w){
       const {task,stream,tone}=card;rect(x,y,w,card.h,white,line,.6);rect(x,y,w,3,tone.solid,tone.outline,.5);
       page.drawCircle({x:x+12,y:H-y-13,size:2.5,color:color(tone.solid),...(tone.outline?{borderColor:color(tone.outline),borderWidth:.5}:{})});
-      text(stream?.name||'Workstream',x+19,y+8,{size:6.8,bold:true,fill:muted,width:w-29});
+      const bic=drawIcon(task,x+w-20,y+6,11)?14:0;text(stream?.name||'Workstream',x+19,y+8,{size:6.8,bold:true,fill:muted,width:w-29-bic});
       let cy=y+22;lines(card.title,x+10,cy,{size:8.8,bold:true,leading:11.5});cy+=card.title.length*11.5+5;
       if(card.description.length){lines(card.description,x+10,cy,{size:7.2,fill:muted,leading:10});cy+=card.description.length*10+5;}
       if(card.assignment.length){
@@ -1741,7 +1762,7 @@ License: Apache-2.0
       if(top+MS_ROW_H>chartBottom){newChartPage();if(stream)ganttHeader(stream,true);}
       const y=top,x=trackX+(day(m.date)-range.start)/(range.end-range.start)*trackW;
       rect(M,y,CW,MS_ROW_H,k%2?'#f8fafb':white);grid(y,MS_ROW_H);reference(y,MS_ROW_H);stroke(M,y+MS_ROW_H,M+CW,y+MS_ROW_H,line,.4);
-      text(fit(clean(m.title),labelW-18,8.4,true),M+8,y+5,{size:8.4,bold:true});
+      const mic=drawIcon(m,M+8,y+5.2,9)?11:0;text(fit(clean(m.title),labelW-18-mic,8.4,true),M+8+mic,y+5,{size:8.4,bold:true});
       text(date(m.date)+(m.done?' · Achieved':''),M+8,y+17,{size:6.6,fill:muted});
       milestoneSymbol(m,x,y+MS_ROW_H/2,6);
       top+=MS_ROW_H;
@@ -1749,12 +1770,12 @@ License: Apache-2.0
     function ganttHeader(stream,continued){
       const items=tasks.filter(t=>t.stream===stream.id),tone=theme(stream);
       rect(M,top,CW,22,tint(tone.solid,.9));rect(M,top,3,22,tone.solid,tone.outline,.5);
-      text(`${stream.name} · ${items.length}${continued?' · continued':''}`,M+9,top+5,{size:8.5,bold:true,width:CW-18});top+=22;
+      const sic=drawIcon(stream,M+9,top+5.5,10)?13:0;text(`${stream.name} · ${items.length}${continued?' · continued':''}`,M+9+sic,top+5,{size:8.5,bold:true,width:CW-18-sic});top+=22;
     }
     function ganttStream(stream,headed=false,milestonesAfter=new Map(),incrementsAfter=new Map(),drawIncs=null){
       // started: the header was already drawn once, so a header after a page break says "continued".
       const items=tasks.filter(t=>t.stream===stream.id),tone=theme(stream);let offset=0,started=headed;
-      const rowData=task=>{const title=limitedLines(task.title,labelW-18,8.4,true,5),dates=wrap(date(task.start)+' - '+date(task.end),labelW-18,6.6);return{task,title,dates,h:Math.max(36,12+title.length*10.5+dates.length*9)};};
+      const rowData=task=>{const ic=hasIcon(task)?11:0,title=limitedLines(task.title,labelW-18-ic,8.4,true,5),dates=wrap(date(task.start)+' - '+date(task.end),labelW-18,6.6);return{task,ic,title,dates,h:Math.max(36,12+title.length*10.5+dates.length*9)};};
       const rows=items.map(rowData);
       while(offset<rows.length){
         if(top+(headed?0:22)+rows[offset].h>chartBottom){newChartPage();headed=false;}
@@ -1762,7 +1783,7 @@ License: Apache-2.0
         while(offset<rows.length&&top+rows[offset].h<=chartBottom){
           const row=rows[offset],task=row.task,y=top;
           rect(M,y,CW,row.h,offset%2?'#f8fafb':white);grid(y,row.h);reference(y,row.h);stroke(M,y+row.h,M+CW,y+row.h,line,.4);
-          lines(row.title,M+8,y+6,{size:8.4,bold:true,leading:10.5});lines(row.dates,M+8,y+6+row.title.length*10.5,{size:6.6,fill:muted,leading:9});
+          if(row.ic)drawIcon(task,M+8,y+6.4,9);lines(row.title,M+8+row.ic,y+6,{size:8.4,bold:true,leading:10.5});lines(row.dates,M+8,y+6+row.title.length*10.5,{size:6.6,fill:muted,leading:9});
           const start=Math.max(range.start,day(task.start)),end=Math.min(range.end,day(task.end)+1),x=trackX+(start-range.start)/(range.end-range.start)*trackW,w=(end-start)/(range.end-range.start)*trackW,barY=y+(row.h-18)/2;
           const bp=bar(tone);rect(x,barY,Math.max(.5,w),18,bp.fill,bp.border,.7);if(bp.edge)rect(x,barY,Math.min(3.5,Math.max(.5,w)),18,bp.edge);
           const clippedLeft=day(task.start)<range.start,clippedRight=day(task.end)+1>range.end;
@@ -1865,7 +1886,7 @@ License: Apache-2.0
         const entireH=Math.max(minLabelH,(rows.length-offset)*26+14);
         if(offset===0&&entireH<=chartBottom-chartStart&&entireH>chartBottom-top){newChartPage();continue;}
         let h=Math.max(Math.min(minLabelH,chartBottom-top),count*26+14);if(h>chartBottom-top){count=Math.max(1,count-1);h=Math.max(minLabelH,count*26+14);}
-        labelBlock(stream.name,`${tasks.filter(t=>t.stream===stream.id).length} INITIATIVE${tasks.filter(t=>t.stream===stream.id).length===1?'':'S'}`,top,h,tone,offset>0);
+        labelBlock(stream.name,`${tasks.filter(t=>t.stream===stream.id).length} INITIATIVE${tasks.filter(t=>t.stream===stream.id).length===1?'':'S'}`,top,h,tone,offset>0,stream);
         const baseY=top+(h-count*26)/2;
         for(let k=0;k<count;k++){
           const y=baseY+k*26;rect(trackX,y,trackW,26,k%2?'#f7f9fa':stripe);grid(y,26);reference(y,26);
@@ -1875,8 +1896,8 @@ License: Apache-2.0
             const clippedLeft=day(task.start)<range.start,clippedRight=day(task.end)+1>range.end;
             if(clippedLeft&&w>12){stroke(x+6,y+8,x+2,y+13,bp.text,.75);stroke(x+2,y+13,x+6,y+18,bp.text,.75);}
             if(clippedRight&&w>12){stroke(x+w-6,y+8,x+w-2,y+13,bp.text,.75);stroke(x+w-2,y+13,x+w-6,y+18,bp.text,.75);}
-            const pad=6+(clippedLeft?3:0),label=`${taskIndex.get(task.id)} ${clean(task.title).replace(/\s+/g,' ').trim()}`,available=w-pad-6-(clippedRight?3:0),shown=fit(label,available,8.2,true);
-            if(shown!==label)truncatedLabels++;if(shown)text(shown,x+pad,y+8,{size:8.2,bold:true,fill:bp.text});
+            const pad=6+(clippedLeft?3:0),label=`${taskIndex.get(task.id)} ${clean(task.title).replace(/\s+/g,' ').trim()}`,ic=hasIcon(task)&&w-pad-6>34?11:0,available=w-pad-6-ic-(clippedRight?3:0),shown=fit(label,available,8.2,true);
+            if(ic)drawIcon(task,x+pad,y+7.4,9);if(shown!==label)truncatedLabels++;if(shown)text(shown,x+pad+ic,y+8,{size:8.2,bold:true,fill:bp.text});
             if(task.progress>0)rect(x,y+21,Math.max(.2,w*clamp(task.progress,0,100)/100),2,bp.text);
           });
         }
@@ -2348,7 +2369,7 @@ const RoadmapColors=(()=>{
 })();
 
 const ICONS={
-pin:'<path d="M9 3h6l-1 6 4 4v2H6v-2l4-4-1-6ZM12 15v6"/>',lock:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',columnLock:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/><path d="M13 12h5m-2-2 2 2-2 2"/>',unlock:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.5-1.9"/>',
+image:'<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 17-5-5-10 8"/>',pin:'<path d="M9 3h6l-1 6 4 4v2H6v-2l4-4-1-6ZM12 15v6"/>',lock:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',columnLock:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/><path d="M13 12h5m-2-2 2 2-2 2"/>',unlock:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.5-1.9"/>',
 edit:'<path d="m16 3 5 5L8 21H3v-5L16 3Z"/><path d="m13 6 5 5"/>',cursor:'<path d="m4 3 7 18 2.5-7.5L21 11 4 3Z"/>',
 roadmap:'<path d="M4 6h10M10 12h10M4 18h11"/><path d="M4 4v4m10-4v4m-4 2v4m10-4v4M4 16v4m11-4v4"/>',
 board:'<rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="10" y="4" width="5" height="11" rx="1.5"/><rect x="17" y="4" width="4" height="14" rx="1.5"/>',
@@ -2495,6 +2516,60 @@ function examplePlans(){
   {key:'advanced',title:'Advanced (all options)',description:'Increments, milestones, outcomes and dependencies, in the top rows and in workstreams.',view:{},plan:samplePlan()},
   {key:'release-train',title:'Release train',description:'Each team runs its own increments (releases or sprints) with release milestones on them.',view:{incrementRow:false},plan:train}];
 }
+// Custom icons: any workstream, initiative, milestone or increment may carry a small image
+// (`icon`, a PNG data URL of at most 64 px). Set from a file or pasted with Ctrl+V.
+const ICON_MAX_CHARS=45000,ICON_SIZE=64,ICON_COLLECTION={workstream:'workstreams',initiative:'initiatives',milestone:'milestones',increment:'increments'};
+function validIcon(v){return typeof v==='string'&&v.length<=ICON_MAX_CHARS&&/^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/]+=*$/.test(v);}
+function itemIcon(rec,cls=''){return rec&&validIcon(rec.icon)?`<img class="item-icon${cls?' '+cls:''}" src="${rec.icon}" alt="" draggable="false">`:'';}
+function iconRecord(target){const [type,id]=String(target||'').split(':');return (state.plan[ICON_COLLECTION[type]]||[]).find(x=>x.id===id)||null;}
+function iconPickerHTML(type,rec){
+ const has=validIcon(rec.icon);
+ return `<div class="icon-picker" data-icon-target="${type}:${esc(rec.id)}" data-icon-sig="${has?rec.icon.length+rec.icon.slice(-16):''}">${has?`<img class="icon-picker-preview" src="${rec.icon}" alt="Current icon">`:`<span class="icon-picker-preview is-empty" aria-hidden="true">${icon('image')}</span>`}<button type="button" class="btn ghost small" data-icon-pick>${has?'Change…':'Choose image…'}</button>${has?'<button type="button" class="btn ghost small" data-icon-remove>Remove</button>':''}<small class="icon-picker-hint">or paste an image (Ctrl+V)</small></div>`;
+}
+// Keep open pickers in step with the plan (after undo, paste or a change elsewhere).
+function refreshIconPickers(){document.querySelectorAll('.icon-picker[data-icon-target]').forEach(el=>{const [type]=el.dataset.iconTarget.split(':'),rec=iconRecord(el.dataset.iconTarget);if(!rec)return;const sig=validIcon(rec.icon)?rec.icon.length+rec.icon.slice(-16):'';if(sig!==el.dataset.iconSig)el.outerHTML=iconPickerHTML(type,rec);});}
+async function iconFromImage(blob){
+ if(!blob||!/^image\//.test(blob.type||''))throw Error('Choose an image file, such as a PNG.');
+ if(blob.size>10*1024*1024)throw Error('This image is too large. Use one under 10 MB.');
+ const url=URL.createObjectURL(blob);
+ try{
+  const img=await new Promise((ok,bad)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=()=>bad(Error('This image could not be read.'));i.src=url;});
+  const w=img.naturalWidth||ICON_SIZE,h=img.naturalHeight||ICON_SIZE,s=ICON_SIZE/Math.max(w,h);
+  const cw=Math.max(1,Math.round(w*s)),ch=Math.max(1,Math.round(h*s)),c=document.createElement('canvas');c.width=cw;c.height=ch;
+  const g=c.getContext('2d');g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';g.drawImage(img,0,0,cw,ch);
+  const data=c.toDataURL('image/png');if(!validIcon(data))throw Error('This image could not be made small enough for an icon.');
+  return data;
+ }finally{URL.revokeObjectURL(url);}
+}
+function setItemIcon(target,data){
+ const [type,id]=String(target).split(':'),key=ICON_COLLECTION[type];if(!key)return false;
+ const rec=iconRecord(target);if(!rec){toast('This item is no longer in the plan.',true);return false;}
+ if((rec.icon||'')===(data||''))return true;
+ const label=type[0].toUpperCase()+type.slice(1);
+ const ok=commit(p=>{const x=p[key].find(r=>r.id===id);if(!x)throw Error('This item is no longer in the plan.');x.icon=data||'';},data?label+' icon set':label+' icon removed');
+ refreshIconPickers();return ok;
+}
+async function applyIconImage(target,blob){try{setItemIcon(target,await iconFromImage(blob));}catch(e){toast(e.message||String(e),true);}}
+// Where a pasted image goes: the open workstream editor, otherwise the selected item.
+function pasteIconTarget(){
+ const dlg=document.querySelector('dialog[open] .icon-picker[data-icon-target]');if(dlg)return dlg.dataset.iconTarget;
+ if(document.querySelector('dialog[open]'))return '';
+ const sel=typeof RoadmapCanvas!=='undefined'?RoadmapCanvas.getSelection?.():null;return sel&&ICON_COLLECTION[sel.type]&&!state.presentation?sel.type+':'+sel.id:'';
+}
+document.addEventListener('click',event=>{
+ const btn=event.target.closest?.('[data-icon-pick],[data-icon-remove]');if(!btn)return;
+ const target=btn.closest('[data-icon-target]')?.dataset.iconTarget;if(!target)return;
+ event.preventDefault();event.stopPropagation();
+ if(btn.matches('[data-icon-remove]')){setItemIcon(target,'');return;}
+ let input=document.getElementById('iconFile');
+ if(!input){input=document.createElement('input');input.type='file';input.accept='image/png,image/jpeg,image/gif,image/webp,image/svg+xml';input.id='iconFile';input.hidden=true;document.body.append(input);input.addEventListener('change',()=>{const file=input.files?.[0],to=input.dataset.target;input.value='';if(file&&to)applyIconImage(to,file);});}
+ input.dataset.target=target;input.click();
+},true);
+document.addEventListener('paste',event=>{
+ const item=[...(event.clipboardData?.items||[])].find(x=>x.kind==='file'&&/^image\//.test(x.type));if(!item)return;
+ const target=pasteIconTarget();if(!target)return;
+ event.preventDefault();event.stopPropagation();applyIconImage(target,item.getAsFile());
+},true);
 function validatePlan(raw){
  if(!raw||typeof raw!=='object'||raw.schemaVersion!==1)throw Error('This is not a supported Roadmap plan (schemaVersion 1).');
  const str=(v,label,max=200,optional=false)=>{if(typeof v!=='string'||v.length>max||(!optional&&!v.trim()))throw Error(`Invalid ${label}.`);return v.trim();};
@@ -2503,18 +2578,19 @@ function validatePlan(raw){
  const number=(v,label,a=-1e12,b=1e12)=>{if(typeof v!=='number'||!Number.isFinite(v)||v<a||v>b)throw Error(`Invalid ${label}.`);return v;};
  const arr=(v,label,max)=>{if(!Array.isArray(v)||v.length>max)throw Error(`Invalid ${label} (maximum ${max}).`);return v;};
  const unique=(xs)=>{if(new Set(xs.map(x=>x.id)).size!==xs.length)throw Error('Duplicate record identifiers.');return xs;};
+ const iconOf=v=>validIcon(v)?v:'';
  const p={schemaVersion:1,id:id(raw.id),name:str(raw.name,'plan name',80),description:str(raw.description??'','description',500,true),year:number(raw.year,'year',2000,2099),reviewDateMode:raw.reviewDateMode==='fixed'&&raw.reviewDate!=='today'?'fixed':'today',example:raw.example===true};p.reviewDate=p.reviewDateMode==='today'?today():date(raw.reviewDate,'reference date');
  Object.assign(p,RoadmapColors.normalize(raw));
  p.timelineColor=/^#[0-9a-f]{6}$/i.test(raw.timelineColor||'')?raw.timelineColor.toUpperCase():'';
  if(!Number.isInteger(p.year))throw Error('The plan year must be a whole number.');
- p.workstreams=unique(arr(raw.workstreams,'workstreams',30).map(s=>{const customColor=s.customColor??'';if(typeof customColor!=='string'||customColor&&!/^#[0-9A-F]{6}$/i.test(customColor))throw Error('Workstream colors must use a six-digit hex value, such as #0875C9.');return{id:id(s.id),name:str(s.name,'workstream name',60),description:str(s.description??'','workstream description',2000,true),color:RoadmapColors.isSlot(s.color)?s.color:'slate',customColor:customColor.toUpperCase()};}));
+ p.workstreams=unique(arr(raw.workstreams,'workstreams',30).map(s=>{const customColor=s.customColor??'';if(typeof customColor!=='string'||customColor&&!/^#[0-9A-F]{6}$/i.test(customColor))throw Error('Workstream colors must use a six-digit hex value, such as #0875C9.');return{id:id(s.id),name:str(s.name,'workstream name',60),description:str(s.description??'','workstream description',2000,true),color:RoadmapColors.isSlot(s.color)?s.color:'slate',customColor:customColor.toUpperCase(),icon:iconOf(s.icon)};}));
  if(!p.workstreams.length)throw Error('A plan needs at least one workstream.');
- p.increments=unique(arr(raw.increments??[],'increments',100).map(x=>{const start=date(x.start,'increment start'),end=date(x.end,'increment end');if(end<start)throw Error('An increment ends before it starts.');return{id:id(x.id),title:str(x.title,'increment title',120),stream:x.stream==null||x.stream===''?'':id(x.stream),after:x.after==null||x.after===''?'':id(x.after),start,end,color:RoadmapColors.isSlot(x.color)?x.color:'slate',description:str(x.description??'','increment description',4000,true)};}));
+ p.increments=unique(arr(raw.increments??[],'increments',100).map(x=>{const start=date(x.start,'increment start'),end=date(x.end,'increment end');if(end<start)throw Error('An increment ends before it starts.');return{id:id(x.id),title:str(x.title,'increment title',120),stream:x.stream==null||x.stream===''?'':id(x.stream),after:x.after==null||x.after===''?'':id(x.after),start,end,color:RoadmapColors.isSlot(x.color)?x.color:'slate',description:str(x.description??'','increment description',4000,true),icon:iconOf(x.icon)};}));
  p.outcomes=unique(arr(raw.outcomes,'outcomes',100).map(o=>({id:id(o.id),title:str(o.title,'outcome title',120),metric:str(o.metric,'metric',150),description:str(o.description??'','description',4000,true),baseline:number(o.baseline,'baseline'),current:number(o.current,'current value'),target:number(o.target,'target'),unit:str(o.unit??'','unit',25,true),owner:str(o.owner??'','owner',80,true),due:date(o.due,'outcome due date')})));
  if(p.outcomes.some(o=>o.baseline===o.target))throw Error('An outcome target must differ from its baseline.');
  const streamIDs=new Set(p.workstreams.map(s=>s.id)),outcomeIDs=new Set(p.outcomes.map(s=>s.id));
  if(p.increments.some(x=>x.stream&&!streamIDs.has(x.stream)))throw Error('An increment refers to a missing workstream.');
- p.initiatives=unique(arr(raw.initiatives,'initiatives',500).map(t=>{if(!streamIDs.has(t.stream))throw Error('An initiative refers to a missing workstream.');if(!Object.hasOwn(STATUS,t.status)||!Object.hasOwn(PRIORITY,t.priority))throw Error('An initiative has an unknown status or priority.');if(t.outcome&&!outcomeIDs.has(t.outcome))throw Error('An initiative refers to a missing outcome.');const start=date(t.start,'start date'),end=date(t.end,'end date');if(start>end)throw Error('An initiative ends before it starts.');return{id:id(t.id),title:str(t.title,'initiative title',160),description:str(t.description??'','description',5000,true),stream:t.stream,owner:str(t.owner??'','owner',80,true),priority:t.priority,status:t.status,health:Object.hasOwn(HEALTH,t.health)?t.health:'on_track',start,end,progress:t.status==='done'?100:number(t.progress,'progress',0,100),outcome:t.outcome||'',dependencies:[...new Set(arr(t.dependencies??[],'dependencies',500).map(id))],notes:str(t.notes??'','notes',10000,true)};}));
+ p.initiatives=unique(arr(raw.initiatives,'initiatives',500).map(t=>{if(!streamIDs.has(t.stream))throw Error('An initiative refers to a missing workstream.');if(!Object.hasOwn(STATUS,t.status)||!Object.hasOwn(PRIORITY,t.priority))throw Error('An initiative has an unknown status or priority.');if(t.outcome&&!outcomeIDs.has(t.outcome))throw Error('An initiative refers to a missing outcome.');const start=date(t.start,'start date'),end=date(t.end,'end date');if(start>end)throw Error('An initiative ends before it starts.');return{id:id(t.id),title:str(t.title,'initiative title',160),icon:iconOf(t.icon),description:str(t.description??'','description',5000,true),stream:t.stream,owner:str(t.owner??'','owner',80,true),priority:t.priority,status:t.status,health:Object.hasOwn(HEALTH,t.health)?t.health:'on_track',start,end,progress:t.status==='done'?100:number(t.progress,'progress',0,100),outcome:t.outcome||'',dependencies:[...new Set(arr(t.dependencies??[],'dependencies',500).map(id))],notes:str(t.notes??'','notes',10000,true)};}));
  const taskIDs=new Set(p.initiatives.map(t=>t.id));for(const t of p.initiatives)if(t.dependencies.some(d=>d===t.id||!taskIDs.has(d)))throw Error('A dependency is missing or points to itself.');
  const visited=new Set(),visiting=new Set(),map=new Map(p.initiatives.map(t=>[t.id,t]));function visit(key){if(visiting.has(key))throw Error('Dependencies cannot form a cycle.');if(visited.has(key))return;visiting.add(key);map.get(key).dependencies.forEach(visit);visiting.delete(key);visited.add(key);}p.initiatives.forEach(t=>visit(t.id));
  p.milestones=unique(arr(raw.milestones,'milestones',100).map(m=>{
@@ -2522,7 +2598,7 @@ function validatePlan(raw){
   if(typeof shape!=='string'||!Object.hasOwn(MILESTONE_SHAPES,shape))throw Error('A milestone has an unknown shape.');
   if(!RoadmapColors.isSlot(color))throw Error('A milestone has an unknown color.');
   if(m.stream!=null&&m.stream!==''&&!streamIDs.has(m.stream))throw Error('A milestone refers to a missing workstream.');
-  return{id:id(m.id),title:str(m.title,'milestone title',120),stream:m.stream==null||m.stream===''?'':id(m.stream),after:m.after==null||m.after===''?'':id(m.after),date:date(m.date,'milestone date'),description:str(m.description??'','description',4000,true),done:m.done===true,shape,color,showLine:m.showLine===true,increment:m.increment==null||m.increment===''?'':id(m.increment),initiatives:[...new Set(arr(m.initiatives??[],'milestone links',500).map(id))]};
+  return{id:id(m.id),title:str(m.title,'milestone title',120),icon:iconOf(m.icon),stream:m.stream==null||m.stream===''?'':id(m.stream),after:m.after==null||m.after===''?'':id(m.after),date:date(m.date,'milestone date'),description:str(m.description??'','description',4000,true),done:m.done===true,shape,color,showLine:m.showLine===true,increment:m.increment==null||m.increment===''?'':id(m.increment),initiatives:[...new Set(arr(m.initiatives??[],'milestone links',500).map(id))]};
  }));
  if(p.milestones.some(m=>m.initiatives.some(t=>!taskIDs.has(t))))throw Error('A milestone refers to a missing initiative.');
  p.milestones.forEach(m=>{if(m.after&&!taskIDs.has(m.after))m.after='';});
@@ -3257,7 +3333,7 @@ function ganttLaneIncrements(r,lane,visibleIds=new Set()){
  canvasOutcomeContext().increments.filter(x=>inLane(x,lane)).forEach(x=>{
   const inner=canvasIncrementBand(r,false,lane,x.id);if(!inner)return;
   const anchor=visibleIds.has(x.after)?x.after:'';
-  rows.set(anchor,(rows.get(anchor)||'')+`<div class="canvas-increment-band gantt-lane-row increment-item-row" data-increment-row="${esc(x.id)}" data-lane-id="${esc(lane)}"><div class="canvas-increment-label"><span>${icon('layers')}<span class="increment-row-title">${esc(x.title)}</span></span><small>${fmtDate(x.start)} – ${fmtDate(x.end)}</small></div>${inner}</div>`);
+  rows.set(anchor,(rows.get(anchor)||'')+`<div class="canvas-increment-band gantt-lane-row increment-item-row" data-increment-row="${esc(x.id)}" data-lane-id="${esc(lane)}"><div class="canvas-increment-label"><span>${icon('layers')}${itemIcon(x)}<span class="increment-row-title">${esc(x.title)}</span></span><small>${fmtDate(x.start)} – ${fmtDate(x.end)}</small></div>${inner}</div>`);
  });
  return rows;
 }
@@ -3269,7 +3345,7 @@ function ganttLaneMilestones(r,lane,visibleIds=new Set()){
  canvasOutcomeContext().milestones.filter(m=>inLane(m,lane)&&!milestoneOnIncrement(m)&&day(m.date)>=r.start&&day(m.date)<r.end).forEach(m=>{
   const anchor=visibleIds.has(m.after)?m.after:'';
   const marker=canvasMilestoneMarker(m,r,0,false,null,canvasFlatMilestoneLayout([m],r).placed[0]);
-  const html=`<div class="initiative-row milestone-item-row gantt-lane-row" data-milestone-row="${esc(m.id)}" data-lane-id="${esc(lane)}"><button class="initiative-label" data-canvas-select="milestone" data-record-id="${esc(m.id)}" title="Select ${esc(m.title)}"><span class="item-title" data-title>${esc(m.title)}</span><span class="item-meta"><span class="milestone-item-icon" style="--milestone-color:${canvasMilestoneColor(m)};color:${canvasMilestoneColor(m)}" aria-hidden="true">${canvasMilestoneShape(m)}</span>${fmtDate(m.date,true)}${m.done?' · Achieved':''}</span></button><div class="timeline-track milestone-item-track" data-canvas-track="milestone" data-lane-id="${esc(lane)}">${gridHTML(r)}${marker}</div></div>`;
+  const html=`<div class="initiative-row milestone-item-row gantt-lane-row" data-milestone-row="${esc(m.id)}" data-lane-id="${esc(lane)}"><button class="initiative-label" data-canvas-select="milestone" data-record-id="${esc(m.id)}" title="Select ${esc(m.title)}"><span class="item-title">${itemIcon(m)}<span data-title>${esc(m.title)}</span></span><span class="item-meta"><span class="milestone-item-icon" style="--milestone-color:${canvasMilestoneColor(m)};color:${canvasMilestoneColor(m)}" aria-hidden="true">${canvasMilestoneShape(m)}</span>${fmtDate(m.date,true)}${m.done?' · Achieved':''}</span></button><div class="timeline-track milestone-item-track" data-canvas-track="milestone" data-lane-id="${esc(lane)}">${gridHTML(r)}${marker}</div></div>`;
   rows.set(anchor,(rows.get(anchor)||'')+html);
  });
  return rows;
@@ -3294,7 +3370,7 @@ function renderSwimlanes(){
  for(const s of streams){
   const items=tasks.filter(t=>t.stream===s.id),rows=packSwimlaneTasks(items,r),collapsed=false,c=swimlaneColor(s);
   const laneRows=canvasIncrementBand(r,true,s.id)+swimlaneMilestones(r,s.id),laneCount=laneItemCount(s.id);
-  html+=`<section class="swimlane-group ${collapsed?'is-collapsed':''}" style="--swimlane-color:${c.solid};--swimlane-text:${c.text};--swimlane-outline:${canvasFillOutline(c)}" aria-label="${esc(s.name)} workstream" data-stream-id="${esc(s.id)}"><div class="swimlane-label"><button type="button" class="swimlane-toggle workstream-name" data-workstream-details="${esc(s.id)}" aria-label="${esc(s.name)} workstream details" title="Double-click to edit ${esc(s.name)}"><strong>${esc(s.name)}</strong><small>${laneCount}</small></button><button class="icon-btn swimlane-add" data-lane-add="${esc(s.id)}" aria-haspopup="menu" aria-label="Add to ${esc(s.name)}">${icon('plus')}</button></div><div class="swimlane-lanes">${collapsed?'':laneRows}`;
+  html+=`<section class="swimlane-group ${collapsed?'is-collapsed':''}" style="--swimlane-color:${c.solid};--swimlane-text:${c.text};--swimlane-outline:${canvasFillOutline(c)}" aria-label="${esc(s.name)} workstream" data-stream-id="${esc(s.id)}"><div class="swimlane-label"><button type="button" class="swimlane-toggle workstream-name" data-workstream-details="${esc(s.id)}" aria-label="${esc(s.name)} workstream details" title="Double-click to edit ${esc(s.name)}"><strong>${itemIcon(s)}${esc(s.name)}</strong><small>${laneCount}</small></button><button class="icon-btn swimlane-add" data-lane-add="${esc(s.id)}" aria-haspopup="menu" aria-label="Add to ${esc(s.name)}">${icon('plus')}</button></div><div class="swimlane-lanes">${collapsed?'':laneRows}`;
   if(collapsed)html+=`<div class="swimlane-collapsed-track">${gridHTML(r)}${collapsedWorkstreamSummary(s,items,r)}</div>`;
   else if(rows.length)html+=rows.map((row,i)=>`<div class="timeline-track swimlane-lane" data-track="${esc(s.id)}-${i}" data-canvas-track="initiative" data-stream-id="${esc(s.id)}">${gridHTML(r)}${row.map(t=>swimlaneBar(t,r,c)).join('')}</div>`).join('');
   else if(laneRows)html+=`<div class="timeline-track swimlane-lane canvas-add-row" data-canvas-track="initiative" data-stream-id="${esc(s.id)}">${gridHTML(r)}</div>`;
@@ -3329,7 +3405,7 @@ function canvasIncrementBadge(t,inBar=false){
 function canvasInitiativeBar(t,r,c,swimlane=false){
  const increment=t.increment&&getIncrement(t.increment),pos=barPosition(t.start,t.end,r),risk=warnings(t),title=`${t.title} · ${fmtDate(t.start,true)} – ${fmtDate(t.end,true)} · ${STATUS[t.status]} · ${t.progress}%${t.owner?' · '+t.owner:''}${increment?' · Increment: '+increment.title:''}`;
  const paint=swimlane?palette(t.stream):c,color=paint.solid,text=paint.text;
- return `<div class="timeline-bar canvas-item ${swimlane?'swimlane-bar':''} ${increment?'has-increment':''} ${t.status==='done'?'is-complete':''} ${day(t.start)<r.start?'clipped-start':''} ${day(t.end)>=r.end?'clipped-end':''}" data-bar="${esc(t.id)}" data-entity="initiative" data-id="${esc(t.id)}" data-stream-id="${esc(t.stream)}" data-assigned-increment="${esc(t.increment||'')}" tabindex="0" role="group" aria-label="Initiative: ${esc(title)}" title="${esc(title)}" style="left:${pos.left}%;width:${pos.width}%;${RoadmapColors.style(paint)};--stream-bg:${color};--stream-color:${text};--stream-outline:${canvasFillOutline(paint)}"><span class="resize-handle start" data-resize="start" aria-hidden="true"></span><div class="bar-content">${canvasGrip()}<span class="bar-title" data-title>${esc(t.title)}</span>${!swimlane?`<span class="gantt-bar-dates" aria-hidden="true">${fmtDate(t.start)} – ${fmtDate(t.end)}</span>`:''}${risk.length&&pos.width>12?`<span class="swimlane-bar-risk" title="${esc(risk.join('; '))}">${icon('warning')}</span>`:''}${canvasIncrementBadge(t,true)}</div>${t.progress?`<span class="bar-progress" style="width:${t.progress}%"></span>`:''}<span class="resize-handle end" data-resize="end" aria-hidden="true"></span>${canvasPorts('initiative',t.id,t.title)}</div>`;
+ return `<div class="timeline-bar canvas-item ${swimlane?'swimlane-bar':''} ${increment?'has-increment':''} ${t.status==='done'?'is-complete':''} ${day(t.start)<r.start?'clipped-start':''} ${day(t.end)>=r.end?'clipped-end':''}" data-bar="${esc(t.id)}" data-entity="initiative" data-id="${esc(t.id)}" data-stream-id="${esc(t.stream)}" data-assigned-increment="${esc(t.increment||'')}" tabindex="0" role="group" aria-label="Initiative: ${esc(title)}" title="${esc(title)}" style="left:${pos.left}%;width:${pos.width}%;${RoadmapColors.style(paint)};--stream-bg:${color};--stream-color:${text};--stream-outline:${canvasFillOutline(paint)}"><span class="resize-handle start" data-resize="start" aria-hidden="true"></span><div class="bar-content">${canvasGrip()}${itemIcon(t)}<span class="bar-title" data-title>${esc(t.title)}</span>${!swimlane?`<span class="gantt-bar-dates" aria-hidden="true">${fmtDate(t.start)} – ${fmtDate(t.end)}</span>`:''}${risk.length&&pos.width>12?`<span class="swimlane-bar-risk" title="${esc(risk.join('; '))}">${icon('warning')}</span>`:''}${canvasIncrementBadge(t,true)}</div>${t.progress?`<span class="bar-progress" style="width:${t.progress}%"></span>`:''}<span class="resize-handle end" data-resize="end" aria-hidden="true"></span>${canvasPorts('initiative',t.id,t.title)}</div>`;
 }
 function canvasMilestoneColor(m){return swimlaneColor(m.color||'amber').solid;}
 function canvasMilestoneShape(m,dragHandle=false){
@@ -3385,7 +3461,7 @@ function canvasMilestoneMarker(m,r,row=0,swimlane=false,onBar=null,flat=onBar){
  const details=`${fmtDate(m.date,true)}${increment?' · Increment: '+increment.title:''}${outside?' · Outside increment dates':''}${m.done?' · Achieved':''}`;
  const position=onBar?'top:calc(var(--increment-bar-top) + 2px);--milestone-label-tier:0':'top:15px',space=placement.align==='end'?left-placement.from:placement.to-left;
  const labelStyle=`--milestone-date-offset:${left}cqw;--milestone-slot-start:${placement.from-left}cqw;--milestone-slot-end:${placement.to-left}cqw;--milestone-slot-width:${placement.to-placement.from}cqw;--milestone-label-space:${space}cqw`;
- return `<div class="canvas-item canvas-milestone canvas-milestone-flat ${swimlane?'swimlane-milestone':'milestone-marker'} ${onBar?'canvas-milestone-on-bar':''} milestone-label-${placement.align} milestone-reveal-${left>50?'end':'start'} ${m.done?'is-achieved achieved':''} ${outside?'canvas-milestone-outside':''}" data-entity="milestone" data-id="${esc(m.id)}" data-milestone="${esc(m.id)}" data-assigned-increment="${esc(m.increment||'')}" tabindex="0" role="group" style="left:${left}%;${position};--milestone-color:${color};--milestone-guide:${paint.guide||color};--milestone-outline:${paint.outline||'none'};${labelStyle}" title="${esc(m.title)} · ${esc(details)}" aria-label="Milestone: ${esc(m.title)}, ${esc(details)}">${canvasMilestoneShape(m,true)}<span class="canvas-milestone-copy"><strong data-title>${esc(m.title)}</strong><small>${fmtDate(m.date)}${m.done?' · Achieved':''}${outside?' · Outside increment':''}</small>${!onBar&&!swimlane&&increment?`<button type="button" class="canvas-milestone-increment" data-canvas-show-increment="${esc(increment.id)}" title="Show increment ${esc(increment.title)}">${icon('layers')}<span>${esc(increment.title)}</span></button>`:''}</span>${canvasPorts('milestone',m.id,m.title)}</div>`;
+ return `<div class="canvas-item canvas-milestone canvas-milestone-flat ${swimlane?'swimlane-milestone':'milestone-marker'} ${onBar?'canvas-milestone-on-bar':''} milestone-label-${placement.align} milestone-reveal-${left>50?'end':'start'} ${m.done?'is-achieved achieved':''} ${outside?'canvas-milestone-outside':''}" data-entity="milestone" data-id="${esc(m.id)}" data-milestone="${esc(m.id)}" data-assigned-increment="${esc(m.increment||'')}" tabindex="0" role="group" style="left:${left}%;${position};--milestone-color:${color};--milestone-guide:${paint.guide||color};--milestone-outline:${paint.outline||'none'};${labelStyle}" title="${esc(m.title)} · ${esc(details)}" aria-label="Milestone: ${esc(m.title)}, ${esc(details)}">${canvasMilestoneShape(m,true)}<span class="canvas-milestone-copy"><strong>${itemIcon(m)}<span data-title>${esc(m.title)}</span></strong><small>${fmtDate(m.date)}${m.done?' · Achieved':''}${outside?' · Outside increment':''}</small>${!onBar&&!swimlane&&increment?`<button type="button" class="canvas-milestone-increment" data-canvas-show-increment="${esc(increment.id)}" title="Show increment ${esc(increment.title)}">${icon('layers')}<span>${esc(increment.title)}</span></button>`:''}</span>${canvasPorts('milestone',m.id,m.title)}</div>`;
 }
 function canvasMilestoneLines(r){
  const milestones=canvasOutcomeContext().milestones.filter(m=>m.showLine&&day(m.date)>=r.start&&day(m.date)<r.end&&(state.showMilestoneRow||laneOf(m)||milestoneOnIncrement(m)));
@@ -3411,7 +3487,7 @@ function canvasIncrementTitleLayout(x,r,milestones){
 function canvasIncrementItem(x,r){
  const context=canvasOutcomeContext(),p=barPosition(x.start,x.end,r),c=swimlaneColor(x.color||'slate'),n=context.initiatives.filter(t=>t.increment===x.id).length,m=context.milestones.filter(t=>t.increment===x.id).length,count=`${n} initiative${n===1?'':'s'}${m?` · ${m} milestone${m===1?'':'s'}`:''}`;
  const titleLayout=canvasIncrementTitleLayout(x,r,context.milestones.filter(t=>t.increment===x.id&&day(t.date)>=r.start&&day(t.date)<r.end));
- return `<div class="canvas-item canvas-increment ${day(x.start)<r.start?'clipped-start':''} ${day(x.end)>=r.end?'clipped-end':''}" data-entity="increment" data-id="${esc(x.id)}" data-increment="${esc(x.id)}" tabindex="0" role="group" style="left:${p.left}%;width:${p.width}%;--increment-color:${c.solid};--increment-text:${c.text};--increment-outline:${canvasFillOutline(c)};--increment-title-left:${titleLayout.left}%;--increment-title-width:${titleLayout.width}%" title="${esc(x.title)} · ${fmtDate(x.start,true)} – ${fmtDate(x.end,true)} · ${count}" aria-label="Increment: ${esc(x.title)} · ${count}"><span class="resize-handle start" data-resize="start" title="Resize increment start"></span><div class="bar-content">${canvasGrip()}<span class="increment-icon" aria-hidden="true">${icon('layers')}</span><strong data-title>${esc(x.title)}</strong></div><span class="resize-handle end" data-resize="end" title="Resize increment end"></span>${canvasPorts('increment',x.id,x.title)}</div>`;
+ return `<div class="canvas-item canvas-increment ${day(x.start)<r.start?'clipped-start':''} ${day(x.end)>=r.end?'clipped-end':''}" data-entity="increment" data-id="${esc(x.id)}" data-increment="${esc(x.id)}" tabindex="0" role="group" style="left:${p.left}%;width:${p.width}%;--increment-color:${c.solid};--increment-text:${c.text};--increment-outline:${canvasFillOutline(c)};--increment-title-left:${titleLayout.left}%;--increment-title-width:${titleLayout.width}%" title="${esc(x.title)} · ${fmtDate(x.start,true)} – ${fmtDate(x.end,true)} · ${count}" aria-label="Increment: ${esc(x.title)} · ${count}"><span class="resize-handle start" data-resize="start" title="Resize increment start"></span><div class="bar-content">${canvasGrip()}<span class="increment-icon" aria-hidden="true">${icon('layers')}</span>${itemIcon(x)}<strong data-title>${esc(x.title)}</strong></div><span class="resize-handle end" data-resize="end" title="Resize increment end"></span>${canvasPorts('increment',x.id,x.title)}</div>`;
 }
 function canvasIncrementBand(r,swimlane=false,lane='',onlyId=''){
  if(!state.showIncrements)return '';
@@ -3463,18 +3539,18 @@ function renderTimeline(){
  for(const s of state.plan.workstreams.filter(s=>state.stream==='all'||state.stream===s.id)){
   // The saved initiative order owns each row; date edits must not move rows.
   const st=tasks.filter(t=>t.stream===s.id);if(!st.length&&(state.query||state.status!=='all'||state.outcome))continue;const collapsed=state.collapsed.has(s.id),c=RoadmapColors.streamPalette(s);
-  rows+=`<div class="stream-header${collapsed?' is-collapsed':''}" data-stream-id="${esc(s.id)}"><div class="stream-label"><button type="button" class="icon-btn workstream-collapse ${collapsed?'is-collapsed':''}" data-collapse="${esc(s.id)}" aria-expanded="${!collapsed}" aria-label="${collapsed?'Expand':'Collapse'} ${esc(s.name)}" title="${collapsed?'Expand':'Collapse'} ${esc(s.name)}">${icon('chevron')}</button><button type="button" class="stream-toggle workstream-name" data-workstream-details="${esc(s.id)}" aria-label="${esc(s.name)} workstream details" title="Double-click to edit ${esc(s.name)}"><span class="stream-dot" style="background:${c.solid}"></span><strong>${esc(s.name)}</strong><span class="stream-count">${st.length}</span></button><button class="icon-btn stream-add" data-lane-add="${esc(s.id)}" aria-haspopup="menu" aria-label="Add to ${esc(s.name)}">${icon('plus')}</button></div><div class="stream-filler">${gridHTML(r)}${collapsed?collapsedWorkstreamSummary(s,st,r):''}</div></div>`;
+  rows+=`<div class="stream-header${collapsed?' is-collapsed':''}" data-stream-id="${esc(s.id)}"><div class="stream-label"><button type="button" class="icon-btn workstream-collapse ${collapsed?'is-collapsed':''}" data-collapse="${esc(s.id)}" aria-expanded="${!collapsed}" aria-label="${collapsed?'Expand':'Collapse'} ${esc(s.name)}" title="${collapsed?'Expand':'Collapse'} ${esc(s.name)}">${icon('chevron')}</button><button type="button" class="stream-toggle workstream-name" data-workstream-details="${esc(s.id)}" aria-label="${esc(s.name)} workstream details" title="Double-click to edit ${esc(s.name)}"><span class="stream-dot" style="background:${c.solid}"></span><strong>${itemIcon(s)}${esc(s.name)}</strong><span class="stream-count">${st.length}</span></button><button class="icon-btn stream-add" data-lane-add="${esc(s.id)}" aria-haspopup="menu" aria-label="Add to ${esc(s.name)}">${icon('plus')}</button></div><div class="stream-filler">${gridHTML(r)}${collapsed?collapsedWorkstreamSummary(s,st,r):''}</div></div>`;
   // The group's increments, then milestones anchored to the top, then each initiative followed by its milestones.
   const visibleIds=new Set(st.map(t=>t.id)),msRows=collapsed?new Map():ganttLaneMilestones(r,s.id,visibleIds),incRows=collapsed?new Map():ganttLaneIncrements(r,s.id,visibleIds);
   if(!collapsed)rows+=(incRows.get('')||'')+(msRows.get('')||'');
-  if(!collapsed)for(const t of st)rows+=`<div class="initiative-row" data-task-row="${esc(t.id)}" data-stream-id="${esc(s.id)}"><button class="initiative-label" data-canvas-select="initiative" data-record-id="${esc(t.id)}" title="Select ${esc(t.title)}"><span class="item-title" data-title>${esc(t.title)}</span><span class="item-meta"><span class="status-dot" data-status="${t.status}"></span>${STATUS[t.status]}</span></button><div class="timeline-track" data-track="${esc(t.id)}" data-canvas-track="initiative" data-stream-id="${esc(s.id)}">${gridHTML(r)}${canvasInitiativeBar(t,r,c)}</div></div>${incRows.get(t.id)||''}${msRows.get(t.id)||''}`;
+  if(!collapsed)for(const t of st)rows+=`<div class="initiative-row" data-task-row="${esc(t.id)}" data-stream-id="${esc(s.id)}"><button class="initiative-label" data-canvas-select="initiative" data-record-id="${esc(t.id)}" title="Select ${esc(t.title)}"><span class="item-title">${itemIcon(t)}<span data-title>${esc(t.title)}</span></span><span class="item-meta"><span class="status-dot" data-status="${t.status}"></span>${STATUS[t.status]}</span></button><div class="timeline-track" data-track="${esc(t.id)}" data-canvas-track="initiative" data-stream-id="${esc(s.id)}">${gridHTML(r)}${canvasInitiativeBar(t,r,c)}</div></div>${incRows.get(t.id)||''}${msRows.get(t.id)||''}`;
   if(!collapsed)rows+=`<div class="initiative-row canvas-add-row" data-stream-id="${esc(s.id)}"><div class="initiative-label"><button class="canvas-empty-prompt" data-add-stream="${esc(s.id)}">${icon('plus')}Add initiative</button></div><div class="timeline-track" data-canvas-track="initiative" data-stream-id="${esc(s.id)}">${gridHTML(r)}</div></div>`;
  }
  $('#content').innerHTML=`<section class="roadmap-panel gantt-view zoom-${axisZoom()}"><div class="roadmap-caption"><span>${periodText()}</span><span class="roadmap-count">${n} initiatives</span></div><div class="timeline-scroll"><div class="timeline" style="min-width:${timelineMinWidth(r,true)}px">${rows}${canvasMilestoneLines(r)}<svg class="dependency-layer"></svg></div></div></section>`;
 }
 function renderBoard(){
  const tasks=filteredTasks();
- $('#content').innerHTML=`<div class="board-scroll"><div class="board-grid">${Object.entries(STATUS).map(([key,label])=>`<section class="board-column" data-column="${key}"><div class="column-header"><span class="status-dot" data-status="${key}"></span><h3>${label}</h3><span class="column-count">${tasks.filter(t=>t.status===key).length}</span><button class="icon-btn" data-add-status="${key}" aria-label="Add ${label.toLowerCase()} initiative">${icon('plus')}</button></div><div class="column-body" data-drop-status="${key}">${tasks.filter(t=>t.status===key).map(t=>{const c=palette(t.stream),risk=warnings(t);return `<article class="board-card canvas-item" tabindex="0" role="group" data-board-task="${esc(t.id)}" data-entity="initiative" data-id="${esc(t.id)}" data-stream-id="${esc(t.stream)}" data-assigned-increment="${esc(t.increment||'')}" style="${RoadmapColors.style(c)}" aria-label="Initiative: ${esc(t.title)}${t.increment?' · Increment: '+esc(getIncrement(t.increment)?.title||''):''}"><div class="card-meta"><span class="card-stream" title="${esc(streamName(t.stream))}">${esc(streamName(t.stream))}</span><span class="priority-pill" data-priority="${t.priority}">${PRIORITY[t.priority]}</span></div><h3 class="card-title" data-title>${esc(t.title)}</h3><p class="card-description">${esc(t.description)}</p>${canvasIncrementBadge(t)}${risk.length?`<div class="card-risk">${icon('warning')}${t.health==='blocked'?'Blocked':'Needs attention'}</div>`:''}<div class="card-progress"><div class="progress-track"><span class="progress-fill" style="width:${t.progress}%"></span></div><span>${t.progress}%</span></div><div class="card-footer"><span class="card-dates">${icon('calendar')}${fmtDate(t.start)} – ${fmtDate(t.end)}</span><span class="avatar" title="${esc(t.owner||'Unassigned')}">${esc(initial(t.owner))}</span></div>${canvasPorts('initiative',t.id,t.title)}</article>`;}).join('')}<button class="column-add" data-add-status="${key}">${icon('plus')}Add initiative</button></div></section>`).join('')}<svg class="dependency-layer"></svg></div></div>${!tasks.length?emptyHTML():''}`;
+ $('#content').innerHTML=`<div class="board-scroll"><div class="board-grid">${Object.entries(STATUS).map(([key,label])=>`<section class="board-column" data-column="${key}"><div class="column-header"><span class="status-dot" data-status="${key}"></span><h3>${label}</h3><span class="column-count">${tasks.filter(t=>t.status===key).length}</span><button class="icon-btn" data-add-status="${key}" aria-label="Add ${label.toLowerCase()} initiative">${icon('plus')}</button></div><div class="column-body" data-drop-status="${key}">${tasks.filter(t=>t.status===key).map(t=>{const c=palette(t.stream),risk=warnings(t);return `<article class="board-card canvas-item" tabindex="0" role="group" data-board-task="${esc(t.id)}" data-entity="initiative" data-id="${esc(t.id)}" data-stream-id="${esc(t.stream)}" data-assigned-increment="${esc(t.increment||'')}" style="${RoadmapColors.style(c)}" aria-label="Initiative: ${esc(t.title)}${t.increment?' · Increment: '+esc(getIncrement(t.increment)?.title||''):''}"><div class="card-meta"><span class="card-stream" title="${esc(streamName(t.stream))}">${esc(streamName(t.stream))}</span><span class="priority-pill" data-priority="${t.priority}">${PRIORITY[t.priority]}</span></div><h3 class="card-title">${itemIcon(t)}<span data-title>${esc(t.title)}</span></h3><p class="card-description">${esc(t.description)}</p>${canvasIncrementBadge(t)}${risk.length?`<div class="card-risk">${icon('warning')}${t.health==='blocked'?'Blocked':'Needs attention'}</div>`:''}<div class="card-progress"><div class="progress-track"><span class="progress-fill" style="width:${t.progress}%"></span></div><span>${t.progress}%</span></div><div class="card-footer"><span class="card-dates">${icon('calendar')}${fmtDate(t.start)} – ${fmtDate(t.end)}</span><span class="avatar" title="${esc(t.owner||'Unassigned')}">${esc(initial(t.owner))}</span></div>${canvasPorts('initiative',t.id,t.title)}</article>`;}).join('')}<button class="column-add" data-add-status="${key}">${icon('plus')}Add initiative</button></div></section>`).join('')}<svg class="dependency-layer"></svg></div></div>${!tasks.length?emptyHTML():''}`;
 }
 
 // Shared visual radio controls for the compact inspector and detail forms.
@@ -3968,7 +4044,7 @@ const RoadmapCanvas=(()=>{
     if(!force&&input===document.activeElement)return;
     if(input.type==='checkbox')input.checked=!!item[key];else input.value=value;
    });
-   roadmapRefreshChoices(host,{color:item.color||'amber'});
+   roadmapRefreshChoices(host,{color:item.color||'amber'});refreshIconPickers();
    if(type==='initiative')refreshPurposeSummary(host,item);
    if(type==='increment')refreshMemberList(host,item);
    if(type==='milestone'){const note=host.querySelector('.canvas-milestone-placement-note');if(note)note.textContent=milestonePlacementNote(item);}
@@ -3999,6 +4075,7 @@ const RoadmapCanvas=(()=>{
    purpose=`<div class="canvas-purpose-details"><div class="canvas-purpose-fields"><label class="canvas-inline-field canvas-purpose-description"><span>Comments</span><textarea data-inline-field="description" aria-label="Increment comments" maxlength="4000" rows="2" placeholder="Notes for the team">${esc(item.description||'')}</textarea></label></div></div>`;
    fields+=`<span class="canvas-increment-explainer">${item.stream?'A delivery period shown in the '+esc(streamName(item.stream))+' lane.':'A delivery period that groups work across lanes.'}</span>`;
   }
+  fields+=`<div class="canvas-inline-field canvas-icon-field"><span>Icon</span>${iconPickerHTML(type,item)}</div>`;
   host.innerHTML=`<section class="canvas-inspector" aria-label="Selected ${type} controls"><div class="canvas-inspector-header"><span class="canvas-selection-type">${names[type]}</span><input type="text" class="canvas-selected-name" data-inline-field="title" maxlength="200" aria-label="${names[type]} name" title="Rename ${type}" value="${esc(item.title)}" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}else if(event.key==='Escape'){event.preventDefault();event.stopPropagation();this.value=this.defaultValue;this.blur();}"><div class="canvas-inspector-actions">${actionButton('details','Details','dots')}${actionButton('duplicate','Duplicate','duplicate')}${actionButton('delete','Delete','trash','danger')}<button type="button" class="icon-btn" data-canvas-action="close" aria-label="Close selected item controls" title="Close controls">${icon('close')}</button></div></div><div class="canvas-inline-fields">${fields}</div>${purpose}${type==='milestone'?`<p class="canvas-milestone-placement-note">${esc(milestonePlacementNote(item))}</p>`:''}${type==='increment'?`<section class="canvas-increment-members" aria-label="Included work in ${esc(item.title)}"></section>`:''}</section>`;
   host.dataset.selectionKey=selectionKey;
   if(type==='initiative')refreshPurposeSummary(host,item);
@@ -4894,7 +4971,7 @@ const RoadmapWorkstreams=(()=>{
   activeId=id;returnFocus=trigger||document.activeElement;colorPending=false;
   const slot=RoadmapColors.isSlot(stream.color)?stream.color:'slate',custom=stream.customColor||'';
   draft={color:slot,custom:!!custom,customColor:custom||swimlaneColor(slot).solid};
-  form.innerHTML=`<div class="workstream-editor-header"><div><span class="workstream-editor-color" aria-hidden="true"></span><h2 id="workstreamEditorTitle">Workstream details</h2></div><button type="button" class="icon-btn" data-workstream-close aria-label="Close workstream details">${icon('close')}</button></div><div class="workstream-editor-body"><label class="workstream-editor-field"><span>Name</span><input type="text" name="name" value="${esc(stream.name)}" maxlength="60" required autocomplete="off" autofocus></label><label class="workstream-editor-field"><span>Comments <small>Optional</small></span><textarea name="description" rows="2" maxlength="2000" placeholder="What does this workstream cover?">${esc(stream.description||'')}</textarea></label><fieldset class="workstream-color-field"><legend>Color</legend>${paletteHTML()}<p id="workstreamColorHint" class="workstream-color-hint"></p><div class="workstream-custom-fields"><label class="workstream-custom-picker"><span>Custom color</span><input type="color" name="customPicker" aria-label="Choose custom workstream color" value="${draft.customColor}"></label><label class="workstream-custom-hex"><span>Hex value</span><input type="text" name="customHex" value="${draft.customColor}" maxlength="7" pattern="#[0-9A-Fa-f]{6}" spellcheck="false" autocomplete="off" aria-label="Custom workstream color hex value" placeholder="#0875C9"></label></div></fieldset><p class="workstream-editor-error" role="alert" hidden></p></div><div class="workstream-editor-footer"><button type="button" class="btn secondary" data-workstream-close>Cancel</button><button type="submit" class="btn">Save changes</button></div>`;
+  form.innerHTML=`<div class="workstream-editor-header"><div><span class="workstream-editor-color" aria-hidden="true"></span><h2 id="workstreamEditorTitle">Workstream details</h2></div><button type="button" class="icon-btn" data-workstream-close aria-label="Close workstream details">${icon('close')}</button></div><div class="workstream-editor-body"><label class="workstream-editor-field"><span>Name</span><input type="text" name="name" value="${esc(stream.name)}" maxlength="60" required autocomplete="off" autofocus></label><label class="workstream-editor-field"><span>Comments <small>Optional</small></span><textarea name="description" rows="2" maxlength="2000" placeholder="What does this workstream cover?">${esc(stream.description||'')}</textarea></label><div class="workstream-editor-field workstream-icon-field"><span>Icon <small>Optional · saved right away</small></span>${iconPickerHTML('workstream',stream)}</div><fieldset class="workstream-color-field"><legend>Color</legend>${paletteHTML()}<p id="workstreamColorHint" class="workstream-color-hint"></p><div class="workstream-custom-fields"><label class="workstream-custom-picker"><span>Custom color</span><input type="color" name="customPicker" aria-label="Choose custom workstream color" value="${draft.customColor}"></label><label class="workstream-custom-hex"><span>Hex value</span><input type="text" name="customHex" value="${draft.customColor}" maxlength="7" pattern="#[0-9A-Fa-f]{6}" spellcheck="false" autocomplete="off" aria-label="Custom workstream color hex value" placeholder="#0875C9"></label></div></fieldset><p class="workstream-editor-error" role="alert" hidden></p></div><div class="workstream-editor-footer"><button type="button" class="btn secondary" data-workstream-close>Cancel</button><button type="submit" class="btn">Save changes</button></div>`;
   paintColor();
   if(!dialog.open)dialog.showModal();
   input('name').focus();input('name').select();
