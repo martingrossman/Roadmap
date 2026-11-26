@@ -49,7 +49,7 @@ Full setup, permissions and limits: [`apps-script/README.md`](apps-script/README
 - **Planning:** workstreams, initiatives, milestones, increments and outcomes with metrics
 - **Workstreams hold any mix:** a workstream can hold initiatives, milestones and increments, or only some of them. Milestones and increments without a workstream stay in the plan-wide rows at the top
 - **Dependencies:** drag from an item's edge to another item; arrows route around labels
-- **Timeline:** opens around today (2 months back, 10 ahead) and scrolls sideways through time; **Today** jumps back and the arrows move earlier or later. Full year, a quarter or a custom range are still available
+- **Timeline:** opens around today (2 months back, 10 ahead) and scrolls sideways through time; **Today** (or the T key) jumps back, the arrows move earlier or later, and the months on screen show between them. A scroll stays on the axis it started on, so the timeline does not drift sideways while scrolling down (Shift + wheel scrolls sideways). Full year, a quarter or a custom range are still available
 - **Zoom:** − and + (or a trackpad or touch pinch) change how much fits on screen: about 3½ years, 12 months, 13 weeks or 3 weeks
 - **Look:** colour templates, custom palettes and a configurable timeline colour
 - **Export:** PDF (selected period or all dates) and standalone HTML
