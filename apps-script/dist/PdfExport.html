@@ -259,9 +259,14 @@
       markers.map(v=>trackX+v.center).filter(px=>px>=x-8&&px<=x+w+8).sort((a,b)=>a-b).forEach(px=>{if(px-11>cursor)slots.push({x:cursor,w:px-11-cursor});cursor=Math.max(cursor,px+11);});
       if(endLabel>cursor)slots.push({x:cursor,w:endLabel-cursor});
       const slot=slots.sort((a,b)=>b.w-a.w)[0]||{x:startLabel,w:0};
-      const full=`${incrementIndex.get(increment.id)} ${clean(increment.title).replace(/\s+/g,' ').trim()}`,shown=fit(full,slot.w,8.2,true);
+      const full=`${incrementIndex.get(increment.id)} ${clean(increment.title).replace(/\s+/g,' ').trim()}`,glyph=slot.w>=40&&measure(full,8.2,true)+11<=slot.w?11:0,shown=fit(full,slot.w-glyph,8.2,true);
       if(shown!==full)truncatedLabels++;
-      if(shown)text(shown,slot.x+slot.w/2,y+4,{size:8.2,bold:true,fill:tone.text,align:'center'});
+      if(shown&&glyph){
+        // Layers glyph, like the icon on screen, then the label; centred together in the slot.
+        const lw=measure(shown,8.2,true),gx=slot.x+(slot.w-glyph-lw)/2,c=tone.text,rh=(cx,cy)=>{stroke(cx-3,cy,cx,cy-1.7,c,.7);stroke(cx,cy-1.7,cx+3,cy,c,.7);stroke(cx+3,cy,cx,cy+1.7,c,.7);stroke(cx,cy+1.7,cx-3,cy,c,.7);};
+        rh(gx+3,y+7.6);rh(gx+3,y+10.2);
+        text(shown,gx+glyph,y+4,{size:8.2,bold:true,fill:tone.text});
+      }else if(shown)text(shown,slot.x+slot.w/2,y+4,{size:8.2,bold:true,fill:tone.text,align:'center'});
       text(`${date(increment.start)} - ${date(increment.end)}`,x,y+21,{size:6.5,fill:muted,width:w});
       return{x,w,tone,centerY:y+9};
     }
