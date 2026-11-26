@@ -60,6 +60,8 @@ body.drawer-open{overflow:hidden}.detail-overlay{height:100dvh}.detail-panel{max
 .swimlane-milestone-label .swimlane-milestone-add:hover{color:#fff;background:#ffffff24}
 .swimlane-lane-milestones{flex:0 0 auto;min-height:54px}
 .lane-add-menu{min-width:230px}
+.zoom-weeks .swimlane-quarter.is-week{text-align:center;padding-left:0;font-weight:500;opacity:.7}
+.zoom-weeks .quarter-label.is-week{text-align:center;padding-left:0;opacity:.7}
 .today-btn{height:36px;gap:6px;border:1px solid #E2E8F0;border-radius:8px;background:#fff;color:#0F172A;font-weight:600;font-size:13px;padding:0 12px;display:inline-flex;align-items:center}
 .today-btn .icon{width:15px;height:15px}
 .today-btn:hover{background:#F1F5F9}
@@ -2582,6 +2584,7 @@ function timelineMinWidth(r,gantt){
  return Math.round((r.end-r.start)*view/ZOOM_DAYS[timeZoom])+label;
 }
 // Axis labels for the zoom level: a top row and a bottom row of {a,b,label} spans in days.
+function isoWeek(d){const date=new Date(d*DAY),dow=(date.getUTCDay()+6)%7,thursday=d-dow+3,jan1=Date.UTC(new Date(thursday*DAY).getUTCFullYear(),0,1)/DAY;return 1+Math.floor((thursday-jan1)/7);}
 function axisUnits(r){
  const y0=state.year,top=[],bottom=[],clip=(a,b)=>({a:Math.max(a,r.start),b:Math.min(b,r.end)});
  if(timeZoom==='years'){
@@ -2589,9 +2592,16 @@ function axisUnits(r){
   for(let q=Math.floor(r.month/3);q<Math.ceil(r.endMonth/3);q++)bottom.push({...clip(Date.UTC(y0,q*3,1)/DAY,Date.UTC(y0,q*3+3,1)/DAY),label:'Q'+((q%4+4)%4+1)});
  }else{
   // Days: the top row is weeks (a month label would be wider than the view); weeks: months.
-  if(timeZoom==='days')for(let d=r.start-(new Date(r.start*DAY).getUTCDay()+6)%7;d<r.end;d+=7){const c=clip(d,d+7);top.push({...c,label:c.b-c.a<4?'':new Date(d*DAY).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'})});}
+  if(timeZoom==='days')for(let d=r.start-(new Date(r.start*DAY).getUTCDay()+6)%7;d<r.end;d+=7){const c=clip(d,d+7);top.push({...c,label:c.b-c.a<4?'':'W'+isoWeek(d)+' · '+new Date(d*DAY).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'})});}
   else for(let m=r.month;m<r.endMonth;m++){const a=Date.UTC(y0,m,1)/DAY;top.push({...clip(a,Date.UTC(y0,m+1,1)/DAY),label:new Date(a*DAY).toLocaleString('en-GB',{month:'long',year:'numeric',timeZone:'UTC'})});}
   if(timeZoom==='weeks'){
+   // Week numbers in the top row, in the boxes the month name does not reach (its width is estimated).
+   const gantt=state.view==='timeline',label=gantt?240:250,pxPerDay=Math.max(1,(timelineMinWidth(r,gantt)-label)/(r.end-r.start));
+   // Measure each month name in the axis font (Gantt: 12px uppercase with 1px letter spacing; roadmap: 14px bold), plus its padding.
+   const ctx=(axisUnits.canvas??=document.createElement('canvas')).getContext('2d'),family=getComputedStyle(document.body).fontFamily;ctx.font=gantt?`600 12px ${family}`:`650 14px ${family}`;
+   const textW=s=>gantt?ctx.measureText(s.toUpperCase()).width+s.length+13:ctx.measureText(s).width+8;
+   const covered=top.map(x=>({a:x.a,b:x.a+(textW(x.label)+6)/pxPerDay}));
+   for(let d=r.start-(new Date(r.start*DAY).getUTCDay()+6)%7;d<r.end;d+=7){const c=clip(d,d+7);if(c.b-c.a<4||covered.some(m=>c.a<m.b&&c.b>m.a))continue;top.push({...c,label:'W'+isoWeek(d),title:'Week '+isoWeek(d)+' · from '+fmtDate(iso(d),true),week:true});}
    // Weeks start on Monday; the first one may begin before the period.
    for(let d=r.start-(new Date(r.start*DAY).getUTCDay()+6)%7;d<r.end;d+=7){const c=clip(d,d+7);bottom.push({...c,label:c.b-c.a<4?'':new Date(d*DAY).toLocaleString('en-GB',{day:'numeric',month:'short',timeZone:'UTC'}),title:'Week of '+fmtDate(iso(d),true)});}
   }else{
@@ -2908,7 +2918,7 @@ function swimlaneAxis(r){
  const duration=r.end-r.start;let html='';
  if(timeZoom!=='months'){
   const u=axisUnits(r),span=(cls,x)=>`<span class="${cls}${x.weekend?' is-weekend':''}" style="left:${(x.a-r.start)/duration*100}%;width:${(x.b-x.a)/duration*100}%"${x.title?` title="${esc(x.title)}"`:''}>${esc(x.label)}</span>`;
-  return u.top.map(x=>span('swimlane-quarter',x)).join('')+u.bottom.map(x=>span('swimlane-month',x)).join('')+gridHTML(r);
+  return u.top.map(x=>span(x.week?'swimlane-quarter is-week':'swimlane-quarter',x)).join('')+u.bottom.map(x=>span('swimlane-month',x)).join('')+gridHTML(r);
  }
  for(let q=Math.floor(r.month/3);q<Math.ceil(r.endMonth/3);q++){
   // Custom ranges can start mid-quarter and cross years: clip to the range, label with the real year.
@@ -3144,7 +3154,7 @@ function canvasIncrementBand(r,swimlane=false,lane='',onlyId=''){
 function renderTimeline(){
  const r=timelineRange(),all=filteredTasks(),tasks=all.filter(t=>day(t.end)>=r.start&&day(t.start)<r.end),n=tasks.length,rd=day(state.plan.reviewDate);let axis='';
  if(timeZoom==='months'){for(let m=r.month;m<r.endMonth;m++){const a=Date.UTC(state.year,m,1)/DAY,b=Date.UTC(state.year,m+1,1)/DAY,left=(a-r.start)/(r.end-r.start)*100,width=(b-a)/(r.end-r.start)*100;if(m%3===0)axis+=`<span class="quarter-label" style="left:${left}%">${rangeMonths(r)>12||m>=12?`${state.year+Math.floor(m/12)} `:''}Q${m%12/3+1}</span>`;axis+=`<span class="month-label" style="left:${left}%;width:${width}%">${new Date(a*DAY).toLocaleString('en-GB',{month:rangeMonths(r)>3?'short':'long',timeZone:'UTC'})}</span>`;}}
- else{const u=axisUnits(r),dur=r.end-r.start;u.top.forEach(x=>{axis+=`<span class="quarter-label" style="left:${(x.a-r.start)/dur*100}%">${esc(x.label)}</span>`;});u.bottom.forEach(x=>{axis+=`<span class="month-label${x.weekend?' is-weekend':''}" style="left:${(x.a-r.start)/dur*100}%;width:${(x.b-x.a)/dur*100}%"${x.title?` title="${esc(x.title)}"`:''}>${esc(x.label)}</span>`;});}
+ else{const u=axisUnits(r),dur=r.end-r.start;u.top.forEach(x=>{axis+=x.week?`<span class="quarter-label is-week" style="left:${(x.a-r.start)/dur*100}%;width:${(x.b-x.a)/dur*100}%" title="${esc(x.title)}">${esc(x.label)}</span>`:`<span class="quarter-label" style="left:${(x.a-r.start)/dur*100}%">${esc(x.label)}</span>`;});u.bottom.forEach(x=>{axis+=`<span class="month-label${x.weekend?' is-weekend':''}" style="left:${(x.a-r.start)/dur*100}%;width:${(x.b-x.a)/dur*100}%"${x.title?` title="${esc(x.title)}"`:''}>${esc(x.label)}</span>`;});}
  axis+=gridHTML(r);if(rd>=r.start&&rd<r.end)axis+=`<span class="today-label" style="left:${(rd-r.start)/(r.end-r.start)*100}%">${state.plan.reviewDateMode==='today'?'Today':state.plan.example?'Snapshot':'Reference'}</span>`;
  const milestones=canvasOutcomeContext().milestones.filter(m=>inLane(m,'')&&!milestoneOnIncrement(m)&&day(m.date)>=r.start&&day(m.date)<r.end),layout=canvasFlatMilestoneLayout(milestones,r);
  const markers=layout.placed.map(p=>canvasMilestoneMarker(p.milestone,r,0,false,null,p)).join('');
