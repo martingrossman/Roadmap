@@ -70,6 +70,9 @@ body.drawer-open{overflow:hidden}.detail-overlay{height:100dvh}.detail-panel{max
 .zoom-scale .icon-btn{width:30px;min-width:30px;height:34px;border:0;border-radius:0;font-size:18px;line-height:1;color:#334155}
 .zoom-scale .icon-btn:disabled{opacity:.35;cursor:default}
 .zoom-scale .icon-btn:hover:not(:disabled){background:#F1F5F9}
+.zoom-fit-btn{height:34px;border:0;border-left:1px solid #E2E8F0;background:none;padding:0 11px;font-size:13px;font-weight:600;color:#334155;cursor:pointer}
+.zoom-fit-btn:hover{background:#F1F5F9}
+.zoom-fit-btn.is-active{background:#EEF2FF;color:#3730A3}
 .zoom-scale-label{min-width:56px;text-align:center;font-size:13px;font-weight:600;color:#0F172A}
 .timeline-scroll{touch-action:pan-x pan-y}
 .grid-fine{position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(to right,#eef1f3 0 1px,transparent 1px);background-repeat:repeat-x}
@@ -1206,7 +1209,7 @@ body.bar-style-solid .canvas-item.canvas-increment{border-radius:6px;box-shadow:
               <button class="icon-btn freeze-toggle" id="freezeTimelineBtn" type="button" aria-label="Freeze timeline &amp; tools" aria-pressed="false" aria-controls="roadmapTools content" title="Keep tools and dates visible while scrolling"><span data-icon="pin"></span><span class="freeze-label">Freeze</span></button>
               <button class="icon-btn" id="dependenciesBtn" title="Show dependencies" aria-label="Show dependencies" aria-pressed="true" data-icon="link"></button>
               <button class="btn ghost small today-btn" id="todayBtn" type="button" title="Today (T)"><span data-icon="calendar"></span><span id="todayLabel">Today</span></button><div class="zoom-control"><button class="icon-btn" id="prevPeriod" title="Previous year" aria-label="Previous year" data-icon="left"></button><button class="period-label" id="periodLabel" title="Show reference year">2027</button><button class="icon-btn" id="nextPeriod" title="Next year" aria-label="Next year" data-icon="right"></button></div>
-              <div class="zoom-scale" id="zoomScale" role="group" aria-label="Time scale"><button class="icon-btn" id="zoomOutBtn" type="button" aria-label="Zoom out" title="Zoom out (pinch in)">−</button><span class="zoom-scale-label" id="zoomLabel" aria-live="polite">Months</span><button class="icon-btn" id="zoomInBtn" type="button" aria-label="Zoom in" title="Zoom in (pinch out)">+</button></div><div class="select-wrap"><select id="rangeSelect" aria-label="Timeline range"><option value="rolling">Around today</option><option value="year">Full year</option><option value="0">Q1 · Jan–Mar</option><option value="1">Q2 · Apr–Jun</option><option value="2">Q3 · Jul–Sep</option><option value="3">Q4 · Oct–Dec</option><option value="custom">Custom…</option></select></div><span class="custom-range" id="customRange" hidden><input type="month" id="customStart" aria-label="Timeline starts in month" title="First month"><span aria-hidden="true">–</span><input type="month" id="customEnd" aria-label="Timeline ends in month" title="Last month"></span>
+              <div class="zoom-scale" id="zoomScale" role="group" aria-label="Time scale"><button class="icon-btn" id="zoomOutBtn" type="button" aria-label="Zoom out" title="Zoom out (pinch in)">−</button><span class="zoom-scale-label" id="zoomLabel" aria-live="polite">Months</span><button class="icon-btn" id="zoomInBtn" type="button" aria-label="Zoom in" title="Zoom in (pinch out)">+</button><button class="zoom-fit-btn" id="zoomFitBtn" type="button" aria-pressed="false" title="Fit all items (F)">Fit</button></div><div class="select-wrap"><select id="rangeSelect" aria-label="Timeline range"><option value="rolling">Around today</option><option value="year">Full year</option><option value="0">Q1 · Jan–Mar</option><option value="1">Q2 · Apr–Jun</option><option value="2">Q3 · Jul–Sep</option><option value="3">Q4 · Oct–Dec</option><option value="custom">Custom…</option></select></div><span class="custom-range" id="customRange" hidden><input type="month" id="customStart" aria-label="Timeline starts in month" title="First month"><span aria-hidden="true">–</span><input type="month" id="customEnd" aria-label="Timeline ends in month" title="Last month"></span>
             </div>
           </div>
         </section>
@@ -2005,10 +2008,24 @@ let storedIncrementVisibility=true;try{storedIncrementVisibility=localStorage.ge
 const BAR_STYLE_KEY='roadmap.view.barStyle';
 // Time scale of the roadmap and Gantt: how wide a day is. The period (year, quarter, custom) does not change;
 // a wider timeline scrolls sideways. Months is the original scale.
-const ZOOM_LEVELS=['years','months','weeks','days'],ZOOM_LABELS={years:'Years',months:'Months',weeks:'Weeks',days:'Days'},ZOOM_DAYS={years:1278,months:365,weeks:91,days:21},ZOOM_KEY='roadmap.view.zoom';
-let timeZoom='months';try{const z=localStorage.getItem(ZOOM_KEY);if(ZOOM_LEVELS.includes(z))timeZoom=z;}catch{}
+const ZOOM_LEVELS=['years','months','weeks','days'],ZOOM_LABELS={years:'Years',months:'Months',weeks:'Weeks',days:'Days',fit:'Fit'},ZOOM_DAYS={years:1278,months:365,weeks:91,days:21},ZOOM_KEY='roadmap.view.zoom';
+let timeZoom='months';try{const z=localStorage.getItem(ZOOM_KEY);if(ZOOM_LEVELS.includes(z)||z==='fit')timeZoom=z;}catch{}
+// Fit: the scale that shows every item (filtered initiatives, milestones, increments) in the period, with a small margin.
+let fitCache={plan:null,key:'',span:null};
+function fitSpan(){
+ const r=timelineRange(),key=[state.range,state.year,state.customStart,state.customEnd,state.stream,state.status,state.outcome,state.query,r.start,r.end].join('|');
+ if(fitCache.plan===state.plan&&fitCache.key===key)return fitCache.span;
+ let a=Infinity,b=-Infinity;const add=(s,e)=>{const x=Math.max(r.start,day(s)),y=Math.min(r.end,day(e)+1);if(y>x){a=Math.min(a,x);b=Math.max(b,y);}};
+ filteredTasks().forEach(x=>add(x.start,x.end));state.plan.milestones.forEach(m=>add(m.date,m.date));state.plan.increments.forEach(x=>add(x.start,x.end));
+ let span=null;if(b>a){const pad=Math.max(7,Math.round((b-a)*.04));span={a:Math.max(r.start,a-pad),b:Math.min(r.end,b+pad)};}
+ fitCache={plan:state.plan,key,span};return span;
+}
+// How many days fit across the view at the current zoom.
+function visibleDays(){if(timeZoom!=='fit')return ZOOM_DAYS[timeZoom];const s=fitSpan();return s?Math.max(14,s.b-s.a):ZOOM_DAYS.months;}
+// The level whose labels and grid lines suit the current scale (Fit borrows the closest one).
+function axisZoom(){if(timeZoom!=='fit')return timeZoom;const d=visibleDays();return d>900?'years':d>200?'months':d>50?'weeks':'days';}
 // step: +1 zooms in (towards days), -1 out. anchorX: the screen x whose date stays put (default: middle of the view).
-let pendingTodayScroll=true;
+let pendingTodayScroll=timeZoom!=='fit';
 function timelineScroller(){const scroll=document.querySelector('#content .timeline-scroll'),axis=scroll?.querySelector('.swimlane-axis,.time-axis');return scroll&&axis?{scroll,axis}:null;}
 function scrollToReference(){
  const t=timelineScroller();if(!t)return false;
@@ -2028,12 +2045,24 @@ function visibleRange(){
 }
 function rangeText(r){const f=d=>new Date(d*DAY).toLocaleString('en-GB',{month:'short',year:'numeric',timeZone:'UTC'});return `${f(r.start)} – ${f(r.end-1)}`;}
 // Half a view earlier (-1) or later (1).
-function goToday(){state.range='rolling';pendingTodayScroll=true;render();}
+let pendingFitScroll=timeZoom==='fit';
+function scrollToFit(){
+ const t=timelineScroller(),s0=fitSpan();if(!t||!s0)return false;
+ const r=timelineRange(),s=t.scroll.getBoundingClientRect(),a=t.axis.getBoundingClientRect(),labelW=t.axis.offsetLeft;
+ t.scroll.scrollLeft+=a.left+(s0.a-r.start)/(r.end-r.start)*a.width-(s.left+labelW);
+ return true;
+}
+function zoomFit(){
+ if(!fitSpan()){toast('Nothing to fit in this period.');return;}
+ timeZoom='fit';try{localStorage.setItem(ZOOM_KEY,'fit');}catch{}
+ pendingFitScroll=true;pendingTodayScroll=false;render();updateVisibleLabel();
+}
+function goToday(){state.range='rolling';pendingTodayScroll=true;pendingFitScroll=false;render();}
 // The months on screen, between the arrows (rolling view only).
 function updateVisibleLabel(){if(state.range==='rolling'&&state.section==='roadmap'&&['swimlane','timeline'].includes(state.view)){const l=document.getElementById('periodLabel');if(l)l.textContent=rangeText(visibleRange());}}
 function scrollTimelineBy(dir){const t=timelineScroller();if(!t)return;const labelW=t.axis.offsetLeft;t.scroll.scrollLeft+=dir*(t.scroll.clientWidth-labelW)/2;updateVisibleLabel();}
 function stepZoom(step,anchorX){
- const next=ZOOM_LEVELS[ZOOM_LEVELS.indexOf(timeZoom)+step];if(!next)return false;
+ const next=timeZoom==='fit'?(step<0?[...ZOOM_LEVELS].reverse().find(z=>ZOOM_DAYS[z]>visibleDays()):ZOOM_LEVELS.find(z=>ZOOM_DAYS[z]<visibleDays())):ZOOM_LEVELS[ZOOM_LEVELS.indexOf(timeZoom)+step];if(!next)return false;
  const scroll=document.querySelector('#content .timeline-scroll'),axis=scroll?.querySelector('.swimlane-axis,.time-axis');
  let frac=null,x=anchorX;
  if(scroll&&axis){const s=scroll.getBoundingClientRect(),a=axis.getBoundingClientRect();if(x==null)x=s.left+(Math.max(a.left,s.left)+s.right)/2-s.left;frac=Math.min(1,Math.max(0,(x-a.left)/a.width));}
@@ -2116,13 +2145,15 @@ function render(){
  $('#timelineControls').hidden=state.section!=='roadmap';$('#rangeSelect').closest('.select-wrap').hidden=!['timeline','swimlane'].includes(state.view);$('#timelineControls .zoom-control').hidden=!['timeline','swimlane'].includes(state.view);$('#dependenciesBtn').hidden=state.view==='table';applyTimelineColor();$('#periodLabel').textContent=state.range==='rolling'?'':state.range==='custom'?periodText():state.year;$('#periodLabel').title=state.range==='rolling'?'Showing these months · click to go back to '+fmtDate(state.plan.reviewDate,true):'Back to '+fmtDate(state.plan.reviewDate,true);
  $('#todayLabel').textContent=state.plan.reviewDateMode==='today'?'Today':'Reference';$('#todayBtn').title=(state.plan.reviewDateMode==='today'?'Today':'Reference date · '+fmtDate(state.plan.reviewDate,true))+' (T)';$('#todayBtn').hidden=state.section!=='roadmap'||!['timeline','swimlane'].includes(state.view);$('#rangeSelect').value=state.range;$('#customRange').hidden=state.range!=='custom';if(state.range==='custom'){$('#customStart').value=state.customStart;$('#customEnd').value=state.customEnd;}$('#prevPeriod').title=$('#prevPeriod').ariaLabel=state.range==='rolling'?'Earlier':state.range==='custom'?'Move range back a year':'Previous year';$('#nextPeriod').title=$('#nextPeriod').ariaLabel=state.range==='rolling'?'Later':state.range==='custom'?'Move range forward a year':'Next year';
  $('#prevPeriod').disabled=state.year<=2000;$('#nextPeriod').disabled=state.year>=2099;
- $('#zoomScale').hidden=state.section!=='roadmap'||!['timeline','swimlane'].includes(state.view);$('#zoomLabel').textContent=ZOOM_LABELS[timeZoom];$('#zoomOutBtn').disabled=timeZoom==='years';$('#zoomInBtn').disabled=timeZoom==='days';
+ $('#zoomScale').hidden=state.section!=='roadmap'||!['timeline','swimlane'].includes(state.view);$('#zoomLabel').textContent=ZOOM_LABELS[timeZoom];$('#zoomOutBtn').disabled=timeZoom==='years'||timeZoom==='fit'&&visibleDays()>=ZOOM_DAYS.years;$('#zoomInBtn').disabled=timeZoom==='days'||timeZoom==='fit'&&visibleDays()<=ZOOM_DAYS.days;$('#zoomFitBtn').classList.toggle('is-active',timeZoom==='fit');$('#zoomFitBtn').setAttribute('aria-pressed',String(timeZoom==='fit'));
  $('#dependenciesBtn').classList.toggle('is-active',state.dependencies);$('#dependenciesBtn').setAttribute('aria-pressed',String(state.dependencies));$('#dependenciesBtn').title=state.dependencies?'Hide dependencies':'Show dependencies';$('#dependenciesBtn').setAttribute('aria-label',$('#dependenciesBtn').title);
  if(state.section==='outcomes')renderOutcomes();else if(state.section==='milestones')renderMilestones();else if(state.section==='initiatives'||state.view==='table')renderTable();else if(state.view==='board')renderBoard();else if(state.view==='swimlane')renderSwimlanes();else renderTimeline();
  $('#undoBtn').disabled=!state.undo.length;$('#redoBtn').disabled=!state.redo.length;
  document.title=`${p.name} — Roadmap`;document.body.classList.toggle('swimlane-mode',state.section==='roadmap'&&state.view==='swimlane');document.body.classList.toggle('bar-style-tinted',state.barStyle!=='solid');document.body.classList.toggle('bar-style-solid',state.barStyle==='solid');$$('[data-bar-style]').forEach(b=>{const on=b.dataset.barStyle===state.barStyle;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));});hydrateIcons();RoadmapCanvas.afterRender();layoutMilestoneLabels();requestAnimationFrame(drawDependencies);
  scrollState.forEach(s=>{const el=$(s.selector);if(el){el.scrollLeft=s.left;el.scrollTop=s.top;}});
- if(pendingTodayScroll&&state.section==='roadmap'&&['swimlane','timeline'].includes(state.view)&&state.range==='rolling'&&scrollToReference())pendingTodayScroll=false;
+ const onTimeline=state.section==='roadmap'&&['swimlane','timeline'].includes(state.view);
+ if(pendingFitScroll&&onTimeline&&scrollToFit()){pendingFitScroll=false;pendingTodayScroll=false;}
+ if(pendingTodayScroll&&onTimeline&&state.range==='rolling'&&scrollToReference())pendingTodayScroll=false;
  updateVisibleLabel();RoadmapFreeze.afterRender();RoadmapWorkstreams.sync();
 }
 // A custom range runs from the first day of its start month to the end of its end month.
@@ -2154,20 +2185,20 @@ function timelineMinWidth(r,gantt){
  if(timeZoom==='months'&&state.range!=='rolling')return base;
  // Each level shows about ZOOM_DAYS days across the visible part of the timeline.
  const label=gantt?240:250,view=Math.max(480,(document.getElementById('content')?.clientWidth||1100)-label-24);
- return Math.round((r.end-r.start)*view/ZOOM_DAYS[timeZoom])+label;
+ return Math.round((r.end-r.start)*view/visibleDays())+label;
 }
 // Axis labels for the zoom level: a top row and a bottom row of {a,b,label} spans in days.
 function isoWeek(d){const date=new Date(d*DAY),dow=(date.getUTCDay()+6)%7,thursday=d-dow+3,jan1=Date.UTC(new Date(thursday*DAY).getUTCFullYear(),0,1)/DAY;return 1+Math.floor((thursday-jan1)/7);}
 function axisUnits(r){
  const y0=state.year,top=[],bottom=[],clip=(a,b)=>({a:Math.max(a,r.start),b:Math.min(b,r.end)});
- if(timeZoom==='years'){
+ if(axisZoom()==='years'){
   for(let y=Math.floor(r.month/12);y<Math.ceil(r.endMonth/12);y++)top.push({...clip(Date.UTC(y0+y,0,1)/DAY,Date.UTC(y0+y+1,0,1)/DAY),label:String(y0+y)});
   for(let q=Math.floor(r.month/3);q<Math.ceil(r.endMonth/3);q++)bottom.push({...clip(Date.UTC(y0,q*3,1)/DAY,Date.UTC(y0,q*3+3,1)/DAY),label:'Q'+((q%4+4)%4+1)});
  }else{
   // Days: the top row is weeks (a month label would be wider than the view); weeks: months.
-  if(timeZoom==='days')for(let d=r.start-(new Date(r.start*DAY).getUTCDay()+6)%7;d<r.end;d+=7){const c=clip(d,d+7);top.push({...c,label:c.b-c.a<4?'':'W'+isoWeek(d)+' · '+new Date(d*DAY).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'})});}
+  if(axisZoom()==='days')for(let d=r.start-(new Date(r.start*DAY).getUTCDay()+6)%7;d<r.end;d+=7){const c=clip(d,d+7);top.push({...c,label:c.b-c.a<4?'':'W'+isoWeek(d)+' · '+new Date(d*DAY).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'})});}
   else for(let m=r.month;m<r.endMonth;m++){const a=Date.UTC(y0,m,1)/DAY;top.push({...clip(a,Date.UTC(y0,m+1,1)/DAY),label:new Date(a*DAY).toLocaleString('en-GB',{month:'long',year:'numeric',timeZone:'UTC'})});}
-  if(timeZoom==='weeks'){
+  if(axisZoom()==='weeks'){
    // Week numbers in the top row, in the boxes the month name does not reach (its width is estimated).
    const gantt=state.view==='timeline',label=gantt?240:250,pxPerDay=Math.max(1,(timelineMinWidth(r,gantt)-label)/(r.end-r.start));
    // Measure each month name in the axis font (Gantt: 12px uppercase with 1px letter spacing; roadmap: 14px bold), plus its padding.
@@ -2185,8 +2216,8 @@ function axisUnits(r){
 }
 // Fine lines for weeks (Mondays) or days, drawn as one repeating background instead of hundreds of lines.
 function fineGridHTML(r){
- if(timeZoom!=='weeks'&&timeZoom!=='days')return '';
- const dur=r.end-r.start,step=timeZoom==='days'?1:7,first=timeZoom==='days'?0:(8-new Date(r.start*DAY).getUTCDay())%7;
+ if(axisZoom()!=='weeks'&&axisZoom()!=='days')return '';
+ const dur=r.end-r.start,step=axisZoom()==='days'?1:7,first=axisZoom()==='days'?0:(8-new Date(r.start*DAY).getUTCDay())%7;
  if(step>=dur)return '';
  // background-position % aligns that point of the tile with the same point of the box.
  const size=step/dur*100,pos=first/dur/(1-step/dur)*100;
@@ -2354,7 +2385,7 @@ document.addEventListener('change',event=>{if(event.target.matches('[data-task-s
 $('#detailOverlay').addEventListener('click',event=>{if(event.target===$('#detailOverlay'))closeDetail();});$('#mobileScrim').addEventListener('click',closeMobile);
 $('#importFile').addEventListener('change',event=>importJSON(event.target.files?.[0]));
 document.addEventListener('pointerdown',event=>{if(!RoadmapDeps.pointerDown(event))RoadmapCanvas.pointerDown(event);});document.addEventListener('pointermove',event=>{RoadmapDeps.pointerMove(event);RoadmapCanvas.pointerMove(event);},{passive:false});document.addEventListener('pointerup',event=>{RoadmapDeps.pointerUp(event);RoadmapCanvas.pointerUp(event);});document.addEventListener('pointercancel',event=>{RoadmapDeps.pointerUp(event,true);RoadmapCanvas.pointerUp(event,true);});
-document.addEventListener('click',event=>{const b=event.target.closest('#zoomInBtn,#zoomOutBtn');if(b&&!b.disabled)stepZoom(b.id==='zoomInBtn'?1:-1);});
+document.addEventListener('click',event=>{const b=event.target.closest('#zoomInBtn,#zoomOutBtn,#zoomFitBtn');if(!b||b.disabled)return;if(b.id==='zoomFitBtn')zoomFit();else stepZoom(b.id==='zoomInBtn'?1:-1);});
 {let timer=0;document.addEventListener('scroll',event=>{if(!event.target?.closest?.('#content .timeline-scroll')||timer)return;timer=setTimeout(()=>{timer=0;updateVisibleLabel();},80);},true);}
 // A wheel gesture (events less than 250 ms apart) keeps to the axis it started on: a mostly vertical scroll
 // never drifts the timeline sideways, and a sideways one never moves the page. Pure one-axis scrolling,
@@ -2443,6 +2474,7 @@ document.addEventListener('keydown',event=>{
  if(event.key==='/'){event.preventDefault();if(!['roadmap','initiatives'].includes(state.section)){state.section='roadmap';render();}$('#searchInput').focus();return;}
  if(event.key.toLowerCase()==='n'&&!event.ctrlKey&&!event.metaKey){event.preventDefault();RoadmapCanvas.quickAdd('initiative');return;}
  if(event.key.toLowerCase()==='t'&&!event.ctrlKey&&!event.metaKey&&!event.altKey&&state.section==='roadmap'&&['swimlane','timeline'].includes(state.view)){event.preventDefault();goToday();return;}
+ if(event.key.toLowerCase()==='f'&&!event.ctrlKey&&!event.metaKey&&!event.altKey&&state.section==='roadmap'&&['swimlane','timeline'].includes(state.view)){event.preventDefault();zoomFit();return;}
  if(event.key==='?'){$('#helpModal').showModal();return;}
  if(target.matches('[data-board-task]')&&(event.key==='Enter'||event.key===' ')){event.preventDefault();RoadmapCanvas.select('initiative',target.dataset.boardTask);return;}
  if(target.matches('[data-bar]')&&['ArrowLeft','ArrowRight'].includes(event.key)){event.preventDefault();const id=target.dataset.bar,task=getTask(id),delta=(event.key==='ArrowRight'?1:-1)*(event.shiftKey?7:1);if(!dateOK(iso(day(task.start)+delta))||!dateOK(iso(day(task.end)+delta)))return;commit(p=>{const t=p.initiatives.find(t=>t.id===id);t.start=iso(day(t.start)+delta);t.end=iso(day(t.end)+delta);},'Initiative rescheduled');$(`[data-bar="${id}"]`)?.focus();}
@@ -2489,7 +2521,7 @@ function packSwimlaneTasks(tasks,r){
 function swimlaneStar(){return '<svg class="swimlane-star" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 1.6 3.1 6.3 7 .9-5.1 5 1.2 7-6.2-3.3-6.2 3.3 1.2-7-5.1-5 7-.9Z"/></svg>';}
 function swimlaneAxis(r){
  const duration=r.end-r.start;let html='';
- if(timeZoom!=='months'){
+ if(axisZoom()!=='months'){
   const u=axisUnits(r),span=(cls,x)=>`<span class="${cls}${x.weekend?' is-weekend':''}" style="left:${(x.a-r.start)/duration*100}%;width:${(x.b-x.a)/duration*100}%"${x.title?` title="${esc(x.title)}"`:''}>${esc(x.label)}</span>`;
   return u.top.map(x=>span(x.week?'swimlane-quarter is-week':'swimlane-quarter',x)).join('')+u.bottom.map(x=>span('swimlane-month',x)).join('')+gridHTML(r);
  }
@@ -2579,7 +2611,7 @@ function renderSwimlanes(){
   if(!collapsed&&rows.length)html+=`<div class="timeline-track swimlane-lane canvas-add-row" data-canvas-track="initiative" data-stream-id="${esc(s.id)}">${gridHTML(r)}</div>`;
   html+='</div></section>';
  }
- $('#content').innerHTML=`<section class="roadmap-panel swimlane-view zoom-${timeZoom}"><div class="roadmap-caption"><span>${periodText()}</span><span class="roadmap-count">${tasks.length} initiative${tasks.length===1?'':'s'}${all.length>tasks.length?` · ${all.length-tasks.length} outside this period`:''}</span></div><div class="timeline-scroll swimlane-scroll"><div class="timeline swimlane-timeline" style="min-width:${timelineMinWidth(r,false)}px">${html}${canvasMilestoneLines(r)}<svg class="dependency-layer"></svg></div></div>${!tasks.length?(all.length?'<div class="timeline-empty-note">No initiatives in this period. Change the year or quarter to see scheduled work.</div>':emptyHTML(state.plan.initiatives.length?'No initiatives match these filters':'Your next chapter starts here',state.plan.initiatives.length?'Clear your filters or add an initiative to this plan.':'Create an initiative to start shaping your product roadmap.')):''}</section>`;
+ $('#content').innerHTML=`<section class="roadmap-panel swimlane-view zoom-${axisZoom()}"><div class="roadmap-caption"><span>${periodText()}</span><span class="roadmap-count">${tasks.length} initiative${tasks.length===1?'':'s'}${all.length>tasks.length?` · ${all.length-tasks.length} outside this period`:''}</span></div><div class="timeline-scroll swimlane-scroll"><div class="timeline swimlane-timeline" style="min-width:${timelineMinWidth(r,false)}px">${html}${canvasMilestoneLines(r)}<svg class="dependency-layer"></svg></div></div>${!tasks.length?(all.length?'<div class="timeline-empty-note">No initiatives in this period. Change the year or quarter to see scheduled work.</div>':emptyHTML(state.plan.initiatives.length?'No initiatives match these filters':'Your next chapter starts here',state.plan.initiatives.length?'Clear your filters or add an initiative to this plan.':'Create an initiative to start shaping your product roadmap.')):''}</section>`;
  requestAnimationFrame(drawDependencies);
 }
 
@@ -2726,7 +2758,7 @@ function canvasIncrementBand(r,swimlane=false,lane='',onlyId=''){
 }
 function renderTimeline(){
  const r=timelineRange(),all=filteredTasks(),tasks=all.filter(t=>day(t.end)>=r.start&&day(t.start)<r.end),n=tasks.length,rd=day(state.plan.reviewDate);let axis='';
- if(timeZoom==='months'){for(let m=r.month;m<r.endMonth;m++){const a=Date.UTC(state.year,m,1)/DAY,b=Date.UTC(state.year,m+1,1)/DAY,left=(a-r.start)/(r.end-r.start)*100,width=(b-a)/(r.end-r.start)*100;if(m%3===0)axis+=`<span class="quarter-label" style="left:${left}%">${rangeMonths(r)>12||m>=12?`${state.year+Math.floor(m/12)} `:''}Q${m%12/3+1}</span>`;axis+=`<span class="month-label" style="left:${left}%;width:${width}%">${new Date(a*DAY).toLocaleString('en-GB',{month:rangeMonths(r)>3?'short':'long',timeZone:'UTC'})}</span>`;}}
+ if(axisZoom()==='months'){for(let m=r.month;m<r.endMonth;m++){const a=Date.UTC(state.year,m,1)/DAY,b=Date.UTC(state.year,m+1,1)/DAY,left=(a-r.start)/(r.end-r.start)*100,width=(b-a)/(r.end-r.start)*100;if(m%3===0)axis+=`<span class="quarter-label" style="left:${left}%">${rangeMonths(r)>12||m>=12?`${state.year+Math.floor(m/12)} `:''}Q${m%12/3+1}</span>`;axis+=`<span class="month-label" style="left:${left}%;width:${width}%">${new Date(a*DAY).toLocaleString('en-GB',{month:rangeMonths(r)>3?'short':'long',timeZone:'UTC'})}</span>`;}}
  else{const u=axisUnits(r),dur=r.end-r.start;u.top.forEach(x=>{axis+=x.week?`<span class="quarter-label is-week" style="left:${(x.a-r.start)/dur*100}%;width:${(x.b-x.a)/dur*100}%" title="${esc(x.title)}">${esc(x.label)}</span>`:`<span class="quarter-label" style="left:${(x.a-r.start)/dur*100}%">${esc(x.label)}</span>`;});u.bottom.forEach(x=>{axis+=`<span class="month-label${x.weekend?' is-weekend':''}" style="left:${(x.a-r.start)/dur*100}%;width:${(x.b-x.a)/dur*100}%"${x.title?` title="${esc(x.title)}"`:''}>${esc(x.label)}</span>`;});}
  axis+=gridHTML(r);if(rd>=r.start&&rd<r.end)axis+=`<span class="today-label" style="left:${(rd-r.start)/(r.end-r.start)*100}%">${state.plan.reviewDateMode==='today'?'Today':state.plan.example?'Snapshot':'Reference'}</span>`;
  const milestones=canvasOutcomeContext().milestones.filter(m=>inLane(m,'')&&!milestoneOnIncrement(m)&&day(m.date)>=r.start&&day(m.date)<r.end),layout=canvasFlatMilestoneLayout(milestones,r);
@@ -2743,7 +2775,7 @@ function renderTimeline(){
   if(!collapsed)for(const t of st)rows+=`<div class="initiative-row" data-task-row="${esc(t.id)}" data-stream-id="${esc(s.id)}"><button class="initiative-label" data-canvas-select="initiative" data-record-id="${esc(t.id)}" title="Select ${esc(t.title)}"><span class="item-title" data-title>${esc(t.title)}</span><span class="item-meta"><span class="status-dot" data-status="${t.status}"></span>${STATUS[t.status]}</span></button><div class="timeline-track" data-track="${esc(t.id)}" data-canvas-track="initiative" data-stream-id="${esc(s.id)}">${gridHTML(r)}${canvasInitiativeBar(t,r,c)}</div></div>${incRows.get(t.id)||''}${msRows.get(t.id)||''}`;
   if(!collapsed)rows+=`<div class="initiative-row canvas-add-row" data-stream-id="${esc(s.id)}"><div class="initiative-label"><button class="canvas-empty-prompt" data-add-stream="${esc(s.id)}">${icon('plus')}Add initiative</button></div><div class="timeline-track" data-canvas-track="initiative" data-stream-id="${esc(s.id)}">${gridHTML(r)}</div></div>`;
  }
- $('#content').innerHTML=`<section class="roadmap-panel gantt-view zoom-${timeZoom}"><div class="roadmap-caption"><span>${periodText()}</span><span class="roadmap-count">${n} initiatives</span></div><div class="timeline-scroll"><div class="timeline" style="min-width:${timelineMinWidth(r,true)}px">${rows}${canvasMilestoneLines(r)}<svg class="dependency-layer"></svg></div></div></section>`;
+ $('#content').innerHTML=`<section class="roadmap-panel gantt-view zoom-${axisZoom()}"><div class="roadmap-caption"><span>${periodText()}</span><span class="roadmap-count">${n} initiatives</span></div><div class="timeline-scroll"><div class="timeline" style="min-width:${timelineMinWidth(r,true)}px">${rows}${canvasMilestoneLines(r)}<svg class="dependency-layer"></svg></div></div></section>`;
 }
 function renderBoard(){
  const tasks=filteredTasks();
