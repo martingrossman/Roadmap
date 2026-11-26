@@ -60,6 +60,10 @@ body.drawer-open{overflow:hidden}.detail-overlay{height:100dvh}.detail-panel{max
 .swimlane-milestone-label .swimlane-milestone-add:hover{color:#fff;background:#ffffff24}
 .swimlane-lane-milestones{flex:0 0 auto;min-height:54px}
 .lane-add-menu{min-width:230px}
+.display-pair{display:grid;gap:6px;padding:8px 0;border-top:1px solid #F1F5F9}
+.display-pair-title{font-size:12px;font-weight:650;letter-spacing:.3px;text-transform:uppercase;color:#64748B}
+.roadmap-display-toggle.display-sub{margin-left:22px}
+.roadmap-display-toggle:has(input:disabled){opacity:.5}
 /* Quick guide: short cards, one action per line. */
 .help-modal{width:min(880px,calc(100vw - 32px))}
 .help-modal .help-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
@@ -1226,7 +1230,7 @@ body.bar-style-solid .canvas-item.canvas-increment{border-radius:6px;box-shadow:
                   <label class="filter-field" for="workstreamFilter"><span>Workstream</span><div class="select-wrap"><select id="workstreamFilter" aria-label="Filter by workstream"><option value="all">All workstreams</option></select></div></label>
                   <label class="filter-field" for="statusFilter"><span>Status</span><div class="select-wrap"><select id="statusFilter" aria-label="Filter by status"><option value="all">All statuses</option><option value="planned">Planned</option><option value="discovery">Discovery</option><option value="building">Building</option><option value="review">In review</option><option value="done">Done</option></select></div></label>
                   <label class="filter-field" id="outcomeFilterField" for="outcomeFilter"><span>Outcome</span><div class="select-wrap"><select id="outcomeFilter" aria-label="Filter by outcome"><option value="">All outcomes</option></select></div></label>
-                  <div class="roadmap-display-options" id="roadmapDisplayOptions"><strong>Roadmap display</strong><label class="roadmap-display-toggle" for="showIncrements"><input id="showIncrements" type="checkbox" checked="" aria-describedby="showIncrementsHint"><span>Show increments<small id="showIncrementsHint">Milestones stay visible when increments are hidden.</small></span></label><label class="roadmap-display-toggle" for="showMilestoneRow"><input id="showMilestoneRow" type="checkbox" checked="" aria-describedby="showMilestoneRowHint"><span>Show Milestones row<small id="showMilestoneRowHint">The plan-wide row at the top. Milestones in a workstream or on an increment stay visible.</small></span></label><div class="bar-style-row"><span>Bar style</span><div class="bar-style-pills" role="group" aria-label="Bar style"><button type="button" class="bar-style-pill active" data-bar-style="tinted" aria-pressed="true">Tinted glass</button><button type="button" class="bar-style-pill" data-bar-style="solid" aria-pressed="false">Solid pill</button></div></div></div>
+                  <div class="roadmap-display-options" id="roadmapDisplayOptions"><strong>Roadmap display</strong><div class="display-pair" role="group" aria-labelledby="incrementsPairTitle"><span class="display-pair-title" id="incrementsPairTitle">Increments</span><label class="roadmap-display-toggle" for="showIncrements"><input id="showIncrements" type="checkbox" checked="" aria-describedby="showIncrementsHint"><span>All increments<small id="showIncrementsHint">Every increment, in every row. Their milestones stay visible.</small></span></label><label class="roadmap-display-toggle display-sub" for="showIncrementRow"><input id="showIncrementRow" type="checkbox" checked="" aria-describedby="showIncrementRowHint"><span>Increments row<small id="showIncrementRowHint">Only the plan-wide row at the top. Workstream increments stay.</small></span></label></div><div class="display-pair" role="group" aria-labelledby="milestonesPairTitle"><span class="display-pair-title" id="milestonesPairTitle">Milestones</span><label class="roadmap-display-toggle" for="showMilestones"><input id="showMilestones" type="checkbox" checked="" aria-describedby="showMilestonesHint"><span>All milestones<small id="showMilestonesHint">Every milestone, in every row and on increments.</small></span></label><label class="roadmap-display-toggle display-sub" for="showMilestoneRow"><input id="showMilestoneRow" type="checkbox" checked="" aria-describedby="showMilestoneRowHint"><span>Milestones row<small id="showMilestoneRowHint">Only the plan-wide row at the top. Other milestones stay.</small></span></label></div><div class="bar-style-row"><span>Bar style</span><div class="bar-style-pills" role="group" aria-label="Bar style"><button type="button" class="bar-style-pill active" data-bar-style="tinted" aria-pressed="true">Tinted glass</button><button type="button" class="bar-style-pill" data-bar-style="solid" aria-pressed="false">Solid pill</button></div></div></div>
                 </div>
               </div>
             </div>
@@ -2469,6 +2473,10 @@ const INCREMENT_VISIBILITY_KEY='roadmap.view.showIncrements.'+initialPlan.id;
 // The plan-wide Milestones row at the top of the roadmap and Gantt can be hidden (saved per plan in this browser).
 const MILESTONE_ROW_KEY='roadmap.view.showMilestoneRow.'+initialPlan.id;
 let storedMilestoneRow=true;try{storedMilestoneRow=localStorage.getItem(MILESTONE_ROW_KEY)!=='false';}catch{}
+const INCREMENT_ROW_KEY='roadmap.view.showIncrementRow.'+initialPlan.id,MILESTONES_KEY='roadmap.view.showMilestones.'+initialPlan.id;
+let storedIncrementRow=true,storedMilestones=true;try{storedIncrementRow=localStorage.getItem(INCREMENT_ROW_KEY)!=='false';storedMilestones=localStorage.getItem(MILESTONES_KEY)!=='false';}catch{}
+function setIncrementRowVisibility(visible,renderView=true){state.showIncrementRow=!!visible;try{localStorage.setItem(INCREMENT_ROW_KEY,String(state.showIncrementRow));}catch{}if(renderView)render();}
+function setMilestonesVisibility(visible,renderView=true){state.showMilestones=!!visible;try{localStorage.setItem(MILESTONES_KEY,String(state.showMilestones));}catch{}if(renderView)render();}
 function setMilestoneRowVisibility(visible,renderView=true){state.showMilestoneRow=!!visible;try{localStorage.setItem(MILESTONE_ROW_KEY,String(state.showMilestoneRow));}catch{}if(renderView)render();}
 let storedIncrementVisibility=true;try{storedIncrementVisibility=localStorage.getItem(INCREMENT_VISIBILITY_KEY)!=='false';}catch{}
 const BAR_STYLE_KEY='roadmap.view.barStyle';
@@ -2540,7 +2548,7 @@ function stepZoom(step,anchorX){
  return true;
 }
 let storedBarStyle='tinted';try{const b=localStorage.getItem(BAR_STYLE_KEY);if(b==='solid'||b==='tinted')storedBarStyle=b;}catch{}
-const state={plan:loadedPlan,section:'roadmap',view:'swimlane',year:loadedPlan.year,range:'rolling',stream:'all',status:'all',query:'',outcome:'',collapsed:new Set(),dependencies:true,showIncrements:storedIncrementVisibility,showMilestoneRow:storedMilestoneRow,barStyle:storedBarStyle,sort:{field:'order',dir:1},undo:[],redo:[],presentation:false};
+const state={plan:loadedPlan,section:'roadmap',view:'swimlane',year:loadedPlan.year,range:'rolling',stream:'all',status:'all',query:'',outcome:'',collapsed:new Set(),dependencies:true,showIncrements:storedIncrementVisibility,showMilestoneRow:storedMilestoneRow,showIncrementRow:storedIncrementRow,showMilestones:storedMilestones,barStyle:storedBarStyle,sort:{field:'order',dir:1},undo:[],redo:[],presentation:false};
 let storageOK=true,detail=null,lastFocus=null,confirmCallback=null,settingsStreams=[],activeDrag=null,suppressClickUntil=0;
 function hydrateIcons(root=document){root.querySelectorAll('[data-icon]').forEach(e=>{e.innerHTML=icon(e.dataset.icon);e.removeAttribute('data-icon');});}
 function palette(stream){return RoadmapColors.streamPalette(state.plan.workstreams.find(s=>s.id===stream));}
@@ -2554,7 +2562,7 @@ function laneOf(x){return x&&x.stream||'';}
 function inLane(x,lane){return laneOf(x)===lane;}
 // A milestone is drawn on its increment when increments are shown and both sit in the same lane.
 // Otherwise it goes in its lane's milestone row.
-function milestoneOnIncrement(m){if(!state.showIncrements||!m.increment)return false;const x=getIncrement(m.increment);return !!x&&laneOf(x)===laneOf(m);}
+function milestoneOnIncrement(m){if(!state.showIncrements||!m.increment)return false;const x=getIncrement(m.increment);return !!x&&laneOf(x)===laneOf(m)&&(!!laneOf(x)||state.showIncrementRow);}
 function metricProgress(o){const d=o.target-o.baseline;return d===0?(o.current===o.target?100:0):clamp(Math.round((o.current-o.baseline)/d*100),0,100);}
 function metricValue(n,unit){return fmtNum(n)+(unit==='%'?'%':unit?' '+esc(unit):'');}
 function conflicts(t){return t.dependencies.map(getTask).filter(d=>d&&d.end>=t.start);}
@@ -2607,7 +2615,7 @@ function render(){
  if($('#outcomeFilter').innerHTML!==outcomeOptions)$('#outcomeFilter').innerHTML=outcomeOptions;$('#outcomeFilter').value=state.outcome;$('#outcomeFilterField').hidden=!p.outcomes.length;
  const filterCount=Number(state.stream!=='all')+Number(state.status!=='all')+Number(!!state.outcome)+Number(!!state.query);
  $('#filtersCount').textContent=filterCount;$('#filtersCount').hidden=!filterCount;$('#filtersBtn').classList.toggle('is-active',!!filterCount);$('#filtersBtn').setAttribute('aria-label',filterCount?`Filters · ${filterCount} active`:'Filters');$('#clearFiltersBtn').disabled=!filterCount;
- $('#roadmapDisplayOptions').hidden=state.section!=='roadmap'||!['timeline','swimlane'].includes(state.view);$('#showIncrements').checked=state.showIncrements;$('#showMilestoneRow').checked=state.showMilestoneRow;
+ $('#roadmapDisplayOptions').hidden=state.section!=='roadmap'||!['timeline','swimlane'].includes(state.view);$('#showIncrements').checked=state.showIncrements;$('#showMilestoneRow').checked=state.showMilestoneRow;$('#showMilestoneRow').disabled=!state.showMilestones;$('#showMilestones').checked=state.showMilestones;$('#showIncrementRow').checked=state.showIncrementRow;$('#showIncrementRow').disabled=!state.showIncrements;
  $('#timelineControls').hidden=state.section!=='roadmap';$('#rangeSelect').closest('.select-wrap').hidden=!['timeline','swimlane'].includes(state.view);$('#timelineControls .zoom-control').hidden=!['timeline','swimlane'].includes(state.view);$('#dependenciesBtn').hidden=state.view==='table';applyTimelineColor();$('#periodLabel').textContent=state.range==='rolling'?'':state.range==='custom'?periodText():state.year;$('#periodLabel').title=state.range==='rolling'?'Showing these months · click to go back to '+fmtDate(state.plan.reviewDate,true):'Back to '+fmtDate(state.plan.reviewDate,true);
  $('#todayLabel').textContent=state.plan.reviewDateMode==='today'?'Today':'Reference';$('#todayBtn').title=(state.plan.reviewDateMode==='today'?'Today':'Reference date · '+fmtDate(state.plan.reviewDate,true))+' (T)';$('#todayBtn').hidden=state.section!=='roadmap'||!['timeline','swimlane'].includes(state.view);$('#rangeSelect').value=state.range;$('#customRange').hidden=state.range!=='custom';if(state.range==='custom'){$('#customStart').value=state.customStart;$('#customEnd').value=state.customEnd;}$('#prevPeriod').title=$('#prevPeriod').ariaLabel=state.range==='rolling'?'Earlier':state.range==='custom'?'Move range back a year':'Previous year';$('#nextPeriod').title=$('#nextPeriod').ariaLabel=state.range==='rolling'?'Later':state.range==='custom'?'Move range forward a year':'Next year';
  $('#prevPeriod').disabled=state.year<=2000;$('#nextPeriod').disabled=state.year>=2099;
@@ -2843,6 +2851,8 @@ $('#detailForm').addEventListener('change',event=>{if(!detail)return;detail.dirt
 $('#searchInput').addEventListener('input',event=>{state.query=event.target.value;render();});
 $('#statusFilter').addEventListener('change',event=>{state.status=event.target.value;render();});
 $('#workstreamFilter').addEventListener('change',event=>{state.stream=event.target.value;render();});
+$('#showMilestones').addEventListener('change',event=>{RoadmapCanvas.cancel();RoadmapCanvas.clearSelection();RoadmapDeps.cancel();setMilestonesVisibility(event.target.checked);});
+$('#showIncrementRow').addEventListener('change',event=>{RoadmapCanvas.cancel();RoadmapCanvas.clearSelection();RoadmapDeps.cancel();setIncrementRowVisibility(event.target.checked);});
 $('#showMilestoneRow').addEventListener('change',event=>{RoadmapCanvas.cancel();RoadmapCanvas.clearSelection();RoadmapDeps.cancel();setMilestoneRowVisibility(event.target.checked);});
 $('#showIncrements').addEventListener('change',event=>{RoadmapCanvas.cancel();RoadmapCanvas.clearSelection();RoadmapDeps.cancel();setIncrementVisibility(event.target.checked);});
 $('#outcomeFilter').addEventListener('change',event=>{state.outcome=event.target.value;render();});$('#rangeSelect').addEventListener('change',event=>{const v=event.target.value;if(v==='custom'&&!(state.customStart&&state.customEnd)){state.customStart=`${state.year}-01`;state.customEnd=`${state.year}-12`;}if(v==='custom')state.year=ymParts(state.customStart)[0];if(v==='rolling')pendingTodayScroll=true;state.range=v;render();});
@@ -3066,7 +3076,7 @@ function swimlaneBar(t,r,c){return canvasInitiativeBar(t,r,c,true);}
 function renderSwimlanes(){
  const r=timelineRange(),all=filteredTasks(),tasks=all.filter(t=>day(t.end)>=r.start&&day(t.start)<r.end);
  const streams=state.plan.workstreams.filter(s=>(state.stream==='all'||state.stream===s.id)&&(!(state.query||state.status!=='all'||state.outcome)||tasks.some(t=>t.stream===s.id)));
- let html=`<div class="swimlane-axis-row"><div class="swimlane-axis-label" title="Workstreams">STREAMS <span>${streams.length}</span><span class="freeze-locks"><button type="button" class="freeze-lock" data-freeze-toggle aria-pressed="false" aria-label="Keep dates and tools visible while scrolling" title="Keep dates and tools visible while scrolling">${icon('unlock')}</button></span></div><div class="swimlane-axis">${swimlaneAxis(r)}</div></div>${canvasIncrementBand(r,true,'')}${state.showMilestoneRow?swimlaneMilestones(r,''):''}`;
+ let html=`<div class="swimlane-axis-row"><div class="swimlane-axis-label" title="Workstreams">STREAMS <span>${streams.length}</span><span class="freeze-locks"><button type="button" class="freeze-lock" data-freeze-toggle aria-pressed="false" aria-label="Keep dates and tools visible while scrolling" title="Keep dates and tools visible while scrolling">${icon('unlock')}</button></span></div><div class="swimlane-axis">${swimlaneAxis(r)}</div></div>${(state.showIncrementRow?canvasIncrementBand(r,true,''):'')}${state.showMilestoneRow&&state.showMilestones?swimlaneMilestones(r,''):''}`;
  for(const s of streams){
   const items=tasks.filter(t=>t.stream===s.id),rows=packSwimlaneTasks(items,r),collapsed=false,c=swimlaneColor(s);
   const laneRows=canvasIncrementBand(r,true,s.id)+swimlaneMilestones(r,s.id),laneCount=laneItemCount(s.id);
@@ -3086,6 +3096,10 @@ function canvasPorts(type,id,title){return `<button type="button" class="dep-por
 function canvasGrip(){return '<span class="canvas-grip" data-drag-handle title="Drag to move" aria-hidden="true">⠿</span>';}
 function canvasFillOutline(color){return color?.outline&&color.outline!=='none'?color.outline:'transparent';}
 function canvasOutcomeContext(){
+ const context=canvasOutcomeContextAll();
+ return state.showMilestones?context:{...context,milestones:[]};
+}
+function canvasOutcomeContextAll(){
  const {initiatives,milestones,increments}=state.plan;
  if(!state.outcome)return{initiatives,milestones,increments};
  const work=initiatives.filter(t=>t.outcome===state.outcome),workIDs=new Set(work.map(t=>t.id)),incrementIDs=new Set(work.map(t=>t.increment).filter(Boolean));
@@ -3231,7 +3245,7 @@ function renderTimeline(){
  const milestones=canvasOutcomeContext().milestones.filter(m=>inLane(m,'')&&!milestoneOnIncrement(m)&&day(m.date)>=r.start&&day(m.date)<r.end),layout=canvasFlatMilestoneLayout(milestones,r);
  const markers=layout.placed.map(p=>canvasMilestoneMarker(p.milestone,r,0,false,null,p)).join('');
  const markerHeight=milestones.length?54:42;
- let rows=`<div class="timeline-header"><div class="lane-heading">INITIATIVES <span>${n}</span><span class="freeze-locks"><button type="button" class="freeze-lock" data-freeze-toggle aria-pressed="false" aria-label="Keep dates and tools visible while scrolling" title="Keep dates and tools visible while scrolling">${icon('unlock')}</button></span></div><div class="time-axis">${axis}</div></div>${canvasIncrementBand(r,false,'')}${state.showMilestoneRow?`<div class="milestone-row" style="height:${markerHeight}px"><div class="lane-label">${icon('flag')}<span>Milestones</span><button class="icon-btn" data-action="new-milestone" aria-label="Add milestone">${icon('plus')}</button></div><div class="milestone-track" data-canvas-track="milestone" style="height:${markerHeight}px">${gridHTML(r)}${markers||'<button class="canvas-empty-prompt" data-action="new-milestone">'+icon('plus')+'Add milestone</button>'}</div></div>`:''}`;
+ let rows=`<div class="timeline-header"><div class="lane-heading">INITIATIVES <span>${n}</span><span class="freeze-locks"><button type="button" class="freeze-lock" data-freeze-toggle aria-pressed="false" aria-label="Keep dates and tools visible while scrolling" title="Keep dates and tools visible while scrolling">${icon('unlock')}</button></span></div><div class="time-axis">${axis}</div></div>${(state.showIncrementRow?canvasIncrementBand(r,false,''):'')}${state.showMilestoneRow&&state.showMilestones?`<div class="milestone-row" style="height:${markerHeight}px"><div class="lane-label">${icon('flag')}<span>Milestones</span><button class="icon-btn" data-action="new-milestone" aria-label="Add milestone">${icon('plus')}</button></div><div class="milestone-track" data-canvas-track="milestone" style="height:${markerHeight}px">${gridHTML(r)}${markers||'<button class="canvas-empty-prompt" data-action="new-milestone">'+icon('plus')+'Add milestone</button>'}</div></div>`:''}`;
  for(const s of state.plan.workstreams.filter(s=>state.stream==='all'||state.stream===s.id)){
   // The saved initiative order owns each row; date edits must not move rows.
   const st=tasks.filter(t=>t.stream===s.id);if(!st.length&&(state.query||state.status!=='all'||state.outcome))continue;const collapsed=state.collapsed.has(s.id),c=RoadmapColors.streamPalette(s);
@@ -3918,6 +3932,8 @@ const RoadmapCanvas=(()=>{
   const count=(state.plan[collection(type)]||[]).length,limit=type==='initiative'?500:100;
   if(count>=limit){toast(`This plan can contain up to ${limit} ${collection(type)}.`,true);return;}
   if(type==='increment'&&!state.showIncrements)setIncrementVisibility(true);
+  if(type==='milestone'&&!state.showMilestones)setMilestonesVisibility(true,false);
+  if(type==='increment'&&!state.showIncrementRow&&!(opts.lane||opts.track?.closest?.('[data-lane-id]')))setIncrementRowVisibility(true,false);
   if(type==='milestone'&&!state.showMilestoneRow&&!(opts.lane||opts.track?.closest?.('[data-lane-id]'))&&!opts.increment)setMilestoneRowVisibility(true);
   if(type!=='initiative'&&(state.section!=='roadmap'||!['swimlane','timeline'].includes(state.view))){state.section='roadmap';state.view='swimlane';render();}
   else if(type==='initiative'&&!['roadmap','initiatives'].includes(state.section)){state.section='roadmap';state.view='swimlane';render();}

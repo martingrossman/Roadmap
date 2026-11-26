@@ -53,7 +53,7 @@ Full setup, permissions and limits: [`apps-script/README.md`](apps-script/README
 - **Zoom:** − and + (or a trackpad or touch pinch) change how much fits on screen: about 3½ years, 12 months, 13 weeks or 3 weeks. **Fit** (or the F key) zooms to show every item at once
 - **Look:** colour templates, custom palettes and a configurable timeline colour
 - **Export:** PDF (selected period or all dates) and standalone HTML
-- **Presentation mode**, undo/redo, search and show/hide filters; the Increments and the plan-wide Milestones rows can each be hidden
+- **Presentation mode**, undo/redo, search and show/hide filters; Show/hide can hide all increments or only the plan-wide Increments row, and all milestones or only the plan-wide Milestones row
 
 ## Repository layout
 
