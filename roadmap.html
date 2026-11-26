@@ -60,8 +60,8 @@ body.drawer-open{overflow:hidden}.detail-overlay{height:100dvh}.detail-panel{max
 .swimlane-milestone-label .swimlane-milestone-add:hover{color:#fff;background:#ffffff24}
 .swimlane-lane-milestones{flex:0 0 auto;min-height:54px}
 .lane-add-menu{min-width:230px}
-.zoom-weeks .swimlane-quarter.is-week{text-align:center;padding-left:0;font-weight:500;opacity:.7}
-.zoom-weeks .quarter-label.is-week{text-align:center;padding-left:0;opacity:.7}
+/* Week numbers: centred in their week box (the header labels are flex boxes) and not bold. */
+.zoom-weeks :is(.swimlane-quarter,.quarter-label).is-week{justify-content:center;text-align:center;padding-left:0;padding-right:0;font-weight:400!important;letter-spacing:0;opacity:.75}
 .today-btn{height:36px;gap:6px;border:1px solid #E2E8F0;border-radius:8px;background:#fff;color:#0F172A;font-weight:600;font-size:13px;padding:0 12px;display:inline-flex;align-items:center}
 .today-btn .icon{width:15px;height:15px}
 .today-btn:hover{background:#F1F5F9}
