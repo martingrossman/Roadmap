@@ -60,6 +60,10 @@ body.drawer-open{overflow:hidden}.detail-overlay{height:100dvh}.detail-panel{max
 .swimlane-milestone-label .swimlane-milestone-add:hover{color:#fff;background:#ffffff24}
 .swimlane-lane-milestones{flex:0 0 auto;min-height:54px}
 .lane-add-menu{min-width:230px}
+.canvas-palette-ghost{position:fixed;z-index:220;pointer-events:none;display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;background:#1f2937;color:#fff;font-size:12px;font-weight:600;box-shadow:0 8px 24px #0f172a33;white-space:nowrap}
+.canvas-palette-ghost .icon{width:13px;height:13px}
+.canvas-palette-ghost.is-invalid{background:#64748b;opacity:.85}
+#canvasTools .canvas-tool[data-canvas-mode="initiative"],#canvasTools .canvas-tool[data-canvas-mode="milestone"],#canvasTools .canvas-tool[data-canvas-mode="increment"]{cursor:grab}
 /* Week numbers: centred in their week box (the header labels are flex boxes) and not bold. */
 .zoom-weeks :is(.swimlane-quarter,.quarter-label).is-week{justify-content:center;text-align:center;padding-left:0;padding-right:0;font-weight:400!important;letter-spacing:0;opacity:.75}
 .today-btn{height:36px;gap:6px;border:1px solid #E2E8F0;border-radius:8px;background:#fff;color:#0F172A;font-weight:600;font-size:13px;padding:0 12px;display:inline-flex;align-items:center}
@@ -3236,7 +3240,7 @@ const RoadmapCanvas=(()=>{
   if(host.hidden){host.innerHTML='';return;}
   const button=(value,label,ic,hint=label)=>`<button type="button" class="canvas-tool ${mode===value?'active':''}" data-canvas-mode="${value}" aria-pressed="${mode===value}" title="${esc(hint)}" aria-label="${esc(hint)}">${icon(ic)}<span>${label}</span></button>`;
   const hint=timeline&&mode!=='select'?(mode==='milestone'?'Click a date or an increment bar to place a milestone.':`Drag across dates to create an ${mode}.`):'';
-  host.innerHTML=`<div class="canvas-toolset" role="group" aria-label="Canvas tools">${timeline?button('select','Select','cursor','Select and move items')+button('initiative','Initiative','plus','Draw initiative')+button('milestone','Milestone','flag','Place milestone')+button('increment','Increment','layers','Draw increment'):button('initiative','Add initiative','plus')}</div>${hint?`<p class="canvas-tool-hint" aria-live="polite">${hint}</p>`:''}`;
+  host.innerHTML=`<div class="canvas-toolset" role="group" aria-label="Canvas tools">${timeline?button('select','Select','cursor','Select and move items')+button('initiative','Initiative','plus','Draw initiative, or drag onto the roadmap')+button('milestone','Milestone','flag','Place milestone, or drag onto the roadmap')+button('increment','Increment','layers','Draw increment, or drag onto the roadmap'):button('initiative','Add initiative','plus')}</div>${hint?`<p class="canvas-tool-hint" aria-live="polite">${hint}</p>`:''}`;
   if(typeof RoadmapWorkstreams!=='undefined')RoadmapWorkstreams.syncQuickTools();
  }
  function actionButton(action,label,ic,extra=''){return `<button type="button" class="canvas-action ${extra}" data-canvas-action="${action}" title="${esc(label)}" aria-label="${esc(label)}">${icon(ic)}<span>${label}</span></button>`;}
@@ -3567,6 +3571,11 @@ const RoadmapCanvas=(()=>{
   lastPointerType=event.pointerType||'mouse';
   if(state.presentation||event.button!==0&&event.pointerType==='mouse'||isTextInput(event.target)||depTarget(event.target)||membershipTarget(event.target)||event.target.closest('#canvasSelection,.canvas-name-editor'))return false;
   // The whole Order cell is the grab area, not just the small handle in it.
+  const tool=event.target.closest('#canvasTools .canvas-tool[data-canvas-mode]');
+  if(tool&&['initiative','milestone','increment'].includes(tool.dataset.canvasMode)&&state.section==='roadmap'&&['swimlane','timeline'].includes(state.view)&&event.pointerType!=='touch'){
+   gesture={kind:'palette',type:tool.dataset.canvasMode,el:tool,pointerId:event.pointerId,x:event.clientX,y:event.clientY,moved:false};
+   return true;
+  }
   const tableHandle=event.target.closest('.data-table .order-cell')?.querySelector('[data-table-drag]:not(:disabled)');
   if(tableHandle&&state.sort.field==='order'){
    const row=tableHandle.closest('[data-task-row]');
@@ -3737,6 +3746,7 @@ const RoadmapCanvas=(()=>{
   const d=gesture;if(!d||d.pointerId!==event.pointerId)return false;
   if(d.kind==='board')return boardMove(event,d);
   if(d.kind==='table')return tableMove(event,d);
+  if(d.kind==='palette')return paletteMove(event,d);
   const distance=Math.hypot(event.clientX-d.x,event.clientY-d.y);if(distance<5&&!d.moved)return true;
   // Moving keeps the item selected without opening its editing controls on render.
   if(!d.moved&&d.kind!=='create'){capture(d.el,d.pointerId);hideInspector();}
@@ -3806,6 +3816,47 @@ const RoadmapCanvas=(()=>{
  // pointer away mid-gesture. Cleared and switched off from press until release.
  function guardGesture(){getSelection()?.removeAllRanges();document.body.classList.add('canvas-gesture');}
  document.addEventListener('dragstart',event=>{if(document.body.classList.contains('canvas-gesture'))event.preventDefault();},true);
+ // Toolbar → timeline: where a dragged Initiative / Milestone / Increment would be created.
+ // Returns {track} (a row of that kind) or {lane} (a workstream without such a row yet), plus the element to highlight.
+ function paletteTarget(event,type){
+  for(const hit of document.elementsFromPoint(event.clientX,event.clientY)){
+   if(hit.closest('.canvas-palette-ghost,.roadmap-dependency-layer,.roadmap-dependency-endpoint-layer'))continue;
+   if(hit.closest('#freezeDock,#roadmapTools,.topbar,#sidebar,#canvasSelection,#canvasTools,dialog'))return null;
+   if(!hit.closest('#content .timeline'))continue;
+   const track=hit.closest(`[data-canvas-track="${type}"]`);
+   if(track)return{track,highlight:track.closest('.canvas-increment-group,.milestone-row,.swimlane-milestone-band,.initiative-row,.swimlane-group')||track};
+   const lane=laneTargetAt(hit),stream=lane&&(lane.dataset.laneId||lane.dataset.streamId);
+   if(stream&&state.plan.workstreams.some(s=>s.id===stream)){
+    if(type==='initiative'){const own=document.querySelector(`#content [data-canvas-track="initiative"][data-stream-id="${CSS.escape(stream)}"]`);if(own)return{track:own,highlight:lane};}
+    else return{lane:stream,highlight:lane};
+   }
+  }
+  return null;
+ }
+ function paletteMove(event,d){
+  if(!d.moved){if(Math.hypot(event.clientX-d.x,event.clientY-d.y)<6)return true;d.moved=true;guardGesture();
+   d.ghost=document.createElement('div');d.ghost.className='canvas-palette-ghost';d.ghost.setAttribute('aria-hidden','true');document.body.append(d.ghost);}
+  event.preventDefault?.();
+  const axis=timelineScroller()?.axis,day0=axis?dateAt(event.clientX,axis):null;
+  d.target=paletteTarget(event,d.type);d.day=day0;
+  document.querySelectorAll('.canvas-drop-target').forEach(el=>{if(el!==d.target?.highlight)el.classList.remove('canvas-drop-target');});
+  d.target?.highlight?.classList.add('canvas-drop-target');
+  d.ghost.innerHTML=`${icon(d.type==='initiative'?'plus':d.type==='milestone'?'flag':'layers')}<span>New ${d.type}${d.target&&day0!=null?' · '+fmtDate(iso(day0),true):''}</span>`;
+  d.ghost.classList.toggle('is-invalid',!d.target);
+  d.ghost.style.left=event.clientX+14+'px';d.ghost.style.top=event.clientY+14+'px';
+  return true;
+ }
+ function paletteEnd(event,d,cancelled){
+  d.ghost?.remove();document.querySelectorAll('.canvas-drop-target').forEach(el=>el.classList.remove('canvas-drop-target'));
+  if(!d.moved)return false; // a plain click: the button keeps switching the drawing mode
+  ignoreClickUntil=performance.now()+450;suppressClickUntil=ignoreClickUntil;
+  if(cancelled||!d.target||d.day==null)return true;
+  const r=timelineRange(),start=Math.max(r.start,Math.min(d.day,r.end-1)),end=Math.min(start+27,r.end-1),anchor={x:event.clientX,y:event.clientY},tr=d.target.track;
+  if(d.type==='initiative')quickAdd('initiative',{start:iso(start),end:iso(end),stream:tr.dataset.streamId||tr.closest('[data-stream-id]')?.dataset.streamId,track:tr,anchor});
+  else if(d.type==='milestone')quickAdd('milestone',{date:iso(start),increment:tr?.dataset.incrementId||tr?.closest('[data-increment-id]')?.dataset.incrementId||'',...(tr?{track:tr}:{lane:d.target.lane}),anchor});
+  else quickAdd('increment',{start:iso(start),end:iso(end),...(tr?{track:tr}:{lane:d.target.lane}),anchor});
+  return true;
+ }
  // Table (sorted by Order): drag a row by its handle; a line shows where it will land.
  function tableMove(event,d){
   if(!d.moved){if(Math.abs(event.clientY-d.y)<4)return true;d.moved=true;d.el.classList.add('is-table-dragging');document.body.classList.add('table-dragging');getSelection()?.removeAllRanges();}
@@ -3856,6 +3907,7 @@ const RoadmapCanvas=(()=>{
   document.body.classList.remove('canvas-gesture');
   if(d.kind==='board'){gesture=null;return boardEnd(d,cancelled);}
   if(d.kind==='table'){gesture=null;return tableEnd(d,cancelled);}
+  if(d.kind==='palette'){gesture=null;return paletteEnd(event,d,cancelled);}
   if(d.moved&&!cancelled&&event&&['initiative','milestone','increment'].includes(d.type)&&d.kind==='move')pointerMove(event,true);
   gesture=null;if(d.scrollFrame)cancelAnimationFrame(d.scrollFrame);release(d);clearPlacementPreview(d);
   document.querySelectorAll('.canvas-drop-target').forEach(el=>el.classList.remove('canvas-drop-target'));

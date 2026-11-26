@@ -46,7 +46,7 @@ Full setup, permissions and limits: [`apps-script/README.md`](apps-script/README
 ## What it does
 
 - **Views:** roadmap (swimlanes), Gantt, board and table
-- **Planning:** workstreams, initiatives, milestones, increments and outcomes with metrics
+- **Planning:** workstreams, initiatives, milestones, increments and outcomes with metrics. Drag Initiative, Milestone or Increment from the toolbar onto the roadmap or Gantt to create one at that date and workstream
 - **Workstreams hold any mix:** a workstream can hold initiatives, milestones and increments, or only some of them. Milestones and increments without a workstream stay in the plan-wide rows at the top
 - **Dependencies:** drag from an item's edge to another item; arrows route around labels
 - **Timeline:** opens around today (2 months back, 10 ahead) and scrolls sideways through time; **Today** (or the T key) jumps back, the arrows move earlier or later, and the months on screen show between them. A scroll stays on the axis it started on, so the timeline does not drift sideways while scrolling down (Shift + wheel scrolls sideways). Full year, a quarter or a custom range are still available
