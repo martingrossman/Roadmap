@@ -144,7 +144,7 @@ function onOpen() {
     .addItem('↗️ Open in new tab', 'openPlannerInTab')
     .addItem('🔗 Set planner link…', 'setPlannerLink')
     .addSeparator()
-    .addItem('📥 Load demo plan', 'loadDemoPlan')
+    .addItem('📥 Load example plan…', 'loadDemoPlan')
     .addItem('🎨 Reapply tab formatting', 'reapplyFormatting')
     .addToUi();
   // Point people at the menu each time the Sheet opens.
@@ -299,19 +299,32 @@ function openPlannerInTab() {
  */
 function loadDemoPlan() {
   const ui = SpreadsheetApp.getUi();
-  if (typeof ROADMAP_DEMO_PLAN === 'undefined') {
+  if (typeof ROADMAP_EXAMPLES === 'undefined') {
     ui.alert('DemoPlan.gs is missing. Rebuild with build.mjs and upload it, then try again.');
     return;
   }
-  const answer = ui.alert('Load demo plan',
-    'This replaces everything on the planner tabs with the demo plan "' + ROADMAP_DEMO_PLAN.name +
-    '". Your own extra columns are kept but their cells are cleared. Continue?', ui.ButtonSet.YES_NO);
-  if (answer !== ui.Button.YES) return;
+  const cards = ROADMAP_EXAMPLES.map(x => '<button class="card" onclick="pick(\'' + roadmapEscapeHtml_(x.key) + '\',this)"><b>' + roadmapEscapeHtml_(x.title) +
+    '</b><span>' + roadmapEscapeHtml_(x.description) + '</span></button>').join('');
+  const html = HtmlService.createHtmlOutput(
+    '<style>body{font:14px/1.45 Arial,sans-serif;margin:0;color:#334155}.card{display:grid;gap:3px;width:100%;text-align:left;margin:0 0 8px;padding:10px 12px;border:1px solid #CBD5E1;border-radius:8px;background:#fff;cursor:pointer;font:inherit}' +
+    '.card:hover{border-color:#64748B}.card b{color:#0F172A}.card span{font-size:13px}p{margin:0 0 10px}.note{color:#64748B;font-size:12px}</style>' +
+    '<p>Choose an example. It replaces everything on the planner tabs; your own extra columns are kept but their cells are cleared.</p>' + cards +
+    '<p class="note" id="status"></p><script>function pick(key,btn){document.querySelectorAll(".card").forEach(function(b){b.disabled=true;});' +
+    'document.getElementById("status").textContent="Loading…";google.script.run.withSuccessHandler(function(){google.script.host.close();})' +
+    '.withFailureHandler(function(e){document.getElementById("status").textContent="Could not load: "+(e&&e.message||e);document.querySelectorAll(".card").forEach(function(b){b.disabled=false;});}).loadExample(key);}</script>'
+  ).setWidth(460).setHeight(520);
+  ui.showModalDialog(html, '📥 Load an example plan');
+}
+
+/** Writes one of the ready-made examples to the Sheet (called from the Load demo plan dialog). */
+function loadExample(key) {
+  const example = (typeof ROADMAP_EXAMPLES !== 'undefined' ? ROADMAP_EXAMPLES : []).filter(x => x.key === key)[0];
+  if (!example) throw new Error('Unknown example: ' + key);
   const lock = LockService.getScriptLock();
-  if (!lock.tryLock(20000)) { ui.alert('The Sheet is busy saving another change. Try again in a moment.'); return; }
+  if (!lock.tryLock(20000)) throw new Error('The Sheet is busy saving another change. Try again in a moment.');
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const plan = JSON.parse(JSON.stringify(ROADMAP_DEMO_PLAN));
+    const plan = JSON.parse(JSON.stringify(example.plan));
     roadmapCheckShape_(plan);
     roadmapWrite_(ss, plan);
     SpreadsheetApp.flush();

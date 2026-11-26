@@ -23,7 +23,7 @@ The Sheet holds the data, one tab per kind of item. Everything starts from the *
 | **🚀 Open planner** | Opens the planner in a large window on top of the Sheet. Needs no deployment, so it works in any copy. |
 | **↗️ Open in new tab** | Opens the planner in its own browser tab through the web app. Gives you a link you can send. |
 | **🔗 Set planner link…** | Saves or changes the web app link that **Open in new tab** uses. |
-| **📥 Load demo plan** | Replaces the Sheet's data with the plan the live demo shows. Asks first. |
+| **📥 Load example plan…** | Choose one of five ready-made roadmaps (including the live demo plan). Replaces the Sheet's data. |
 | **🎨 Reapply tab formatting** | Restores headers, dropdowns and colours on the tabs. |
 
 **Sharing a Sheet so others get their own planner:**
@@ -52,7 +52,8 @@ Full setup, permissions and limits: [`apps-script/README.md`](apps-script/README
 - **Timeline:** opens around today (2 months back, 10 ahead) and scrolls sideways through time; **Today** (or the T key) jumps back, the arrows move earlier or later, and the months on screen show between them. A scroll stays on the axis it started on, so the timeline does not drift sideways while scrolling down (Shift + wheel scrolls sideways). Full year, a quarter or a custom range are still available
 - **Zoom:** − and + (or a trackpad or touch pinch) change how much fits on screen: about 3½ years, 12 months, 13 weeks or 3 weeks. **Fit** (or the F key) zooms to show every item at once
 - **Look:** colour templates, custom palettes and a configurable timeline colour
-- **Export:** PDF (selected period or all dates) and standalone HTML
+- **Export and import:** PDF (selected period or all dates), standalone HTML, a JSON backup of the whole roadmap, and the initiatives as CSV. **Import** restores a JSON backup, or reads initiatives and milestones from a CSV or Excel (.xlsx) file: rows matching an existing initiative (same name and workstream) update it, new ones are added, and unknown workstreams are created. It shows what will change and can be undone
+- **Examples:** Plan settings → **Load example** offers five ready-made roadmaps: *Very simple* (initiatives only), *With milestones*, *Milestones in workstreams*, *Advanced* (every option, the live demo) and *Release train* (teams with their own increments and milestones)
 - **Presentation mode**, undo/redo, search and show/hide filters; Show/hide can hide all increments or only the plan-wide Increments row, and all milestones or only the plan-wide Milestones row
 
 ## Repository layout

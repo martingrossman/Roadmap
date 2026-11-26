@@ -60,6 +60,13 @@ body.drawer-open{overflow:hidden}.detail-overlay{height:100dvh}.detail-panel{max
 .swimlane-milestone-label .swimlane-milestone-add:hover{color:#fff;background:#ffffff24}
 .swimlane-lane-milestones{flex:0 0 auto;min-height:54px}
 .lane-add-menu{min-width:230px}
+.examples-modal{width:min(760px,calc(100vw - 32px))}
+.example-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.example-card{display:grid;gap:6px;text-align:left;padding:14px 16px;border:1px solid #E2E8F0;border-radius:10px;background:#fff;cursor:pointer;font:inherit;color:#334155}
+.example-card:hover,.example-card:focus-visible{border-color:#94A3B8;box-shadow:0 4px 14px #0f172a14}
+.example-card strong{font-size:15px;color:#0F172A}
+.example-card span{font-size:13.5px;line-height:1.45}
+.example-card small{font-size:12px;color:#64748B}
 .display-pair{display:grid;gap:6px;padding:8px 0;border-top:1px solid #F1F5F9}
 .display-pair-title{font-size:12px;font-weight:650;letter-spacing:.3px;text-transform:uppercase;color:#64748B}
 .roadmap-display-toggle.display-sub{margin-left:22px}
@@ -1207,7 +1214,7 @@ body.bar-style-solid .canvas-item.canvas-increment{border-radius:6px;box-shadow:
     <header class="topbar">
       <button class="icon-btn mobile-menu" id="mobileMenu" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar" data-icon="menu"></button>
       <div class="plan-identity"><h1 id="projectTitle"><button type="button" class="project-name-button" id="renameProjectBtn" aria-label="Rename project" title="Click to rename project"><span id="planName">Product plan</span><svg viewBox="0 0 24 24" class="project-rename-icon" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m16 3 5 5-12 12-6 1 1-6Z"></path><path d="m14 5 5 5"></path></svg></button></h1><form id="projectNameForm" class="project-name-form" hidden=""><input id="projectNameInput" type="text" aria-label="Project name" required="" maxlength="80" autocomplete="off" spellcheck="false"><button class="icon-btn" type="submit" aria-label="Save project name" title="Save project name" data-icon="check"></button><button class="icon-btn" id="cancelProjectName" type="button" aria-label="Cancel project rename" title="Cancel" data-icon="close"></button></form><span class="badge example-badge" id="exampleBadge" hidden="">Example</span></div>
-      <div class="topbar-actions"><span class="save-indicator" id="saveIndicator"><span class="saved-dot"></span>Saved on this device</span><button class="icon-btn" id="undoBtn" title="Undo (Ctrl/⌘ Z)" aria-label="Undo" data-icon="undo" disabled=""></button><button class="icon-btn" id="redoBtn" title="Redo (Ctrl/⌘ Shift Z)" aria-label="Redo" data-icon="redo" disabled=""></button><button class="icon-btn presentation-button" id="presentBtn" title="Presentation mode" aria-label="Presentation mode" data-icon="present"></button><div class="project-colors-wrap"><button class="btn secondary small" id="projectColorsBtn" aria-expanded="false" aria-controls="projectColorsPanel" aria-label="Project colors"><span class="project-color-preview" id="projectColorPreview" aria-hidden="true"></span><span class="project-colors-label">Colors</span></button><section class="project-colors-panel" id="projectColorsPanel" aria-label="Project color schemes" hidden=""><div class="project-colors-header"><strong>Project colors</strong><div class="bar-style-pills" role="group" aria-label="Bar appearance"><button type="button" class="bar-style-pill active" data-bar-style="tinted" aria-pressed="true">Tinted glass</button><button type="button" class="bar-style-pill" data-bar-style="solid" aria-pressed="false">Solid pill</button></div><button class="icon-btn" id="closeProjectColors" type="button" aria-label="Close project colors" data-icon="close"></button></div><p>One palette across every view of your project.</p><div class="project-color-presets" id="projectColorPresets" role="radiogroup" aria-label="Project color scheme"></div><div class="project-custom-colors" id="projectCustomColors" hidden=""></div><div class="project-colors-footer"><span>Saved with your plan · Included in PDF</span><strong id="projectColorCurrent">Linear Carbon</strong></div></section></div><div class="export-wrap"><button class="btn secondary small" id="exportBtn" aria-expanded="false"><span data-icon="export"></span><span>Export</span><span data-icon="chevron"></span></button><div class="menu-popover" id="exportMenu" hidden=""><button class="menu-item" id="exportPDF"><span data-icon="print"></span><span>Export PDF<small>Export just the roadmap, Gantt or board</small></span></button><hr><button class="menu-item" id="downloadHTML"><span data-icon="code"></span><span>Download HTML<small>Standalone app with this plan</small></span></button><button class="menu-item" id="exportJSON"><span data-icon="download"></span><span>Export plan<small>JSON backup and transfer</small></span></button><button class="menu-item" id="exportCSV"><span data-icon="table"></span><span>Export initiatives<small>Spreadsheet-ready CSV</small></span></button><hr><button class="menu-item" id="importBtn"><span data-icon="upload"></span><span>Import plan<small>Restore a JSON backup</small></span></button><button class="menu-item" id="printBtn"><span data-icon="print"></span><span>Print current view<small>Use your browser’s print dialog</small></span></button></div></div></div>
+      <div class="topbar-actions"><span class="save-indicator" id="saveIndicator"><span class="saved-dot"></span>Saved on this device</span><button class="icon-btn" id="undoBtn" title="Undo (Ctrl/⌘ Z)" aria-label="Undo" data-icon="undo" disabled=""></button><button class="icon-btn" id="redoBtn" title="Redo (Ctrl/⌘ Shift Z)" aria-label="Redo" data-icon="redo" disabled=""></button><button class="icon-btn presentation-button" id="presentBtn" title="Presentation mode" aria-label="Presentation mode" data-icon="present"></button><div class="project-colors-wrap"><button class="btn secondary small" id="projectColorsBtn" aria-expanded="false" aria-controls="projectColorsPanel" aria-label="Project colors"><span class="project-color-preview" id="projectColorPreview" aria-hidden="true"></span><span class="project-colors-label">Colors</span></button><section class="project-colors-panel" id="projectColorsPanel" aria-label="Project color schemes" hidden=""><div class="project-colors-header"><strong>Project colors</strong><div class="bar-style-pills" role="group" aria-label="Bar appearance"><button type="button" class="bar-style-pill active" data-bar-style="tinted" aria-pressed="true">Tinted glass</button><button type="button" class="bar-style-pill" data-bar-style="solid" aria-pressed="false">Solid pill</button></div><button class="icon-btn" id="closeProjectColors" type="button" aria-label="Close project colors" data-icon="close"></button></div><p>One palette across every view of your project.</p><div class="project-color-presets" id="projectColorPresets" role="radiogroup" aria-label="Project color scheme"></div><div class="project-custom-colors" id="projectCustomColors" hidden=""></div><div class="project-colors-footer"><span>Saved with your plan · Included in PDF</span><strong id="projectColorCurrent">Linear Carbon</strong></div></section></div><div class="export-wrap"><button class="btn secondary small" id="exportBtn" aria-expanded="false"><span data-icon="export"></span><span>Export</span><span data-icon="chevron"></span></button><div class="menu-popover" id="exportMenu" hidden=""><button class="menu-item" id="exportPDF"><span data-icon="print"></span><span>Export PDF<small>Export just the roadmap, Gantt or board</small></span></button><hr><button class="menu-item" id="downloadHTML"><span data-icon="code"></span><span>Download HTML<small>Standalone app with this plan</small></span></button><button class="menu-item" id="exportJSON"><span data-icon="download"></span><span>Export plan<small>JSON backup of the whole roadmap</small></span></button><button class="menu-item" id="exportCSV"><span data-icon="table"></span><span>Export initiatives<small>Spreadsheet-ready CSV</small></span></button><hr><button class="menu-item" id="importBtn"><span data-icon="upload"></span><span>Import plan<small>Restore a JSON backup of the whole roadmap</small></span></button><button class="menu-item" id="importSheetBtn"><span data-icon="table"></span><span>Import from spreadsheet<small>Initiatives and milestones from CSV or Excel</small></span></button><button class="menu-item" id="printBtn"><span data-icon="print"></span><span>Print current view<small>Use your browser’s print dialog</small></span></button></div></div></div>
     </header>
     <div class="page-content">
       <div class="print-heading"><strong id="printPlanName"></strong><span id="printPeriod"></span></div>
@@ -1253,7 +1260,7 @@ body.bar-style-solid .canvas-item.canvas-increment{border-radius:6px;box-shadow:
 <div class="detail-overlay" id="detailOverlay" hidden=""><section class="detail-panel" role="dialog" aria-modal="true" aria-labelledby="detailTitle" tabindex="-1" id="detailPanel"><div class="detail-header"><div><span class="eyebrow" id="detailEyebrow">INITIATIVE</span><h2 id="detailTitle">New initiative</h2></div><button class="icon-btn" id="closeDetail" aria-label="Close editor" data-icon="close"></button></div><form id="detailForm" class="detail-form"><div class="detail-body" id="detailBody"></div><div class="detail-footer"><div id="detailSecondary"></div><button type="button" class="btn secondary" id="cancelDetail">Cancel</button><button type="submit" class="btn">Save changes</button></div></form></section></div>
 <dialog class="modal" id="settingsModal" aria-labelledby="settingsTitle"><form id="settingsForm"><div class="modal-header"><div><div class="eyebrow">YOUR WORKSPACE</div><h2 id="settingsTitle">Plan settings</h2></div><button type="button" class="icon-btn" data-close-dialog="" aria-label="Close settings" data-icon="close"></button></div><div class="modal-body" id="settingsBody"></div><div class="modal-footer"><button type="button" class="btn secondary" data-close-dialog="">Cancel</button><button type="submit" class="btn">Save settings</button></div></form></dialog>
 <dialog class="modal" id="confirmModal" aria-labelledby="confirmTitle"><div class="modal-header"><h2 id="confirmTitle">Confirm</h2><button class="icon-btn" data-close-dialog="" aria-label="Close confirmation" data-icon="close"></button></div><div class="modal-body" id="confirmBody"></div><div class="modal-footer"><button class="btn secondary" data-close-dialog="">Cancel</button><button class="btn" id="confirmAction">Continue</button></div></dialog>
-<dialog class="modal help-modal" id="helpModal" aria-labelledby="helpTitle"><div class="modal-header"><div><div class="eyebrow">Quick guide</div><h2 id="helpTitle">How to use the planner</h2></div><button class="icon-btn" data-close-dialog="" aria-label="Close guide" data-icon="close"></button></div><div class="modal-body"><div class="help-grid"><section class="help-card"><h3><span data-icon="plus"></span>Get started</h3><ul><li><b>Rename the plan:</b> click its title.</li><li><b>Add a workstream:</b> choose <b>Add workstream</b>, type a name, press Enter.</li><li><b>Add work:</b> drag <b>Initiative</b>, <b>Milestone</b> or <b>Increment</b> from the toolbar onto the roadmap.</li><li>Or use the <b>+</b> on a workstream to add something to it.</li></ul></section><section class="help-card"><h3><span data-icon="cursor"></span>Edit and move</h3><ul><li><b>Rename:</b> click an item and type.</li><li><b>Details:</b> double-click an item, or press Enter.</li><li><b>Reschedule:</b> drag an item left or right. Drag an edge to change its length.</li><li><b>Move to another workstream:</b> drag it up or down. A straight drag keeps its dates.</li><li><b>Board and Table:</b> drag cards or rows to reorder them.</li></ul></section><section class="help-card"><h3><span data-icon="calendar"></span>Move through time</h3><ul><li><b>Today</b> jumps back to today. <b>‹ ›</b> move earlier or later.</li><li><b>− / +</b> zoom between years, months, weeks and days. You can also pinch.</li><li><b>Fit</b> shows every item at once.</li><li>Scrolling stays straight. <b>Shift + wheel</b> scrolls sideways.</li><li>The period menu also offers <b>Full year</b>, a quarter or a custom range.</li></ul></section><section class="help-card"><h3><span data-icon="link"></span>Connect delivery</h3><ul><li><b>Dependency:</b> drag from an item’s connector circle to another item.</li><li>Select an arrow to reconnect or remove it. Dates never move on their own.</li><li><b>Increments</b> are delivery windows. Click one to highlight its work.</li><li><b>Milestones</b> are checkpoints. Drop one on an increment bar to attach it.</li></ul></section><section class="help-card"><h3><span data-icon="layers"></span>Views and display</h3><ul><li><b>Roadmap</b> for the overview, <b>Gantt</b> for a row per item, <b>Board</b> by status, <b>Table</b> as a list.</li><li><b>Show/hide</b> filters work and hides the Increments or Milestones row.</li><li><b>Colors</b> changes the palette for the whole plan.</li></ul></section><section class="help-card"><h3><span data-icon="target"></span>Outcomes</h3><ul><li>An <b>outcome</b> is a result you measure, with a target.</li><li>Link an initiative to it under <b>Linked outcome</b> in the initiative’s details.</li><li>Progress follows the metric, not the number of finished initiatives.</li></ul></section><section class="help-card"><h3><span data-icon="download"></span>Save and share</h3><ul><li>Changes save automatically in this browser (or to the Google Sheet).</li><li><b>Export</b> a PDF, an HTML copy with your plan, or a JSON backup.</li></ul></section></div><h3 class="help-keys-title">Keyboard shortcuts</h3><div class="help-keys"><div class="help-key"><span>Search</span><span><kbd>/</kbd></span></div><div class="help-key"><span>New initiative</span><span><kbd>N</kbd></span></div><div class="help-key"><span>Jump to today</span><span><kbd>T</kbd></span></div><div class="help-key"><span>Fit all items</span><span><kbd>F</kbd></span></div><div class="help-key"><span>Rename selected item</span><span><kbd>F2</kbd></span></div><div class="help-key"><span>Open details</span><span><kbd>Enter</kbd></span></div><div class="help-key"><span>Undo</span><span><kbd>Ctrl/⌘</kbd> <kbd>Z</kbd></span></div><div class="help-key"><span>Redo</span><span><kbd>Ctrl/⌘</kbd> <kbd>Shift</kbd> <kbd>Z</kbd></span></div><div class="help-key"><span>Close or cancel</span><span><kbd>Esc</kbd></span></div><div class="help-key"><span>This guide</span><span><kbd>?</kbd></span></div></div><p class="guide-note">On a phone: swipe to scroll, tap an item to rename it, double-tap for details.</p><p class="guide-note" id="sampleHelp">Example plans contain fictional data. The reference date is in Plan settings.</p></div><div class="modal-footer"><button class="btn" data-close-dialog="">Got it</button></div></dialog>
+<dialog class="modal help-modal" id="helpModal" aria-labelledby="helpTitle"><div class="modal-header"><div><div class="eyebrow">Quick guide</div><h2 id="helpTitle">How to use the planner</h2></div><button class="icon-btn" data-close-dialog="" aria-label="Close guide" data-icon="close"></button></div><div class="modal-body"><div class="help-grid"><section class="help-card"><h3><span data-icon="plus"></span>Get started</h3><ul><li><b>Rename the plan:</b> click its title.</li><li><b>Add a workstream:</b> choose <b>Add workstream</b>, type a name, press Enter.</li><li><b>Add work:</b> drag <b>Initiative</b>, <b>Milestone</b> or <b>Increment</b> from the toolbar onto the roadmap.</li><li>Or use the <b>+</b> on a workstream to add something to it.</li></ul></section><section class="help-card"><h3><span data-icon="cursor"></span>Edit and move</h3><ul><li><b>Rename:</b> click an item and type.</li><li><b>Details:</b> double-click an item, or press Enter.</li><li><b>Reschedule:</b> drag an item left or right. Drag an edge to change its length.</li><li><b>Move to another workstream:</b> drag it up or down. A straight drag keeps its dates.</li><li><b>Board and Table:</b> drag cards or rows to reorder them.</li></ul></section><section class="help-card"><h3><span data-icon="calendar"></span>Move through time</h3><ul><li><b>Today</b> jumps back to today. <b>‹ ›</b> move earlier or later.</li><li><b>− / +</b> zoom between years, months, weeks and days. You can also pinch.</li><li><b>Fit</b> shows every item at once.</li><li>Scrolling stays straight. <b>Shift + wheel</b> scrolls sideways.</li><li>The period menu also offers <b>Full year</b>, a quarter or a custom range.</li></ul></section><section class="help-card"><h3><span data-icon="link"></span>Connect delivery</h3><ul><li><b>Dependency:</b> drag from an item’s connector circle to another item.</li><li>Select an arrow to reconnect or remove it. Dates never move on their own.</li><li><b>Increments</b> are delivery windows. Click one to highlight its work.</li><li><b>Milestones</b> are checkpoints. Drop one on an increment bar to attach it.</li></ul></section><section class="help-card"><h3><span data-icon="layers"></span>Views and display</h3><ul><li><b>Roadmap</b> for the overview, <b>Gantt</b> for a row per item, <b>Board</b> by status, <b>Table</b> as a list.</li><li><b>Show/hide</b> filters work and hides the Increments or Milestones row.</li><li><b>Colors</b> changes the palette for the whole plan.</li></ul></section><section class="help-card"><h3><span data-icon="target"></span>Outcomes</h3><ul><li>An <b>outcome</b> is a result you measure, with a target.</li><li>Link an initiative to it under <b>Linked outcome</b> in the initiative’s details.</li><li>Progress follows the metric, not the number of finished initiatives.</li></ul></section><section class="help-card"><h3><span data-icon="download"></span>Save and share</h3><ul><li>Changes save automatically in this browser (or to the Google Sheet).</li><li><b>Export</b> a PDF, an HTML copy with your plan, a JSON backup of the whole roadmap, or the initiatives as CSV.</li><li><b>Import</b> a JSON backup, or initiatives and milestones from CSV or Excel. Matching rows update existing items.</li><li><b>Plan settings → Load example</b> offers five ready-made roadmaps.</li></ul></section></div><h3 class="help-keys-title">Keyboard shortcuts</h3><div class="help-keys"><div class="help-key"><span>Search</span><span><kbd>/</kbd></span></div><div class="help-key"><span>New initiative</span><span><kbd>N</kbd></span></div><div class="help-key"><span>Jump to today</span><span><kbd>T</kbd></span></div><div class="help-key"><span>Fit all items</span><span><kbd>F</kbd></span></div><div class="help-key"><span>Rename selected item</span><span><kbd>F2</kbd></span></div><div class="help-key"><span>Open details</span><span><kbd>Enter</kbd></span></div><div class="help-key"><span>Undo</span><span><kbd>Ctrl/⌘</kbd> <kbd>Z</kbd></span></div><div class="help-key"><span>Redo</span><span><kbd>Ctrl/⌘</kbd> <kbd>Shift</kbd> <kbd>Z</kbd></span></div><div class="help-key"><span>Close or cancel</span><span><kbd>Esc</kbd></span></div><div class="help-key"><span>This guide</span><span><kbd>?</kbd></span></div></div><p class="guide-note">On a phone: swipe to scroll, tap an item to rename it, double-tap for details.</p><p class="guide-note" id="sampleHelp">Example plans contain fictional data. The reference date is in Plan settings.</p></div><div class="modal-footer"><button class="btn" data-close-dialog="">Got it</button></div></dialog>
 <dialog class="modal pdf-modal" id="pdfModal" aria-labelledby="pdfTitle">
  <form id="pdfForm">
   <div class="modal-header"><div><div class="eyebrow">READY TO SHARE</div><h2 id="pdfTitle">Export view as PDF</h2><p class="pdf-intro">Your selected board or timeline, ready to share.</p></div><button type="button" class="icon-btn" data-close-dialog="" aria-label="Close PDF export" data-icon="close"></button></div>
@@ -1276,7 +1283,7 @@ body.bar-style-solid .canvas-item.canvas-increment{border-radius:6px;box-shadow:
   <div class="modal-footer"><span class="pdf-format-note"><span data-icon="check"></span>Automatic pagination</span><div class="pdf-footer-actions"><button type="button" class="btn secondary" data-close-dialog="">Cancel</button><button type="submit" class="btn" id="pdfGenerate"><span data-icon="download"></span>Download PDF</button></div></div>
  </form>
 </dialog>
-<input type="file" accept=".json,application/json" id="importFile" hidden="">
+<input type="file" accept=".json,application/json" id="importFile" hidden=""><input type="file" accept=".csv,.tsv,.txt,.xlsx,text/csv,text/tab-separated-values,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" id="importSheetFile" hidden="">
 <button class="btn presentation-exit" id="exitPresentation" hidden=""><span data-icon="close"></span>Exit presentation</button>
 <div class="toast-region" id="toastRegion" aria-live="polite" aria-atomic="true"></div><div class="drag-tooltip" id="dragTooltip" hidden=""></div>
 <script type="application/json" id="embedded-plan">null</script>
@@ -2409,6 +2416,85 @@ milestones:[
  {id:'m5',title:'Platform freeze',stream:'foundations',after:'F2',date:'2027-06-25',description:'No breaking platform changes after this date. Shows a milestone that belongs to one workstream.',done:false,shape:'diamond',color:'blue',showLine:false,increment:'',initiatives:[]},
  {id:'m4',title:'General availability',date:'2027-11-19',description:'Launch with a repeatable onboarding process.',done:false,shape:'star',color:'teal',showLine:true,increment:'',initiatives:[]}],
 connections:[]};}
+// Ready-made example plans for the gallery (Plan settings → Load example, and the Sheet's Load demo plan).
+// view: the Show/hide settings the example opens with. samplePlan() is the "advanced" Atlas plan.
+function examplePlans(){
+ const base=(id,name,description)=>({schemaVersion:1,id,name,description,year:2027,reviewDate:'2027-04-15',reviewDateMode:'fixed',example:true,workstreams:[],outcomes:[],increments:[],initiatives:[],milestones:[],connections:[]});
+ const ws=(id,name,color,description='')=>({id,name,color,description});
+ const it=(id,title,stream,start,end,status='planned',more={})=>({id,title,description:'',stream,owner:'',priority:'medium',status,health:'on_track',start,end,progress:status==='done'?100:status==='review'?90:status==='building'?50:0,outcome:'',increment:'',dependencies:[],notes:'',...more});
+ const ms=(id,title,date,more={})=>({id,title,stream:'',date,description:'',done:false,shape:'diamond',color:'blue',showLine:false,increment:'',initiatives:[],...more});
+ const inc=(id,title,start,end,more={})=>({id,title,stream:'',start,end,color:'slate',description:'',...more});
+
+ // 1. Very simple: workstreams and initiatives only.
+ const simple=base('example-simple','Website relaunch','A small plan with only workstreams and initiatives.');
+ simple.workstreams=[ws('design','Design','violet','Look, feel and content.'),ws('build','Build','blue','Engineering work.'),ws('launch','Launch','amber','Getting the word out.')];
+ simple.initiatives=[
+  it('s1','User interviews','design','2027-01-11','2027-02-05','done',{description:'Talk to ten customers about the current site.'}),
+  it('s2','New visual design','design','2027-02-08','2027-03-26','review'),
+  it('s3','Content rewrite','design','2027-03-15','2027-05-07','building'),
+  it('s4','New CMS setup','build','2027-02-15','2027-04-02','building'),
+  it('s5','Page templates','build','2027-04-05','2027-06-04','planned',{dependencies:['s2','s4']}),
+  it('s6','Launch campaign','launch','2027-05-17','2027-06-25','planned'),
+  it('s7','Go live and monitor','launch','2027-06-28','2027-07-23','planned',{dependencies:['s5']})];
+
+ // 2. Very simple with the Milestones row.
+ const withMs=base('example-milestones','Mobile app v2','Initiatives plus a few key dates in the Milestones row.');
+ withMs.workstreams=[ws('app','App','blue'),ws('backend','Backend','teal'),ws('ops','Release & support','amber')];
+ withMs.initiatives=[
+  it('m-a1','Redesigned home screen','app','2027-01-18','2027-03-12','done'),
+  it('m-a2','Offline mode','app','2027-03-15','2027-05-28','building'),
+  it('m-b1','Sync API','backend','2027-02-01','2027-04-09','review'),
+  it('m-b2','Push notifications','backend','2027-04-12','2027-06-11','planned'),
+  it('m-o1','Beta programme','ops','2027-05-03','2027-06-18','planned'),
+  it('m-o2','Store launch','ops','2027-06-21','2027-07-16','planned',{dependencies:['m-o1']})];
+ withMs.milestones=[ms('m-m1','Design sign-off','2027-03-12',{done:true,shape:'diamond',color:'violet'}),ms('m-m2','Public beta','2027-05-31',{shape:'flag',color:'amber',showLine:true}),ms('m-m3','v2 in stores','2027-07-16',{shape:'star',color:'teal',showLine:true})];
+
+ // 3. Milestones row plus milestones inside workstreams.
+ const laneMs=base('example-lane-milestones','Data platform','Plan-wide milestones at the top, and team milestones inside each workstream.');
+ laneMs.workstreams=[ws('ingest','Ingestion','teal'),ws('model','Data model','blue'),ws('reports','Reporting','rose')];
+ laneMs.initiatives=[
+  it('d-i1','Source connectors','ingest','2027-01-11','2027-03-05','done'),
+  it('d-i2','Streaming pipeline','ingest','2027-03-08','2027-05-21','building'),
+  it('d-m1','Core schema','model','2027-01-25','2027-03-19','review'),
+  it('d-m2','Data quality checks','model','2027-03-22','2027-05-14','planned'),
+  it('d-r1','Self-service dashboards','reports','2027-04-05','2027-06-18','planned',{dependencies:['d-m1']}),
+  it('d-r2','Executive report pack','reports','2027-06-21','2027-08-13','planned')];
+ laneMs.milestones=[
+  ms('d-g1','Architecture approved','2027-02-12',{done:true,shape:'diamond',color:'slate'}),
+  ms('d-g2','Platform live','2027-06-04',{shape:'star',color:'amber',showLine:true}),
+  ms('d-l1','First source live','2027-03-05',{stream:'ingest',after:'d-i1',done:true,shape:'flag',color:'teal'}),
+  ms('d-l2','Schema frozen','2027-03-19',{stream:'model',after:'d-m1',shape:'diamond',color:'blue'}),
+  ms('d-l3','Dashboards in pilot','2027-05-28',{stream:'reports',after:'d-r1',shape:'circle',color:'rose'})];
+
+ // 5. Release train: every team runs its own increments, with milestones on them.
+ const train=base('example-release-train','Release train','Each team runs its own sprints or releases (increments inside workstreams) with release milestones on them.');
+ train.workstreams=[ws('web','Web team','blue'),ws('mobile','Mobile team','violet'),ws('platform','Platform team','teal')];
+ train.increments=[
+  inc('w-r1','Web R1','2027-01-04','2027-02-26',{stream:'web',color:'blue'}),inc('w-r2','Web R2','2027-03-01','2027-04-23',{stream:'web',color:'blue'}),inc('w-r3','Web R3','2027-04-26','2027-06-18',{stream:'web',color:'blue'}),
+  inc('m-r1','App 3.0','2027-01-18','2027-03-26',{stream:'mobile',color:'violet'}),inc('m-r2','App 3.1','2027-03-29','2027-06-04',{stream:'mobile',color:'violet'}),
+  inc('p-r1','Platform Q1','2027-01-04','2027-03-26',{stream:'platform',color:'teal'}),inc('p-r2','Platform Q2','2027-03-29','2027-06-25',{stream:'platform',color:'teal'})];
+ train.initiatives=[
+  it('t-w1','Checkout redesign','web','2027-01-04','2027-02-19','done',{increment:'w-r1'}),
+  it('t-w2','Saved carts','web','2027-03-01','2027-04-16','building',{increment:'w-r2'}),
+  it('t-w3','Wish lists','web','2027-04-26','2027-06-11','planned',{increment:'w-r3'}),
+  it('t-m1','New onboarding','mobile','2027-01-18','2027-03-19','review',{increment:'m-r1'}),
+  it('t-m2','Widgets','mobile','2027-03-29','2027-05-28','planned',{increment:'m-r2'}),
+  it('t-p1','Search service','platform','2027-01-04','2027-03-19','done',{increment:'p-r1'}),
+  it('t-p2','Payments v2','platform','2027-03-29','2027-06-18','building',{increment:'p-r2',priority:'high'})];
+ train.milestones=[
+  ms('t-g1','Programme review','2027-03-31',{shape:'diamond',color:'slate',showLine:true}),
+  ms('t-x1','R1 live','2027-02-26',{stream:'web',increment:'w-r1',done:true,shape:'flag',color:'blue'}),
+  ms('t-x2','R2 live','2027-04-23',{stream:'web',increment:'w-r2',shape:'flag',color:'blue'}),
+  ms('t-x3','3.0 in stores','2027-03-26',{stream:'mobile',increment:'m-r1',shape:'star',color:'violet'}),
+  ms('t-x4','Payments cut-over','2027-06-18',{stream:'platform',increment:'p-r2',shape:'star',color:'teal'})];
+
+ return[
+  {key:'simple',title:'Very simple',description:'Workstreams and initiatives only. No increments or milestones.',view:{incrementRow:false,milestoneRow:false},plan:simple},
+  {key:'milestones',title:'Simple with milestones',description:'Initiatives plus a few key dates in the Milestones row.',view:{incrementRow:false},plan:withMs},
+  {key:'lane-milestones',title:'Milestones in workstreams',description:'Plan-wide milestones at the top and team milestones inside workstreams.',view:{incrementRow:false},plan:laneMs},
+  {key:'advanced',title:'Advanced (all options)',description:'Increments, milestones, outcomes and dependencies, in the top rows and in workstreams.',view:{},plan:samplePlan()},
+  {key:'release-train',title:'Release train',description:'Each team runs its own increments (releases or sprints) with release milestones on them.',view:{incrementRow:false},plan:train}];
+}
 function validatePlan(raw){
  if(!raw||typeof raw!=='object'||raw.schemaVersion!==1)throw Error('This is not a supported Roadmap plan (schemaVersion 1).');
  const str=(v,label,max=200,optional=false)=>{if(typeof v!=='string'||v.length>max||(!optional&&!v.trim()))throw Error(`Invalid ${label}.`);return v.trim();};
@@ -2469,16 +2555,18 @@ let initialPlan;try{const embedded=JSON.parse($('#embedded-plan').textContent);i
 try{for(let i=localStorage.length-1;i>=0;i--){const k=localStorage.key(i);if(k&&k.startsWith('arc.')){const n='roadmap.'+k.slice(4);if(localStorage.getItem(n)===null)localStorage.setItem(n,localStorage.getItem(k));}}}catch{}
 const STORAGE_KEY='roadmap.plan.'+initialPlan.id;
 let loadedPlan=initialPlan;try{const s=localStorage.getItem(STORAGE_KEY);if(s)loadedPlan=validatePlan(JSON.parse(s));}catch(e){startupMessage='Saved data could not be loaded. The original plan is shown; export a backup before closing.';}
+// Show/hide defaults of a ready-made example (only used when nothing is saved for this plan yet).
+const EXAMPLE_VIEW=(()=>{try{return examplePlans().find(x=>x.plan.id===initialPlan.id)?.view||{};}catch{return {};}})();
 const INCREMENT_VISIBILITY_KEY='roadmap.view.showIncrements.'+initialPlan.id;
 // The plan-wide Milestones row at the top of the roadmap and Gantt can be hidden (saved per plan in this browser).
 const MILESTONE_ROW_KEY='roadmap.view.showMilestoneRow.'+initialPlan.id;
-let storedMilestoneRow=true;try{storedMilestoneRow=localStorage.getItem(MILESTONE_ROW_KEY)!=='false';}catch{}
+let storedMilestoneRow=EXAMPLE_VIEW.milestoneRow??true;try{const v=localStorage.getItem(MILESTONE_ROW_KEY);if(v!==null)storedMilestoneRow=v!=='false';}catch{}
 const INCREMENT_ROW_KEY='roadmap.view.showIncrementRow.'+initialPlan.id,MILESTONES_KEY='roadmap.view.showMilestones.'+initialPlan.id;
-let storedIncrementRow=true,storedMilestones=true;try{storedIncrementRow=localStorage.getItem(INCREMENT_ROW_KEY)!=='false';storedMilestones=localStorage.getItem(MILESTONES_KEY)!=='false';}catch{}
+let storedIncrementRow=EXAMPLE_VIEW.incrementRow??true,storedMilestones=EXAMPLE_VIEW.milestones??true;try{const a=localStorage.getItem(INCREMENT_ROW_KEY),b=localStorage.getItem(MILESTONES_KEY);if(a!==null)storedIncrementRow=a!=='false';if(b!==null)storedMilestones=b!=='false';}catch{}
 function setIncrementRowVisibility(visible,renderView=true){state.showIncrementRow=!!visible;try{localStorage.setItem(INCREMENT_ROW_KEY,String(state.showIncrementRow));}catch{}if(renderView)render();}
 function setMilestonesVisibility(visible,renderView=true){state.showMilestones=!!visible;try{localStorage.setItem(MILESTONES_KEY,String(state.showMilestones));}catch{}if(renderView)render();}
 function setMilestoneRowVisibility(visible,renderView=true){state.showMilestoneRow=!!visible;try{localStorage.setItem(MILESTONE_ROW_KEY,String(state.showMilestoneRow));}catch{}if(renderView)render();}
-let storedIncrementVisibility=true;try{storedIncrementVisibility=localStorage.getItem(INCREMENT_VISIBILITY_KEY)!=='false';}catch{}
+let storedIncrementVisibility=EXAMPLE_VIEW.increments??true;try{const v=localStorage.getItem(INCREMENT_VISIBILITY_KEY);if(v!==null)storedIncrementVisibility=v!=='false';}catch{}
 const BAR_STYLE_KEY='roadmap.view.barStyle';
 // Time scale of the roadmap and Gantt: how wide a day is. The period (year, quarter, custom) does not change;
 // a wider timeline scrolls sideways. Months is the original scale.
@@ -2801,7 +2889,15 @@ function renderSettingsStreams(){
 }
 function collectSettingsStreams(){for(const s of settingsStreams){s.name=$(`[data-stream-name="${s.id}"]`).value.trim();const color=$(`[data-stream-color="${s.id}"]`).value;if(color!=='custom'){s.color=color;s.customColor='';}}}
 function saveSettings(event){event.preventDefault();collectSettingsStreams();let streamNote='';const f=new FormData(event.currentTarget),year=Number(f.get('year'));if(commit(p=>{p.name=String(f.get('name')).trim();p.description=String(f.get('description')).trim();p.year=year;p.reviewDateMode=f.has('reviewDateToday')?'today':'fixed';p.reviewDate=p.reviewDateMode==='today'?today():String(f.get('reviewDate'));p.example=f.has('example');p.timelineColor=f.has('timelineColorDefault')?'':String(f.get('timelineColor')||'').toUpperCase();const moves=applySettingsStreamMoves(p);p.workstreams=clone(settingsStreams);const lanes=settleLaneItems(p);streamNote=[moves.moved?moves.moved+' initiative'+(moves.moved===1?'':'s')+' moved':'',moves.deleted?moves.deleted+' deleted':'',lanes?lanes+' milestone'+(lanes===1?'':'s')+' or increment'+(lanes===1?'':'s')+' moved to the top rows':''].filter(Boolean).join(' · ');},'Plan settings updated')){state.year=year;render();$('#settingsModal').close();if(streamNote)toast('Plan settings updated · '+streamNote,false,true);}}
-function resetPlan(example){confirmDialog(example?'Load the example plan?':'Start a blank plan?',`This replaces the current plan${example?' with the fictional Atlas workspace':''}. Export a backup first if you want to keep a separate copy. You can undo this change.`,()=>{const next=samplePlan();if(!example){next.name='My product plan';next.description='A clear path from strategy to delivery.';next.example=false;next.year=state.year;next.reviewDate=today();next.reviewDateMode='today';next.initiatives=[];next.outcomes=[];next.milestones=[];next.increments=[];next.connections=[];}const id=state.plan.id;if(commit(p=>Object.assign(p,next,{id}),example?'Example loaded':'Blank plan created')){state.year=next.year;state.range='rolling';pendingTodayScroll=true;state.collapsed.clear();clearFilters();$('#settingsModal').close();}},example?'Load example':'Start blank plan');}
+// Gallery of ready-made examples (Plan settings → Load example).
+function openExamples(){
+ let dlg=document.getElementById('examplesModal');
+ if(!dlg){dlg=document.createElement('dialog');dlg.className='modal examples-modal';dlg.id='examplesModal';dlg.setAttribute('aria-labelledby','examplesTitle');document.body.append(dlg);
+  dlg.addEventListener('click',event=>{const card=event.target.closest('[data-example]');if(card){dlg.close();resetPlan(true,card.dataset.example);}else if(event.target.closest('[data-close-dialog]'))dlg.close();});}
+ dlg.innerHTML=`<div class="modal-header"><div><div class="eyebrow">Examples</div><h2 id="examplesTitle">Start from an example</h2></div><button class="icon-btn" data-close-dialog aria-label="Close">${icon('close')}</button></div><div class="modal-body"><div class="example-grid">${examplePlans().map(x=>{const p=x.plan;const count=[p.initiatives.length+' initiatives',p.milestones.length?p.milestones.length+' milestones':'',p.increments.length?p.increments.length+' increments':''].filter(Boolean).join(' · ');return `<button type="button" class="example-card" data-example="${x.key}"><strong>${esc(x.title)}</strong><span>${esc(x.description)}</span><small>${esc(p.name)} · ${count}</small></button>`;}).join('')}</div><p class="guide-note">Loading an example replaces the current plan. You can undo it.</p></div>`;
+ dlg.showModal();
+}
+function resetPlan(example,key='advanced'){const chosen=example?examplePlans().find(x=>x.key===key)||examplePlans().find(x=>x.key==='advanced'):null;confirmDialog(example?`Load the “${chosen.title}” example?`:'Start a blank plan?',`This replaces the current plan${example?' with the fictional “'+chosen.plan.name+'” plan':''}. Export a backup first if you want to keep a separate copy. You can undo this change.`,()=>{const next=example?clone(chosen.plan):samplePlan();if(example){const v=chosen.view||{};setIncrementVisibility(v.increments??true,false);setIncrementRowVisibility(v.incrementRow??true,false);setMilestonesVisibility(v.milestones??true,false);setMilestoneRowVisibility(v.milestoneRow??true,false);}else{setIncrementRowVisibility(true,false);setMilestonesVisibility(true,false);setMilestoneRowVisibility(true,false);}if(!example){next.name='My product plan';next.description='A clear path from strategy to delivery.';next.example=false;next.year=state.year;next.reviewDate=today();next.reviewDateMode='today';next.initiatives=[];next.outcomes=[];next.milestones=[];next.increments=[];next.connections=[];}const id=state.plan.id;if(commit(p=>Object.assign(p,next,{id}),example?'Example loaded':'Blank plan created')){state.year=next.year;state.range='rolling';pendingTodayScroll=true;state.collapsed.clear();clearFilters();$('#settingsModal').close();}},example?'Load example':'Start blank plan');}
 function updateStatus(id,status){const task=getTask(id);if(!task||task.status===status||!STATUS[status])return;commit(p=>{const t=p.initiatives.find(x=>x.id===id),old=t.status;t.status=status;if(status==='done')t.progress=100;else if(old==='done')t.progress=0;},`Moved to ${STATUS[status]}`);}
 function startDrag(event){const el=event.target.closest('[data-bar]');if(!el||state.presentation||event.pointerType==='touch'||(event.pointerType==='mouse'&&event.button!==0))return;const task=getTask(el.dataset.bar),track=el.parentElement,r=timelineRange();activeDrag={pointerId:event.pointerId,el,id:task.id,kind:event.target.closest('[data-resize]')?.dataset.resize||'move',x:event.clientX,start:day(task.start),end:day(task.end),newStart:day(task.start),newEnd:day(task.end),width:track.getBoundingClientRect().width,r,moved:false};el.setPointerCapture(event.pointerId);}
 function moveDrag(event){const d=activeDrag;if(!d||d.pointerId!==event.pointerId)return;const pixels=event.clientX-d.x;if(Math.abs(pixels)<4&&!d.moved)return;d.moved=true;event.preventDefault();const delta=Math.round(pixels/d.width*(d.r.end-d.r.start));let start=d.start,end=d.end;
@@ -2812,6 +2908,123 @@ function download(blob,name){const url=URL.createObjectURL(blob),a=document.crea
 function slugName(){return(state.plan.name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'product-plan');}
 function exportJSON(){download(new Blob([JSON.stringify(state.plan,null,2)],{type:'application/json'}),slugName()+'.json');toast('Plan backup downloaded');}
 function exportCSV(){const cols=['Initiative','Workstream','Status','Owner','Priority','Health','Start','End','Progress (%)','Outcome','Increment','Depends on','Description','Notes'];const rows=state.plan.initiatives.map(t=>[t.title,streamName(t.stream),STATUS[t.status],t.owner,PRIORITY[t.priority],HEALTH[t.health],t.start,t.end,t.progress,getOutcome(t.outcome)?.title||'',getIncrement(t.increment)?.title||'',t.dependencies.map(id=>getTask(id)?.title||'').join('; '),t.description,t.notes]);const cell=x=>{let s=String(x??'');if(/^[\s]*[=+@-]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';};download(new Blob(['\ufeff'+[cols,...rows].map(r=>r.map(cell).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}),slugName()+'-initiatives.csv');toast('Initiatives exported');}
+// ---- Import initiatives and milestones from a spreadsheet (CSV, tab-separated or Excel .xlsx).
+// Columns are matched by name; the CSV export's own columns work, so export → edit → import round-trips.
+// A row whose title and workstream match an existing item updates it; other rows are added.
+function parseDelimited(text){
+ text=text.replace(/^﻿/,'');
+ const first=text.split(/\r?\n/,1)[0],count=c=>first.split(c).length-1;
+ const delim=count('\t')>count(',')&&count('\t')>=count(';')?'\t':count(';')>count(',')?';':',';
+ const rows=[];let row=[],cell='',quoted=false;
+ for(let i=0;i<text.length;i++){
+  const ch=text[i];
+  if(quoted){if(ch==='"'){if(text[i+1]==='"'){cell+='"';i++;}else quoted=false;}else cell+=ch;continue;}
+  if(ch==='"'&&cell==='')quoted=true;
+  else if(ch===delim){row.push(cell);cell='';}
+  else if(ch==='\n'||ch==='\r'){if(ch==='\r'&&text[i+1]==='\n')i++;row.push(cell);rows.push(row);row=[];cell='';}
+  else cell+=ch;
+ }
+ if(cell!==''||row.length){row.push(cell);rows.push(row);}
+ return rows;
+}
+// Minimal .xlsx reader: the first worksheet as rows of strings (numbers stay numeric text).
+async function readXlsx(buffer){
+ const dv=new DataView(buffer),u8=new Uint8Array(buffer),utf8=new TextDecoder();
+ let e=u8.length-22;while(e>=0&&dv.getUint32(e,true)!==0x06054b50)e--;
+ if(e<0)throw Error('This is not an Excel (.xlsx) file.');
+ const files={};let p=dv.getUint32(e+16,true);
+ for(let i=dv.getUint16(e+10,true);i>0;i--){const nlen=dv.getUint16(p+28,true);files[utf8.decode(u8.subarray(p+46,p+46+nlen))]={method:dv.getUint16(p+10,true),size:dv.getUint32(p+20,true),at:dv.getUint32(p+42,true)};p+=46+nlen+dv.getUint16(p+30,true)+dv.getUint16(p+32,true);}
+ const read=async name=>{const f=files[name];if(!f)return null;const start=f.at+30+dv.getUint16(f.at+26,true)+dv.getUint16(f.at+28,true),data=u8.subarray(start,start+f.size);
+  if(f.method===0)return utf8.decode(data);if(typeof DecompressionStream==='undefined')throw Error('This browser cannot read Excel files. Save the sheet as CSV and import that.');
+  return utf8.decode(await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer());};
+ const xml=s=>new DOMParser().parseFromString(s,'application/xml');
+ let sheet='xl/worksheets/sheet1.xml';
+ try{const wb=xml(await read('xl/workbook.xml')),rid=wb.getElementsByTagName('sheet')[0]?.getAttribute('r:id'),rels=xml(await read('xl/_rels/workbook.xml.rels'));
+  const rel=[...rels.getElementsByTagName('Relationship')].find(r=>r.getAttribute('Id')===rid);const target=rel?.getAttribute('Target');
+  if(target)sheet=target.startsWith('/')?target.slice(1):'xl/'+target.replace(/^\.\//,'');}catch{}
+ const shared=[];const ss=await read('xl/sharedStrings.xml');
+ if(ss)for(const si of xml(ss).getElementsByTagName('si'))shared.push([...si.getElementsByTagName('t')].map(t=>t.textContent).join(''));
+ const doc=await read(sheet);if(!doc)throw Error('The Excel file has no worksheet.');
+ const rows=[];
+ for(const r of xml(doc).getElementsByTagName('row')){
+  const out=[];
+  for(const c of r.getElementsByTagName('c')){
+   const ref=c.getAttribute('r')||'',col=[...ref.replace(/\d+/g,'')].reduce((n,ch)=>n*26+ch.charCodeAt(0)-64,0)-1,type=c.getAttribute('t');
+   const v=c.getElementsByTagName('v')[0]?.textContent??'';
+   const value=type==='s'?shared[Number(v)]??'':type==='inlineStr'?[...c.getElementsByTagName('t')].map(t=>t.textContent).join(''):type==='b'?(v==='1'?'TRUE':'FALSE'):v;
+   out[col>=0?col:out.length]=value;
+  }
+  rows[Number(r.getAttribute('r'))-1||rows.length]=Array.from(out,x=>x??'');
+ }
+ return Array.from(rows,x=>x||[]);
+}
+// A date cell: Excel serial number, yyyy-mm-dd, d.m.yyyy, d/m/yyyy (or m/d/yyyy when the day is over 12), yyyy/m/d.
+function importDate(value){
+ const s=String(value??'').trim();if(!s)return null;
+ if(/^\d{5}(\.\d+)?$/.test(s)){const n=Math.floor(Number(s));return n>36000&&n<73000?iso(n-25569):null;}
+ let m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/)||s.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/),y,mo,d;
+ if(m)[y,mo,d]=[+m[1],+m[2],+m[3]];
+ else if((m=s.match(/^(\d{1,2})[./](\d{1,2})[./](\d{4})$/))){[d,mo,y]=[+m[1],+m[2],+m[3]];if(s.includes('/')&&mo>12&&d<=12)[d,mo]=[mo,d];}
+ else return null;
+ const out=`${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+ return dateOK(out)&&new Date(out+'T00:00:00Z').getUTCDate()===d?out:null;
+}
+const IMPORT_COLUMNS={type:['type','kind','item type'],title:['initiative','title','name','item','milestone'],stream:['workstream','stream','team','lane','swimlane'],status:['status','state'],owner:['owner','assignee','responsible'],priority:['priority'],health:['health'],start:['start','start date','begin'],end:['end','end date','finish','due','due date'],date:['date','milestone date'],progress:['progress','progress (%)','progress %','% complete'],outcome:['outcome'],increment:['increment','release','sprint'],depends:['depends on','dependencies','depends'],description:['description','comments','comment','purpose'],notes:['notes','acceptance criteria'],done:['done','achieved']};
+async function importSpreadsheet(file){
+ $('#importSheetFile').value='';if(!file)return;
+ if(file.size>10*1024*1024){toast('Choose a spreadsheet smaller than 10 MB.',true);return;}
+ let rows;
+ try{rows=/\.xlsx$/i.test(file.name)?await readXlsx(await file.arrayBuffer()):parseDelimited(await file.text());}catch(e){toast(e.message||'This file could not be read.',true);return;}
+ rows=rows.map(r=>r.map(c=>String(c??'').trim())).filter(r=>r.some(Boolean));
+ if(rows.length<2){toast('The file needs a header row and at least one row of data.',true);return;}
+ const norm=s=>s.toLowerCase().replace(/\s+/g,' ').trim(),header=rows[0].map(norm),col={};
+ for(const [key,names] of Object.entries(IMPORT_COLUMNS)){const i=header.findIndex(h=>names.includes(h));if(i>=0)col[key]=i;}
+ if(col.title==null){toast('No title column found. Use a column called Initiative, Title or Name.',true);return;}
+ const p=clone(state.plan),byName=(list,v,field='title')=>{const k=norm(v);return k?list.find(x=>norm(x[field]||'')===k||x.id===v):null;};
+ const enumOf=(map,v)=>{const k=norm(v);return k?Object.keys(map).find(key=>key===k||norm(map[key])===k)||null:null;};
+ const stats={added:0,updated:0,milestones:0,streams:0},skipped=[],deps=[];
+ const streamFor=name=>{if(!name)return null;let s=byName(p.workstreams,name,'name');if(!s){if(p.workstreams.length>=30)return null;const slot=['blue','amber','teal','rose','violet','slate'][p.workstreams.length%6];s={id:uid(),name:name.slice(0,60),description:'',color:slot,customColor:''};p.workstreams.push(s);stats.streams++;}return s.id;};
+ rows.slice(1).forEach((r,k)=>{
+  const at=k+2,get=key=>col[key]==null?'':r[col[key]]??'',title=get('title').slice(0,160);
+  if(!title){skipped.push(`row ${at}: no title`);return;}
+  const isMilestone=/^milestone/i.test(get('type'));
+  const streamName=get('stream'),stream=streamName?streamFor(streamName):null;
+  if(isMilestone){
+   const date=importDate(get('date')||get('start')||get('end'));if(!date){skipped.push(`row ${at} (${title}): no valid date`);return;}
+   let m=p.milestones.find(x=>norm(x.title)===norm(title)&&(x.stream||'')===(stream||''));
+   if(!m){if(p.milestones.length>=100){skipped.push(`row ${at}: milestone limit reached`);return;}m={id:uid(),title,stream:stream||'',after:'',date,description:'',done:false,shape:'diamond',color:'blue',showLine:false,increment:'',initiatives:[]};p.milestones.push(m);}
+   m.date=date;if(get('description'))m.description=get('description').slice(0,4000);
+   const done=get('done')||get('status');if(done)m.done=/^(yes|true|1|done|achieved|x)$/i.test(done);
+   const inc=get('increment')&&byName(p.increments,get('increment'));if(inc)m.increment=inc.id;
+   stats.milestones++;return;
+  }
+  const s=stream||p.workstreams[0]?.id;
+  let t=p.initiatives.find(x=>norm(x.title)===norm(title)&&x.stream===s);
+  const start=importDate(get('start')),end=importDate(get('end'));
+  if(!t&&!start&&!end){skipped.push(`row ${at} (${title}): no start or end date`);return;}
+  if(!t){if(p.initiatives.length>=500){skipped.push(`row ${at}: initiative limit reached`);return;}t={id:uid(),title,description:'',stream:s,owner:'',priority:'medium',status:'planned',health:'on_track',start:'',end:'',progress:0,outcome:'',increment:'',dependencies:[],notes:''};p.initiatives.push(t);stats.added++;}else stats.updated++;
+  if(start||end){t.start=start||t.start||end;t.end=end||(start&&(!t.end||t.end<start)?iso(Math.min(day(start)+27,day('2099-12-31'))):t.end||t.start);if(t.end<t.start)[t.start,t.end]=[t.end,t.start];}
+  const status=enumOf(STATUS,get('status'));if(status)t.status=status;
+  const priority=enumOf(PRIORITY,get('priority'));if(priority)t.priority=priority;
+  const health=enumOf(HEALTH,get('health'));if(health)t.health=health;
+  if(get('owner'))t.owner=get('owner').slice(0,80);
+  const progress=get('progress');if(progress!==''&&!isNaN(parseFloat(progress)))t.progress=clamp(Math.round(parseFloat(progress)*(/^0?\.\d+$/.test(progress)?100:1)),0,100);
+  if(t.status==='done')t.progress=100;
+  if(get('description'))t.description=get('description').slice(0,5000);
+  if(get('notes'))t.notes=get('notes').slice(0,10000);
+  const outcome=get('outcome')&&byName(p.outcomes,get('outcome'));if(outcome)t.outcome=outcome.id;
+  const inc=get('increment')&&byName(p.increments,get('increment'));if(inc)t.increment=inc.id;
+  if(get('depends'))deps.push([t,get('depends')]);
+ });
+ // Dependencies by title, once every row is in.
+ for(const [t,list] of deps)t.dependencies=[...new Set(list.split(/[;,]/).map(x=>byName(p.initiatives,x.trim())?.id).filter(id=>id&&id!==t.id))];
+ let next;try{next=validatePlan(p);}catch(e){toast('Nothing imported: '+e.message,true);return;}
+ const parts=[stats.added&&`${stats.added} new initiative${stats.added===1?'':'s'}`,stats.updated&&`${stats.updated} updated`,stats.milestones&&`${stats.milestones} milestone${stats.milestones===1?'':'s'}`,stats.streams&&`${stats.streams} new workstream${stats.streams===1?'':'s'}`].filter(Boolean);
+ if(!parts.length){toast('No rows could be imported. '+skipped.slice(0,3).join('; '),true);return;}
+ confirmDialog('Import from '+file.name+'?',parts.join(', ')+'.'+(skipped.length?` Skipped ${skipped.length} row${skipped.length===1?'':'s'}: ${skipped.slice(0,4).join('; ')}${skipped.length>4?'…':''}.`:'')+' You can undo this.',()=>{
+  if(commit(pl=>Object.assign(pl,next,{id:pl.id}),'Imported from '+file.name)){state.stream='all';state.status='all';state.query='';render();}
+ },'Import');
+}
 function exportHTML(){const doc=new DOMParser().parseFromString(ORIGINAL_HTML,'text/html'),snapshot=clone(state.plan);snapshot.id=uid();doc.querySelector('#embedded-plan').textContent=JSON.stringify(snapshot).replace(/</g,'\\u003c');doc.title=state.plan.name+' — Roadmap';download(new Blob(['<!doctype html>\n'+doc.documentElement.outerHTML],{type:'text/html;charset=utf-8'}),slugName()+'-planner.html');toast('Standalone HTML downloaded with your current plan');}
 async function importJSON(file){if(!file)return;if(file.size>64*1024*1024){toast('Choose an Roadmap JSON backup smaller than 64 MB.',true);return;}try{const next=validatePlan(JSON.parse(await file.text()));confirmDialog('Import this plan?',`“${next.name}” contains ${next.initiatives.length} initiatives, ${next.increments.length} increments, ${next.outcomes.length} outcomes and ${next.milestones.length} milestones. It will replace the current plan. You can undo this change.`,()=>{const id=state.plan.id;if(commit(p=>Object.assign(p,next,{id}),'Plan imported')){state.year=next.year;state.range='rolling';pendingTodayScroll=true;state.collapsed.clear();clearFilters();}},'Import plan');}catch(e){toast('Import failed: '+e.message,true);}finally{$('#importFile').value='';}}
 function setPresentation(on){hideFilters();RoadmapColors.close();state.presentation=on;document.body.classList.toggle('presentation',on);$('#exitPresentation').hidden=!on;closeMobile();requestAnimationFrame(drawDependencies);}
@@ -2841,7 +3054,7 @@ function handleClick(event){if(event.target.closest('[data-canvas-show-increment
  if(b.dataset.action){const a=b.dataset.action;if(a==='clear-filters')clearFilters();else if(a==='new-outcome')openDetail('outcome');else RoadmapCanvas.quickAdd(a==='new-milestone'?'milestone':a==='new-increment'?'increment':'initiative');return;}
  if(b.hasAttribute('data-close-dialog')){b.closest('dialog')?.close();return;}
  if(b.dataset.removeStream){collectSettingsStreams();const id=b.dataset.removeStream;if(settingsStreams.length<=1)return;if(settingsStreamCount(id)){settingsRemoving=settingsRemoving===id?'':id;}else{settingsStreams=settingsStreams.filter(s=>s.id!==id);settingsRemoving='';}renderSettingsStreams();return;}if(b.dataset.streamRemoveConfirm){collectSettingsStreams();const id=settingsRemoving,move=b.dataset.streamRemoveConfirm==='move',target=move?$('[data-stream-move-target]')?.value:null;if(!id||(move&&!target))return;settingsStreamMoves.push({from:id,to:target});settingsStreams=settingsStreams.filter(s=>s.id!==id);settingsRemoving='';renderSettingsStreams();return;}if(b.hasAttribute('data-stream-remove-cancel')){collectSettingsStreams();settingsRemoving='';renderSettingsStreams();return;}
- const handlers={freezeTimelineBtn:()=>RoadmapFreeze.toggle(),filtersBtn:toggleFilters,clearFiltersBtn:clearFilters,settingsBtn:openSettings,primaryAdd,closeDetail:()=>closeDetail(),cancelDetail:()=>closeDetail(),undoBtn:undo,redoBtn:redo,helpBtn:()=>{$('#helpModal').showModal();closeMobile();},mobileMenu:()=>$('#sidebar').classList.contains('open')?closeMobile():openMobile(),presentBtn:()=>setPresentation(true),exitPresentation:()=>setPresentation(false),dependenciesBtn:()=>{state.dependencies=!state.dependencies;render();},prevPeriod:()=>{if(state.range==='rolling'){scrollTimelineBy(-1);return;}if(state.range==='custom'){state.customStart=shiftYm(state.customStart,-12);state.customEnd=shiftYm(state.customEnd,-12);}state.year=Math.max(2000,state.year-1);render();},nextPeriod:()=>{if(state.range==='rolling'){scrollTimelineBy(1);return;}if(state.range==='custom'){state.customStart=shiftYm(state.customStart,12);state.customEnd=shiftYm(state.customEnd,12);}state.year=Math.min(2099,state.year+1);render();},periodLabel:goToday,todayBtn:goToday,deleteRecord,duplicateRecord,addWorkstream:()=>{collectSettingsStreams();if(settingsStreams.length>=30){toast('You can add up to 30 workstreams.',true);return;}settingsStreams.push({id:uid(),name:'New workstream',color:'slate'});renderSettingsStreams();const inputs=$$('[data-stream-name]');inputs.at(-1).focus();inputs.at(-1).select();},blankPlan:()=>resetPlan(false),loadExample:()=>resetPlan(true),exportBtn:()=>{const willOpen=$('#exportMenu').hidden;$('#exportMenu').hidden=!willOpen;$('#exportBtn').setAttribute('aria-expanded',String(willOpen));},exportPDF:openPDFExport,downloadHTML:()=>{hideExport();exportHTML();},exportJSON:()=>{hideExport();exportJSON();},exportCSV:()=>{hideExport();exportCSV();},importBtn:()=>{hideExport();$('#importFile').click();},printBtn:()=>{hideExport();window.print();},confirmAction:()=>{const cb=confirmCallback;confirmCallback=null;$('#confirmModal').close();cb?.();}};
+ const handlers={freezeTimelineBtn:()=>RoadmapFreeze.toggle(),filtersBtn:toggleFilters,clearFiltersBtn:clearFilters,settingsBtn:openSettings,primaryAdd,closeDetail:()=>closeDetail(),cancelDetail:()=>closeDetail(),undoBtn:undo,redoBtn:redo,helpBtn:()=>{$('#helpModal').showModal();closeMobile();},mobileMenu:()=>$('#sidebar').classList.contains('open')?closeMobile():openMobile(),presentBtn:()=>setPresentation(true),exitPresentation:()=>setPresentation(false),dependenciesBtn:()=>{state.dependencies=!state.dependencies;render();},prevPeriod:()=>{if(state.range==='rolling'){scrollTimelineBy(-1);return;}if(state.range==='custom'){state.customStart=shiftYm(state.customStart,-12);state.customEnd=shiftYm(state.customEnd,-12);}state.year=Math.max(2000,state.year-1);render();},nextPeriod:()=>{if(state.range==='rolling'){scrollTimelineBy(1);return;}if(state.range==='custom'){state.customStart=shiftYm(state.customStart,12);state.customEnd=shiftYm(state.customEnd,12);}state.year=Math.min(2099,state.year+1);render();},periodLabel:goToday,todayBtn:goToday,deleteRecord,duplicateRecord,addWorkstream:()=>{collectSettingsStreams();if(settingsStreams.length>=30){toast('You can add up to 30 workstreams.',true);return;}settingsStreams.push({id:uid(),name:'New workstream',color:'slate'});renderSettingsStreams();const inputs=$$('[data-stream-name]');inputs.at(-1).focus();inputs.at(-1).select();},blankPlan:()=>resetPlan(false),loadExample:()=>openExamples(),exportBtn:()=>{const willOpen=$('#exportMenu').hidden;$('#exportMenu').hidden=!willOpen;$('#exportBtn').setAttribute('aria-expanded',String(willOpen));},exportPDF:openPDFExport,downloadHTML:()=>{hideExport();exportHTML();},exportJSON:()=>{hideExport();exportJSON();},exportCSV:()=>{hideExport();exportCSV();},importBtn:()=>{hideExport();$('#importFile').click();},importSheetBtn:()=>{hideExport();$('#importSheetFile').click();},printBtn:()=>{hideExport();window.print();},confirmAction:()=>{const cb=confirmCallback;confirmCallback=null;$('#confirmModal').close();cb?.();}};
  handlers[b.id]?.();
 }
 document.addEventListener('click',event=>{if(!event.target.closest('.export-wrap'))hideExport();if(!event.target.closest('.filter-wrap'))hideFilters();handleClick(event);});
@@ -2861,6 +3074,7 @@ $('#customStart').addEventListener('change',applyCustomRange);$('#customEnd').ad
 document.addEventListener('change',event=>{if(event.target.matches('[data-task-status]'))updateStatus(event.target.dataset.taskStatus,event.target.value);});
 $('#detailOverlay').addEventListener('click',event=>{if(event.target===$('#detailOverlay'))closeDetail();});$('#mobileScrim').addEventListener('click',closeMobile);
 $('#importFile').addEventListener('change',event=>importJSON(event.target.files?.[0]));
+$('#importSheetFile').addEventListener('change',event=>importSpreadsheet(event.target.files?.[0]));
 document.addEventListener('pointerdown',event=>{if(!RoadmapDeps.pointerDown(event))RoadmapCanvas.pointerDown(event);});document.addEventListener('pointermove',event=>{RoadmapDeps.pointerMove(event);RoadmapCanvas.pointerMove(event);},{passive:false});document.addEventListener('pointerup',event=>{RoadmapDeps.pointerUp(event);RoadmapCanvas.pointerUp(event);});document.addEventListener('pointercancel',event=>{RoadmapDeps.pointerUp(event,true);RoadmapCanvas.pointerUp(event,true);});
 document.addEventListener('click',event=>{const b=event.target.closest('#zoomInBtn,#zoomOutBtn,#zoomFitBtn');if(!b||b.disabled)return;if(b.id==='zoomFitBtn')zoomFit();else stepZoom(b.id==='zoomInBtn'?1:-1);});
 {let timer=0;document.addEventListener('scroll',event=>{if(!event.target?.closest?.('#content .timeline-scroll')||timer)return;timer=setTimeout(()=>{timer=0;updateVisibleLabel();},80);},true);}
