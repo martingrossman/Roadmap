@@ -2144,7 +2144,6 @@ function timelineMinWidth(r,gantt){
  const label=gantt?240:250,view=Math.max(480,(document.getElementById('content')?.clientWidth||1100)-label-24);
  return Math.round((r.end-r.start)*view/ZOOM_DAYS[timeZoom])+label;
 }
-function wideTimeline(r){return rangeMonths(r)>12||timeZoom==='weeks'||timeZoom==='days';}
 // Axis labels for the zoom level: a top row and a bottom row of {a,b,label} spans in days.
 function axisUnits(r){
  const y0=state.year,top=[],bottom=[],clip=(a,b)=>({a:Math.max(a,r.start),b:Math.min(b,r.end)});
@@ -2297,7 +2296,7 @@ function hideExport(){$('#exportMenu').hidden=true;$('#exportBtn').setAttribute(
 function primaryAdd(){if(state.section==='outcomes')openDetail('outcome');else RoadmapCanvas.quickAdd(state.section==='milestones'?'milestone':'initiative');}
 function handleClick(event){if(event.target.closest('[data-canvas-show-increment],[data-canvas-reveal-initiative],[data-canvas-reveal-milestone]')){RoadmapDeps.cancel();if(RoadmapCanvas.handleClick(event))return;}if(RoadmapDeps.handleClick(event)||RoadmapCanvas.handleClick(event))return;const b=event.target.closest('button,[data-board-task]');if(!b)return;
  if(b.hasAttribute('data-freeze-toggle')){RoadmapFreeze.toggle();return;}
- if(b.hasAttribute('data-freeze-names')){RoadmapFreeze.toggleNames();return;}
+
  if(b.dataset.barStyle){setBarStyle(b.dataset.barStyle);return;}
  if(b.dataset.section){changeSection(b.dataset.section);return;}
  if(b.dataset.view){hideFilters();state.view=b.dataset.view;render();return;}
@@ -2534,7 +2533,7 @@ function swimlaneBar(t,r,c){return canvasInitiativeBar(t,r,c,true);}
 function renderSwimlanes(){
  const r=timelineRange(),all=filteredTasks(),tasks=all.filter(t=>day(t.end)>=r.start&&day(t.start)<r.end);
  const streams=state.plan.workstreams.filter(s=>(state.stream==='all'||state.stream===s.id)&&(!(state.query||state.status!=='all'||state.outcome)||tasks.some(t=>t.stream===s.id)));
- let html=`<div class="swimlane-axis-row"><div class="swimlane-axis-label" title="Workstreams">STREAMS <span>${streams.length}</span><span class="freeze-locks">${wideTimeline(r)?'<button type="button" class="freeze-lock freeze-names-lock" data-freeze-names aria-pressed="false" title="Keep names visible when scrolling sideways" aria-label="Keep names visible when scrolling sideways">'+icon('columnLock')+'</button>':''}<button type="button" class="freeze-lock" data-freeze-toggle aria-pressed="false" aria-label="Keep dates and tools visible while scrolling" title="Keep dates and tools visible while scrolling">${icon('unlock')}</button></span></div><div class="swimlane-axis">${swimlaneAxis(r)}</div></div>${canvasIncrementBand(r,true,'')}${swimlaneMilestones(r,'')}`;
+ let html=`<div class="swimlane-axis-row"><div class="swimlane-axis-label" title="Workstreams">STREAMS <span>${streams.length}</span><span class="freeze-locks"><button type="button" class="freeze-lock" data-freeze-toggle aria-pressed="false" aria-label="Keep dates and tools visible while scrolling" title="Keep dates and tools visible while scrolling">${icon('unlock')}</button></span></div><div class="swimlane-axis">${swimlaneAxis(r)}</div></div>${canvasIncrementBand(r,true,'')}${swimlaneMilestones(r,'')}`;
  for(const s of streams){
   const items=tasks.filter(t=>t.stream===s.id),rows=packSwimlaneTasks(items,r),collapsed=false,c=swimlaneColor(s);
   const laneRows=canvasIncrementBand(r,true,s.id)+swimlaneMilestones(r,s.id),laneCount=laneItemCount(s.id);
@@ -2699,7 +2698,7 @@ function renderTimeline(){
  const milestones=canvasOutcomeContext().milestones.filter(m=>inLane(m,'')&&!milestoneOnIncrement(m)&&day(m.date)>=r.start&&day(m.date)<r.end),layout=canvasFlatMilestoneLayout(milestones,r);
  const markers=layout.placed.map(p=>canvasMilestoneMarker(p.milestone,r,0,false,null,p)).join('');
  const markerHeight=milestones.length?54:42;
- let rows=`<div class="timeline-header"><div class="lane-heading">INITIATIVES <span>${n}</span><span class="freeze-locks">${wideTimeline(r)?'<button type="button" class="freeze-lock freeze-names-lock" data-freeze-names aria-pressed="false" title="Keep names visible when scrolling sideways" aria-label="Keep names visible when scrolling sideways">'+icon('columnLock')+'</button>':''}<button type="button" class="freeze-lock" data-freeze-toggle aria-pressed="false" aria-label="Keep dates and tools visible while scrolling" title="Keep dates and tools visible while scrolling">${icon('unlock')}</button></span></div><div class="time-axis">${axis}</div></div>${canvasIncrementBand(r,false,'')}<div class="milestone-row" style="height:${markerHeight}px"><div class="lane-label">${icon('flag')}<span>Milestones</span><button class="icon-btn" data-action="new-milestone" aria-label="Add milestone">${icon('plus')}</button></div><div class="milestone-track" data-canvas-track="milestone" style="height:${markerHeight}px">${gridHTML(r)}${markers||'<button class="canvas-empty-prompt" data-action="new-milestone">'+icon('plus')+'Add milestone</button>'}</div></div>`;
+ let rows=`<div class="timeline-header"><div class="lane-heading">INITIATIVES <span>${n}</span><span class="freeze-locks"><button type="button" class="freeze-lock" data-freeze-toggle aria-pressed="false" aria-label="Keep dates and tools visible while scrolling" title="Keep dates and tools visible while scrolling">${icon('unlock')}</button></span></div><div class="time-axis">${axis}</div></div>${canvasIncrementBand(r,false,'')}<div class="milestone-row" style="height:${markerHeight}px"><div class="lane-label">${icon('flag')}<span>Milestones</span><button class="icon-btn" data-action="new-milestone" aria-label="Add milestone">${icon('plus')}</button></div><div class="milestone-track" data-canvas-track="milestone" style="height:${markerHeight}px">${gridHTML(r)}${markers||'<button class="canvas-empty-prompt" data-action="new-milestone">'+icon('plus')+'Add milestone</button>'}</div></div>`;
  for(const s of state.plan.workstreams.filter(s=>state.stream==='all'||state.stream===s.id)){
   // The saved initiative order owns each row; date edits must not move rows.
   const st=tasks.filter(t=>t.stream===s.id);if(!st.length&&(state.query||state.status!=='all'||state.outcome))continue;const collapsed=state.collapsed.has(s.id),c=RoadmapColors.streamPalette(s);
@@ -3913,9 +3912,10 @@ $('#pdfForm').addEventListener('submit',generatePDF);
 
 /* Pin the real tools and a read-only date header without changing canvas geometry. */
 const RoadmapFreeze=(()=>{
- const preferenceKey='roadmap.view.freezeTimeline',namesKey='roadmap.view.freezeNames';
+ const preferenceKey='roadmap.view.freezeTimeline';
  // Name column stays pinned while scrolling sideways unless turned off.
- let namesFrozen=true;try{namesFrozen=localStorage.getItem(namesKey)!=='false';}catch{}
+ // Workstream and initiative names always stay in place when the timeline scrolls sideways.
+ const namesFrozen=true;
  let enabled=false,frame=0,panel=null,scroller=null,axis=null,caption=null,stage=null,viewport=null;
  try{enabled=localStorage.getItem(preferenceKey)==='true';}catch{}
  const tools=document.getElementById('roadmapTools'),button=document.getElementById('freezeTimelineBtn');
@@ -3935,8 +3935,6 @@ const RoadmapFreeze=(()=>{
   // The lock in the date-row corner replaces the toolbar button (kept hidden for its state).
   const lockLabel=enabled?'Unlock: let dates and tools scroll away':'Lock dates and tools in view while scrolling';
   document.body.classList.toggle('freeze-names',namesFrozen);
-  const namesLabel=namesFrozen?'Let names scroll sideways with the timeline':'Keep names visible when scrolling sideways';
-  document.querySelectorAll('[data-freeze-names]').forEach(b=>{b.classList.toggle('is-active',namesFrozen);b.setAttribute('aria-pressed',String(namesFrozen));b.title=namesLabel;b.setAttribute('aria-label',namesLabel);});
   document.querySelectorAll('[data-freeze-toggle]').forEach(b=>{b.classList.toggle('is-active',enabled);b.setAttribute('aria-pressed',String(enabled));b.title=lockLabel;b.setAttribute('aria-label',lockLabel);b.innerHTML=icon(enabled?'lock':'unlock');});button.querySelector('.freeze-label').textContent=enabled?'Frozen':'Freeze';
   button.title=enabled?'Unfreeze timeline and tools':'Keep timeline and tools visible while scrolling';
   document.body.classList.toggle('freeze-roadmap',active());
@@ -3973,14 +3971,13 @@ const RoadmapFreeze=(()=>{
   dock.style.left=panelRect.left+'px';dock.style.width=panelRect.width+'px';dock.style.top=Math.min(dockTop,panelRect.bottom-height)+'px';dock.hidden=false;
   if(Math.abs(viewport.scrollLeft-scroller.scrollLeft)>.5)viewport.scrollLeft=scroller.scrollLeft;
  }
- function toggleNames(){namesFrozen=!namesFrozen;try{localStorage.setItem(namesKey,String(namesFrozen));}catch{}afterRender();}
  function toggle(){
   enabled=!enabled;try{localStorage.setItem(preferenceKey,String(enabled));}catch{}
   afterRender();
  }
  document.addEventListener('scroll',schedule,{capture:true,passive:true});window.addEventListener('resize',schedule,{passive:true});
  window.addEventListener('beforeprint',()=>{dock.hidden=true;});window.addEventListener('afterprint',schedule);
- return{afterRender,toggle,toggleNames};
+ return{afterRender,toggle};
 })();
 
 /* Rename the project where its name is shown; every saved change supports Undo. */
