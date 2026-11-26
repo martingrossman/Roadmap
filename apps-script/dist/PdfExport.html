@@ -527,7 +527,7 @@
         const detailLines=[`${date(increment.start)} - ${date(increment.end)}`,`${assigned} selected initiative${assigned===1?'':'s'} assigned to this increment`];
         const checkpoints=milestones.filter(m=>m.increment===increment.id);
         if(checkpoints.length)detailLines.push('Milestones: '+checkpoints.map(m=>`${m.title} (${date(m.date)})`).join('; '));
-        if(increment.description)detailLines.push('Purpose: '+increment.description);
+        if(increment.description)detailLines.push('Comments: '+increment.description);
         if(references)detailLines.push('Depends on: '+references);
         if(top+titleLines.length*15+38>detailBottom)registerPage('Increment register');
         rect(M,top+2,4,Math.max(23,titleLines.length*15),tone.solid,tone.outline,.6);
@@ -553,7 +553,7 @@
         const extra=[];
         if(task.increment){const increment=increments.find(i=>i.id===task.increment);extra.push({label:'Increment',value:increment?`${incrementIndex.get(increment.id)} · ${increment.title}`:'Assigned increment is outside this export'});}
         if(task.outcome){const o=(plan.outcomes||[]).find(o=>o.id===task.outcome);if(o)extra.push({label:'Outcome',value:o.title});}
-        if(task.description)extra.push({label:'Purpose',value:task.description});
+        if(task.description)extra.push({label:'Comments',value:task.description});
         const references=dependencyReferences('initiative',task.id,task.dependencies||[]);
         if(references)extra.push({label:'Depends on',value:references});
         if(top+Math.max(leftRows.reduce((n,x)=>n+x.leading,0),rightRows.length*12)+30>detailBottom){detailPage();}
