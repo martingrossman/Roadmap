@@ -334,8 +334,7 @@ function loadExample(key) {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const plan = JSON.parse(JSON.stringify(example.plan));
     roadmapCheckShape_(plan);
-    roadmapWrite_(ss, plan);
-    SpreadsheetApp.flush();
+    roadmapSafeWrite_(ss, plan);
     ss.toast('Loaded "' + plan.name + '". Reload any open planner tab to see it.', '🗺️ Roadmap planner', 8);
   } finally {
     lock.releaseLock();
@@ -415,8 +414,8 @@ function savePlan(json, baseRevision, force) {
     }
     const plan = JSON.parse(json);
     roadmapCheckShape_(plan);
-    roadmapWrite_(ss, plan);
-    SpreadsheetApp.flush();
+    roadmapValidate_(plan);
+    roadmapSafeWrite_(ss, plan);
     const after = roadmapRead_(ss);
     return { ok: true, revision: after.revision, savedBy: after.savedBy, savedAt: after.savedAt };
   } finally {
@@ -480,7 +479,7 @@ function roadmapCheckRefs_(plan, rowOf, problems) {
   const ids = key => new Set((plan[key] || []).map(r => r.id));
   const sets = { workstreams: ids('workstreams'), outcomes: ids('outcomes'), increments: ids('increments'),
     initiatives: ids('initiatives'), milestones: ids('milestones') };
-  const at = (key, rec) => roadmapTabName_(key) + ' row ' + rowOf[key][rec.id] + ' (' + (rec.title || rec.name || rec.id) + ')';
+  const at = (key, rec) => roadmapTabName_(key) + (rowOf ? ' row ' + rowOf[key][rec.id] : '') + ' (' + (rec.title || rec.name || rec.id) + ')';
   const check = (key, field, target, many) => (plan[key] || []).forEach(rec => {
     const values = many ? rec[field] || [] : rec[field] ? [rec[field]] : [];
     values.forEach(v => { if (!sets[target].has(v)) problems.push(at(key, rec) + ': ' + (field === 'stream' ? 'workstream' : field) + ' "' + v + '" is not an id on the ' + roadmapTabName_(target) + ' tab.'); });
@@ -587,10 +586,49 @@ function roadmapColumnIndex_(headerRow, tab) {
 /* Writing                                                             */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Writes the plan so that a failure part-way never leaves a half-written Sheet:
+ * every tab's rows are prepared before anything is written, the current values are
+ * kept, and if any write fails every tab is put back as it was.
+ */
+function roadmapSafeWrite_(ss, plan) {
+  const snapshot = roadmapSnapshot_(ss);
+  try {
+    roadmapWrite_(ss, plan);
+    SpreadsheetApp.flush();
+  } catch (err) {
+    let restored = true;
+    try { roadmapRestore_(ss, snapshot); SpreadsheetApp.flush(); } catch (again) { restored = false; }
+    throw new Error('The plan could not be saved to the Sheet (' + roadmapMessage_(err) + '). ' + (restored
+      ? 'The Sheet was left as it was before; try saving again.'
+      : 'The Sheet may be incomplete. Restore it from File → Version history, then save again from the planner.'));
+  }
+}
+
 function roadmapWrite_(ss, plan) {
   const created = roadmapEnsureSheets_(ss);
-  roadmapWriteSettings_(ss.getSheetByName(ROADMAP_SETTINGS_SHEET), plan, created[ROADMAP_SETTINGS_SHEET]);
-  ROADMAP_TABS.forEach(tab => roadmapWriteTab_(ss, tab, plan[tab.key] || [], created[tab.sheet]));
+  // Prepare everything first: nothing below can fail half-way through because of the data.
+  const settings = roadmapSettingsRows_(plan);
+  const tabs = ROADMAP_TABS.map(tab => roadmapPrepareTab_(ss, tab, plan[tab.key] || [], created[tab.sheet]));
+  roadmapWriteSettings_(ss.getSheetByName(ROADMAP_SETTINGS_SHEET), settings, created[ROADMAP_SETTINGS_SHEET]);
+  tabs.forEach(roadmapApplyTab_);
+}
+
+/** The current values of every planner tab (null for a tab that does not exist yet). */
+function roadmapSnapshot_(ss) {
+  return [ROADMAP_SETTINGS_SHEET].concat(ROADMAP_TABS.map(t => t.sheet)).map(name => {
+    const sh = ss.getSheetByName(name);
+    return { name: name, values: sh && sh.getLastRow() > 0 ? sh.getDataRange().getValues() : sh ? [] : null };
+  });
+}
+
+function roadmapRestore_(ss, snapshot) {
+  snapshot.forEach(s => {
+    const sh = ss.getSheetByName(s.name);
+    if (!sh) return;
+    if (sh.getLastRow() > 0) sh.getRange(1, 1, sh.getLastRow(), Math.max(sh.getLastColumn(), 1)).clearContent();
+    if (s.values && s.values.length) sh.getRange(1, 1, s.values.length, s.values[0].length).setValues(s.values);
+  });
 }
 
 /** Creates any missing tabs (in a sensible order) and reports which were new. */
@@ -605,7 +643,13 @@ function roadmapEnsureSheets_(ss) {
   return created;
 }
 
-function roadmapWriteSettings_(sh, plan, isNew) {
+function roadmapWriteSettings_(sh, rows, isNew) {
+  if (isNew) roadmapFormatSettings_(sh);
+  sh.clearContents();
+  sh.getRange(1, 1, rows.length, 3).setValues(rows);
+}
+
+function roadmapSettingsRows_(plan) {
   const keys = ROADMAP_SETTINGS_ORDER.filter(k => k in plan)
     .concat(Object.keys(plan).filter(k => ROADMAP_SETTINGS_ORDER.indexOf(k) < 0 && k !== 'schemaVersion' &&
       !ROADMAP_TABS.some(t => t.key === k)));
@@ -616,12 +660,11 @@ function roadmapWriteSettings_(sh, plan, isNew) {
   });
   rows.push(['lastSavedAt', Utilities.formatDate(new Date(), 'UTC', "yyyy-MM-dd HH:mm 'UTC'"), ROADMAP_SETTINGS_HELP.lastSavedAt]);
   rows.push(['lastSavedBy', roadmapUser_(), ROADMAP_SETTINGS_HELP.lastSavedBy]);
-  if (isNew) roadmapFormatSettings_(sh);
-  sh.clearContents();
-  sh.getRange(1, 1, rows.length, 3).setValues(rows);
+  return rows;
 }
 
-function roadmapWriteTab_(ss, tab, records, isNew) {
+/** Works out a tab's new rows (keeping columns people added themselves) without writing anything. */
+function roadmapPrepareTab_(ss, tab, records, isNew) {
   const sh = ss.getSheetByName(tab.sheet);
   const existing = sh.getLastRow() > 0 ? sh.getDataRange().getValues() : [];
   const oldHeaders = existing.length ? existing[0].map(h => String(h)) : [];
@@ -647,6 +690,13 @@ function roadmapWriteTab_(ss, tab, records, isNew) {
   });
 
   const layoutChanged = isNew || oldHeaders.slice(0, tab.cols.length).join('\u0001') !== headers.slice(0, tab.cols.length).join('\u0001');
+  return { ss: ss, sh: sh, tab: tab, headers: headers, out: out, layoutChanged: layoutChanged,
+    oldRows: existing.length, oldCols: oldHeaders.length };
+}
+
+function roadmapApplyTab_(p) {
+  const ss = p.ss, sh = p.sh, tab = p.tab, headers = p.headers, out = p.out, layoutChanged = p.layoutChanged;
+  const existing = { length: p.oldRows }, oldHeaders = { length: p.oldCols };
   if (sh.getMaxColumns() < headers.length) sh.insertColumnsAfter(sh.getMaxColumns(), headers.length - sh.getMaxColumns());
   if (sh.getMaxRows() < out.length + 1) sh.insertRowsAfter(sh.getMaxRows(), out.length + 1 - sh.getMaxRows());
   if (layoutChanged) roadmapFormatTab_(ss, sh, tab, headers);
@@ -716,6 +766,39 @@ function roadmapCheckShape_(plan) {
       if (!rec || typeof rec.id !== 'string' || !rec.id) throw new Error('Every ' + tab.key + ' record needs an id.');
     });
   });
+}
+
+/**
+ * Checks a plan sent by the planner before anything is written: every collection is
+ * present, required fields are filled, ids are unique and every reference resolves.
+ * The planner checks the same rules; this guards the Sheet against a broken or partial payload.
+ */
+function roadmapValidate_(plan) {
+  const problems = [];
+  if (typeof plan.name !== 'string' || !plan.name.trim()) problems.push('The plan has no name.');
+  ROADMAP_TABS.forEach(tab => { if (!Array.isArray(plan[tab.key])) problems.push('The plan has no ' + tab.key + ' list.'); });
+  if (problems.length) throw new Error('Nothing was saved: ' + problems.join(' '));
+  if (!plan.workstreams.length) problems.push('A plan needs at least one workstream.');
+  const ids = {};
+  ROADMAP_TABS.forEach(tab => {
+    ids[tab.key] = new Set();
+    plan[tab.key].forEach(rec => {
+      if (ids[tab.key].has(rec.id)) problems.push(tab.sheet + ': the id "' + rec.id + '" is used twice.');
+      ids[tab.key].add(rec.id);
+      (ROADMAP_REQUIRED[tab.key] || []).forEach(f => {
+        if (roadmapIsBlank_(rec[f]) || (typeof rec[f] === 'string' && !rec[f].trim())) problems.push(tab.sheet + ' "' + (rec.title || rec.name || rec.id) + '": ' + f + ' is empty.');
+      });
+    });
+  });
+  const refs = [];
+  roadmapCheckRefs_(plan, null, refs);
+  problems.push.apply(problems, refs);
+  const typeKey = { initiative: 'initiatives', milestone: 'milestones', increment: 'increments' };
+  plan.connections.forEach(c => {
+    if (!typeKey[c.fromType] || !typeKey[c.toType]) problems.push('Connections: a dependency has an unknown item type.');
+    else if (!ids[typeKey[c.fromType]].has(c.from) || !ids[typeKey[c.toType]].has(c.to)) problems.push('Connections: a dependency points to a missing item.');
+  });
+  if (problems.length) throw new Error('Nothing was saved: ' + problems.slice(0, 5).join(' ') + (problems.length > 5 ? ' (and ' + (problems.length - 5) + ' more)' : ''));
 }
 
 function roadmapIsBlank_(v) { return v === '' || v === null || v === undefined; }
