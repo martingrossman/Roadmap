@@ -45,4 +45,12 @@ Hierarchy: **Workstream → Epic → Story (checklist inside)**.
 - **Google Sheet:** a new **Stories** tab, a `checklist` column on Initiatives, `capacity` on Increments, and `itemLabel` in Settings.
 - **Excel workbook:** the same tabs.
 
-**Not in this branch (follow-ups):** Jira CSV preset, stories in the PDF, story dependencies.
+**Not in this branch (follow-ups):** Jira CSV preset, stories in the PDF, story dependencies, stories in the CSV import, ticking checklist items directly on a board card.
+
+## Status
+
+All of Part A and Part B are built on this branch, one commit each, and tested in the browser and the Sheet test harness. Not merged, not deployed.
+
+Two details differ from the first draft:
+- A story without points counts as an average-sized story in the epic roll-up.
+- Stories are dragged with pointer events rather than HTML drag and drop, so dragging works with touch as well as a mouse.
