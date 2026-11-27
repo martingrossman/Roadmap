@@ -3027,7 +3027,7 @@ function endDrag(event,cancel=false){const d=activeDrag;if(!d||event&&d.pointerI
 function download(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);}
 function slugName(){return(state.plan.name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'product-plan');}
 function exportJSON(){download(new Blob([JSON.stringify(state.plan,null,2)],{type:'application/json'}),slugName()+'.json');toast('Plan backup downloaded');}
-function exportCSV(){const cols=['Initiative','Workstream','Status','Owner','Priority','Health','Start','End','Progress (%)','Outcome','Increment','Depends on','Description','Notes'];const rows=state.plan.initiatives.map(t=>[t.title,streamName(t.stream),STATUS[t.status],t.owner,PRIORITY[t.priority],HEALTH[t.health],t.start,t.end,t.progress,getOutcome(t.outcome)?.title||'',getIncrement(t.increment)?.title||'',prerequisiteIds('initiative',t.id).map(id=>getTask(id)?.title||'').join('; '),t.description,t.notes]);const cell=x=>{let s=String(x??'');if(/^[\s]*[=+@-]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';};download(new Blob(['\ufeff'+[cols,...rows].map(r=>r.map(cell).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}),slugName()+'-initiatives.csv');toast('Initiatives exported');}
+function exportCSV(){const cols=['ID','Initiative','Workstream','Status','Owner','Priority','Health','Start','End','Progress (%)','Outcome','Increment','Depends on','Depends on (IDs)','Description','Notes'];const rows=state.plan.initiatives.map(t=>[t.id,t.title,streamName(t.stream),STATUS[t.status],t.owner,PRIORITY[t.priority],HEALTH[t.health],t.start,t.end,t.progress,getOutcome(t.outcome)?.title||'',getIncrement(t.increment)?.title||'',prerequisiteIds('initiative',t.id).map(id=>getTask(id)?.title||'').join('; '),prerequisiteIds('initiative',t.id).join('; '),t.description,t.notes]);const cell=x=>{let s=String(x??'');if(/^[\s]*[=+@-]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';};download(new Blob(['\ufeff'+[cols,...rows].map(r=>r.map(cell).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}),slugName()+'-initiatives.csv');toast('Initiatives exported');}
 // ---- Import initiatives and milestones from a spreadsheet (CSV, tab-separated or Excel .xlsx).
 // Columns are matched by name; the CSV export's own columns work, so export → edit → import round-trips.
 // A row whose title and workstream match an existing item updates it; other rows are added.
@@ -3198,7 +3198,7 @@ function importDate(value){
  const out=`${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
  return dateOK(out)&&new Date(out+'T00:00:00Z').getUTCDate()===d?out:null;
 }
-const IMPORT_COLUMNS={type:['type','kind','item type'],title:['initiative','title','name','item','milestone'],stream:['workstream','stream','team','lane','swimlane'],status:['status','state'],owner:['owner','assignee','responsible'],priority:['priority'],health:['health'],start:['start','start date','begin'],end:['end','end date','finish','due','due date'],date:['date','milestone date'],progress:['progress','progress (%)','progress %','% complete'],outcome:['outcome'],increment:['increment','release','sprint'],depends:['depends on','dependencies','depends'],description:['description','comments','comment','purpose'],notes:['notes','acceptance criteria'],done:['done','achieved']};
+const IMPORT_COLUMNS={id:['id','initiative id','key'],dependsIds:['depends on (ids)','depends on ids','dependency ids'],type:['type','kind','item type'],title:['initiative','title','name','item','milestone'],stream:['workstream','stream','team','lane','swimlane'],status:['status','state'],owner:['owner','assignee','responsible'],priority:['priority'],health:['health'],start:['start','start date','begin'],end:['end','end date','finish','due','due date'],date:['date','milestone date'],progress:['progress','progress (%)','progress %','% complete'],outcome:['outcome'],increment:['increment','release','sprint'],depends:['depends on','dependencies','depends'],description:['description','comments','comment','purpose'],notes:['notes','acceptance criteria'],done:['done','achieved']};
 async function importSpreadsheet(file){
  $('#importSheetFile').value='';if(!file)return;
  if(file.size>10*1024*1024){toast('Choose a spreadsheet smaller than 10 MB.',true);return;}
@@ -3234,10 +3234,12 @@ async function importSpreadsheet(file){
    stats.milestones++;return;
   }
   const s=stream||p.workstreams[0]?.id;
-  let t=p.initiatives.find(x=>norm(x.title)===norm(title)&&x.stream===s);
+  const rid=get('id');
+  let t=(rid&&p.initiatives.find(x=>x.id===rid))||p.initiatives.find(x=>norm(x.title)===norm(title)&&x.stream===s);
+  if(t&&t.id===rid){if(stream&&t.stream!==stream)t.stream=stream;if(t.title!==title)t.title=title;}
   const start=importDate(get('start')),end=importDate(get('end'));
   if(!t&&!start&&!end){skipped.push(`row ${at} (${title}): no start or end date`);return;}
-  if(!t){if(p.initiatives.length>=500){skipped.push(`row ${at}: initiative limit reached`);return;}t={id:uid(),title,description:'',stream:s,owner:'',priority:'medium',status:'planned',health:'on_track',start:'',end:'',progress:0,outcome:'',increment:'',dependencies:[],notes:''};p.initiatives.push(t);stats.added++;}else stats.updated++;
+  if(!t){if(p.initiatives.length>=500){skipped.push(`row ${at}: initiative limit reached`);return;}t={id:/^[A-Za-z0-9_-]{1,80}$/.test(rid)&&!p.initiatives.some(x=>x.id===rid)?rid:uid(),title,description:'',stream:s,owner:'',priority:'medium',status:'planned',health:'on_track',start:'',end:'',progress:0,outcome:'',increment:'',dependencies:[],notes:''};p.initiatives.push(t);stats.added++;}else stats.updated++;
   if(start||end){t.start=start||t.start||end;t.end=end||(start&&(!t.end||t.end<start)?iso(Math.min(day(start)+27,day('2099-12-31'))):t.end||t.start);if(t.end<t.start)[t.start,t.end]=[t.end,t.start];}
   const status=enumOf(STATUS,get('status'));if(status)t.status=status;
   const priority=enumOf(PRIORITY,get('priority'));if(priority)t.priority=priority;
@@ -3249,14 +3251,41 @@ async function importSpreadsheet(file){
   if(get('notes'))t.notes=get('notes').slice(0,10000);
   const outcome=get('outcome')&&byName(p.outcomes,get('outcome'));if(outcome)t.outcome=outcome.id;
   const inc=get('increment')&&byName(p.increments,get('increment'));if(inc)t.increment=inc.id;
-  if(get('depends'))deps.push([t,get('depends')]);
+  if(col.dependsIds!=null||get('depends'))deps.push({t,at,names:col.depends!=null?get('depends'):null,ids:col.dependsIds!=null?get('dependsIds'):null});
  });
- // Dependencies by title, once every row is in.
- for(const [t,list] of deps)setPrerequisiteInitiatives(p,'initiative',t.id,[...new Set(list.split(/[;,]/).map(x=>byName(p.initiatives,x.trim())?.id).filter(id=>id&&id!==t.id))]);
+ // Prerequisites, once every row is in. Ids win while the names next to them are unchanged; otherwise names
+ // are matched, preferring the initiative already linked. Anything unknown or ambiguous keeps the row's
+ // existing links and is listed in the preview.
+ const linkIssues=[];let linkChanges=0;
+ const splitList=text=>String(text||'').split(';').flatMap(x=>{x=x.trim();return !x?[]:x.includes(',')&&!p.initiatives.some(t=>norm(t.title)===norm(x))?x.split(',').map(y=>y.trim()).filter(Boolean):[x];});
+ for(const d of deps){
+  const existing=prerequisiteIds('initiative',d.t.id,'initiative',p),ids=d.ids==null?null:splitList(d.ids),names=d.names==null?null:splitList(d.names),issues=[];
+  const titleOf=id=>p.initiatives.find(x=>x.id===id)?.title;
+  const sameNames=ids&&names&&ids.map(id=>norm(titleOf(id)||'\u0000')).sort().join('\u0001')===names.map(norm).sort().join('\u0001');
+  let chosen=null;
+  if(ids&&(names==null||sameNames)){
+   const unknown=ids.filter(id=>!titleOf(id)||id===d.t.id);
+   if(unknown.length)issues.push(`row ${d.at}: prerequisite id ${unknown.map(x=>'“'+x+'”').join(', ')} is not in this plan`);else chosen=ids;
+  }else if(names){
+   chosen=[];
+   for(const name of names){
+    const candidates=p.initiatives.filter(x=>x.id!==d.t.id&&norm(x.title)===norm(name)),preferred=candidates.filter(x=>(ids||[]).includes(x.id)||existing.includes(x.id));
+    const pick=candidates.length===1?candidates[0]:preferred.length===1?preferred[0]:null;
+    if(!candidates.length)issues.push(`row ${d.at}: “${name}” is not an initiative in this plan`);
+    else if(!pick)issues.push(`row ${d.at}: “${name}” matches ${candidates.length} initiatives`);
+    else chosen.push(pick.id);
+   }
+  }
+  if(issues.length){linkIssues.push(...issues);continue;}
+  if(chosen==null)continue;
+  chosen=[...new Set(chosen)];
+  if(chosen.slice().sort().join()!==existing.slice().sort().join()){setPrerequisiteInitiatives(p,'initiative',d.t.id,chosen);linkChanges++;}
+ }
  let next;try{next=validatePlan(p);}catch(e){toast('Nothing imported: '+e.message,true);return;}
- const parts=[stats.added&&`${stats.added} new initiative${stats.added===1?'':'s'}`,stats.updated&&`${stats.updated} updated`,stats.milestones&&`${stats.milestones} milestone${stats.milestones===1?'':'s'}`,stats.streams&&`${stats.streams} new workstream${stats.streams===1?'':'s'}`].filter(Boolean);
+ const parts=[stats.added&&`${stats.added} new initiative${stats.added===1?'':'s'}`,stats.updated&&`${stats.updated} updated`,stats.milestones&&`${stats.milestones} milestone${stats.milestones===1?'':'s'}`,stats.streams&&`${stats.streams} new workstream${stats.streams===1?'':'s'}`,linkChanges&&`dependencies changed on ${linkChanges} initiative${linkChanges===1?'':'s'}`].filter(Boolean);
  if(!parts.length){toast('No rows could be imported. '+skipped.slice(0,3).join('; '),true);return;}
- confirmDialog('Import from '+file.name+'?',parts.join(', ')+'.'+(skipped.length?` Skipped ${skipped.length} row${skipped.length===1?'':'s'}: ${skipped.slice(0,4).join('; ')}${skipped.length>4?'…':''}.`:'')+' You can undo this.',()=>{
+ const linkNote=linkIssues.length?` Dependencies left unchanged (${linkIssues.length}): ${linkIssues.slice(0,4).join('; ')}${linkIssues.length>4?'…':''}.`:'';
+ confirmDialog('Import from '+file.name+'?',parts.join(', ')+'.'+linkNote+(skipped.length?` Skipped ${skipped.length} row${skipped.length===1?'':'s'}: ${skipped.slice(0,4).join('; ')}${skipped.length>4?'…':''}.`:'')+' You can undo this.',()=>{
   if(commit(pl=>Object.assign(pl,next,{id:pl.id}),'Imported from '+file.name)){state.stream='all';state.status='all';state.query='';render();}
  },'Import');
 }
