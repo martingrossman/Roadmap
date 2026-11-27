@@ -4566,7 +4566,7 @@ function placeInitiative(plan,id,drop){
 /* Direct editing, creation and movement. All plan mutations use Roadmap's undoable commit. */
 const RoadmapCanvas=(()=>{
  const TYPES=['initiative','milestone','increment'];
- const names={initiative:'Initiative',milestone:'Milestone',increment:'Increment'};
+ const names={get initiative(){return itemLabel();},milestone:'Milestone',increment:'Increment'};
  const collection=type=>type==='initiative'?'initiatives':type==='increment'?'increments':'milestones';
  let selection=null,inspectorOpen=false,mode='select',gesture=null,editor=null,ignoreClickUntil=0,lastPointerType='mouse',tapCandidate=null;
  const find=(type,id,p=state.plan)=>(p[collection(type)]||[]).find(x=>x.id===id);
@@ -4692,7 +4692,7 @@ const RoadmapCanvas=(()=>{
   // Keep the existing fields alive when a blur commits a change. Replacing the
   // inspector here would swallow the pending click on the next control.
   if(host.dataset.selectionKey===selectionKey&&host.querySelector('.canvas-inspector')){
-   {const n=host.querySelector('.canvas-selected-name');n.defaultValue=item.title;if(force||n!==document.activeElement)n.value=item.title;}
+   {const n=host.querySelector('.canvas-selected-name');n.defaultValue=item.title;if(force||n!==document.activeElement)n.value=item.title;}{const k=host.querySelector('.canvas-selection-type');if(k)k.textContent=names[type];const d=type==='initiative'&&host.querySelector('textarea[data-inline-field="description"]');if(d)d.placeholder=`What should this ${itemLabel(false,true)} achieve? Notes for the team.`;}
    host.querySelectorAll('[data-inline-field]').forEach(input=>{
     const key=input.dataset.inlineField;
     if(input.tagName==='SELECT'){
@@ -4720,10 +4720,10 @@ const RoadmapCanvas=(()=>{
   let purpose='';
   if(type==='initiative'){
    fields+=f('Workstream',`<select data-inline-field="stream" aria-label="Move to workstream">${selectOptions(state.plan.workstreams,item.stream)}</select>`);
-   fields+=f('Status',`<select data-inline-field="status" aria-label="Selected initiative status">${Object.entries(STATUS).map(([k,v])=>`<option value="${k}"${k===item.status?' selected':''}>${v}</option>`).join('')}</select>`);
-   fields+=f('Owner',`<input type="text" data-inline-field="owner" aria-label="Selected initiative owner" maxlength="80" value="${esc(item.owner)}" placeholder="Unassigned">`);
+   fields+=f('Status',`<select data-inline-field="status" aria-label="Selected ${itemLabel(false,true)} status">${Object.entries(STATUS).map(([k,v])=>`<option value="${k}"${k===item.status?' selected':''}>${v}</option>`).join('')}</select>`);
+   fields+=f('Owner',`<input type="text" data-inline-field="owner" aria-label="Selected ${itemLabel(false,true)} owner" maxlength="80" value="${esc(item.owner)}" placeholder="Unassigned">`);
    fields+=f('Increment · delivery group',`<select data-inline-field="increment" aria-label="Assign to increment">${selectOptions(state.plan.increments||[],item.increment||'','No increment')}</select>`);
-   purpose=`<div class="canvas-purpose-details"><div class="canvas-purpose-fields"><label class="canvas-inline-field canvas-purpose-description"><span>Comments</span><textarea data-inline-field="description" aria-label="Initiative comments" maxlength="5000" rows="2" placeholder="What should this initiative achieve? Notes for the team.">${esc(item.description||'')}</textarea></label>${f('Linked outcome',`<select data-inline-field="outcome" aria-label="Linked outcome">${selectOptions(state.plan.outcomes,item.outcome||'','No linked outcome')}</select>`)}${f('Priority',`<select data-inline-field="priority" aria-label="Initiative priority">${Object.entries(PRIORITY).map(([k,v])=>`<option value="${k}"${k===item.priority?' selected':''}>${v}</option>`).join('')}</select>`)}</div></div>`+canvasChecklistHTML(item);
+   purpose=`<div class="canvas-purpose-details"><div class="canvas-purpose-fields"><label class="canvas-inline-field canvas-purpose-description"><span>Comments</span><textarea data-inline-field="description" aria-label="${itemLabel()} comments" maxlength="5000" rows="2" placeholder="What should this ${itemLabel(false,true)} achieve? Notes for the team.">${esc(item.description||'')}</textarea></label>${f('Linked outcome',`<select data-inline-field="outcome" aria-label="Linked outcome">${selectOptions(state.plan.outcomes,item.outcome||'','No linked outcome')}</select>`)}${f('Priority',`<select data-inline-field="priority" aria-label="${itemLabel()} priority">${Object.entries(PRIORITY).map(([k,v])=>`<option value="${k}"${k===item.priority?' selected':''}>${v}</option>`).join('')}</select>`)}</div></div>`+canvasChecklistHTML(item);
   }else if(type==='milestone'){
    fields+=choices('Shape',roadmapShapeChoices(item.shape,{inline:'shape',color:item.color}));
    fields+=choices('Color',roadmapColorChoices(item.color,{inline:'color',label:'Milestone color'}));
