@@ -4,11 +4,12 @@
  * The Sheet is the source of truth. Every record lives on its own row:
  *   Settings     key / value rows for plan-level fields
  *   Workstreams  one row per workstream (swimlane)
- *   Initiatives  one row per initiative (the issue list)
+ *   Initiatives  one row per initiative / epic (the dated bars; Settings → itemLabel names them)
+ *   Stories      one row per story: belongs to one initiative, planned into an increment or in the backlog
  *   Outcomes     one row per outcome
  *   Milestones   one row per milestone
  *   Increments   one row per increment
- *   Connections  one row per extra dependency link
+ *   Connections  one row per dependency (prerequisite → dependent); the only place links are stored
  *
  * The web app (doGet) serves Index.html with the plan read from these tabs.
  * The planner saves back through savePlan(); a content hash guards against
@@ -34,11 +35,13 @@ const ROADMAP_ENUM_ALIASES = {
 
 const ROADMAP_SETTINGS_SHEET = 'Settings';
 const ROADMAP_META_KEYS = ['lastSavedAt', 'lastSavedBy'];
-const ROADMAP_SETTINGS_ORDER = ['name', 'description', 'year', 'reviewDateMode', 'reviewDate', 'timelineColor', 'example', 'id',
+const ROADMAP_JSON_SETTINGS = ['customColorSchemes', 'customPaletteRecipes'];
+const ROADMAP_SETTINGS_ORDER = ['name', 'description', 'itemLabel', 'year', 'reviewDateMode', 'reviewDate', 'timelineColor', 'example', 'id',
   'colorScheme', 'customColorSchemes', 'customPaletteRecipes'];
 const ROADMAP_SETTINGS_HELP = {
   name: 'Plan name shown in the planner',
   description: 'Short plan description',
+  itemLabel: 'What the dated items are called: initiative, epic or feature',
   year: 'Default roadmap year',
   reviewDateMode: '"today" = the reference date is always today (default); "fixed" = use reviewDate below',
   reviewDate: 'Reference date (yyyy-mm-dd) for overdue warnings and the timeline marker. Only used when reviewDateMode is "fixed"',
@@ -76,11 +79,27 @@ const ROADMAP_TABS = [
     { field: 'progress', type: 'number', blank: 0 },
     { field: 'outcome', type: 'ref', ref: 'Outcomes' },
     { field: 'increment', type: 'ref', ref: 'Increments' },
-    { field: 'dependencies', type: 'list' },
     { field: 'description', wide: true },
     { field: 'notes', wide: true },
+    // One item per line: "[x] done item" or "[ ] open item".
+    { field: 'checklist', type: 'checklist', wide: true },
     // Custom icon: a small PNG as a data URL, set from the planner (Choose image… or Ctrl+V).
     { field: 'icon', header: 'icon', wide: false }
+  ],
+  // Older Sheets kept prerequisites here; they are read once, moved to Connections, and the column is dropped.
+  legacy: [{ field: 'dependencies', type: 'list' }] },
+  { key: 'stories', sheet: 'Stories', cols: [
+    { field: 'id' },
+    { field: 'title', wide: true },
+    // The initiative (epic) this story belongs to.
+    { field: 'epic', type: 'ref', ref: 'Initiatives' },
+    // Blank = in the backlog, not planned yet.
+    { field: 'increment', type: 'ref', ref: 'Increments' },
+    { field: 'status', type: 'enum', values: 'status', blank: 'planned' },
+    { field: 'points', type: 'number' },
+    { field: 'owner' },
+    { field: 'description', wide: true },
+    { field: 'checklist', type: 'checklist', wide: true }
   ] },
   { key: 'outcomes', sheet: 'Outcomes', cols: [
     { field: 'id' },
@@ -105,13 +124,13 @@ const ROADMAP_TABS = [
     { field: 'color', type: 'enum', values: 'color' },
     { field: 'showLine', type: 'bool' },
     { field: 'increment', type: 'ref', ref: 'Increments' },
-    { field: 'initiatives', type: 'list' },
     // Gantt: the initiative whose row this milestone follows. Blank = top of its workstream group.
     { field: 'after', header: 'ganttAfter' },
     { field: 'description', wide: true },
     // Custom icon: a small PNG as a data URL, set from the planner (Choose image… or Ctrl+V).
     { field: 'icon', header: 'icon', wide: false }
-  ] },
+  ],
+  legacy: [{ field: 'initiatives', type: 'list' }] },
   { key: 'increments', sheet: 'Increments', cols: [
     { field: 'id' },
     { field: 'title', wide: true },
@@ -120,6 +139,8 @@ const ROADMAP_TABS = [
     { field: 'start', type: 'date' },
     { field: 'end', type: 'date' },
     { field: 'color', type: 'enum', values: 'color' },
+    // Story points this increment can take; the planner's Backlog compares planned points with it.
+    { field: 'capacity', type: 'number' },
     // Gantt: the initiative whose row this increment follows. Blank = top of its workstream group.
     { field: 'after', header: 'ganttAfter' },
     { field: 'description', wide: true },
@@ -134,12 +155,15 @@ const ROADMAP_TABS = [
     { field: 'to' }
   ] }
 ];
-const ROADMAP_REQUIRED = {"workstreams":["name"],"initiatives":["title","stream","start","end"],"outcomes":["title","metric","baseline","target","due"],"milestones":["title","date"],"increments":["title","start","end"],"connections":["fromType","from","toType","to"]};
-ROADMAP_TABS.forEach(tab => tab.cols.forEach(c => {
-  c.header = c.header || c.field;
-  c.type = c.type || 'text';
-  c.required = (ROADMAP_REQUIRED[tab.key] || []).indexOf(c.field) >= 0;
-}));
+const ROADMAP_REQUIRED = {"workstreams":["name"],"initiatives":["title","stream","start","end"],"stories":["title","epic"],"outcomes":["title","metric","baseline","target","due"],"milestones":["title","date"],"increments":["title","start","end"],"connections":["fromType","from","toType","to"]};
+ROADMAP_TABS.forEach(tab => {
+  tab.legacy = tab.legacy || [];
+  tab.cols.concat(tab.legacy).forEach(c => {
+    c.header = c.header || c.field;
+    c.type = c.type || 'text';
+    c.required = (ROADMAP_REQUIRED[tab.key] || []).indexOf(c.field) >= 0;
+  });
+});
 
 /* ------------------------------------------------------------------ */
 /* Sheet menu                                                          */
@@ -334,8 +358,7 @@ function loadExample(key) {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const plan = JSON.parse(JSON.stringify(example.plan));
     roadmapCheckShape_(plan);
-    roadmapWrite_(ss, plan);
-    SpreadsheetApp.flush();
+    roadmapSafeWrite_(ss, plan);
     ss.toast('Loaded "' + plan.name + '". Reload any open planner tab to see it.', '🗺️ Roadmap planner', 8);
   } finally {
     lock.releaseLock();
@@ -415,8 +438,8 @@ function savePlan(json, baseRevision, force) {
     }
     const plan = JSON.parse(json);
     roadmapCheckShape_(plan);
-    roadmapWrite_(ss, plan);
-    SpreadsheetApp.flush();
+    roadmapValidate_(plan);
+    roadmapSafeWrite_(ss, plan);
     const after = roadmapRead_(ss);
     return { ok: true, revision: after.revision, savedBy: after.savedBy, savedAt: after.savedAt };
   } finally {
@@ -455,7 +478,7 @@ function roadmapRead_(ss) {
   const settings = ss.getSheetByName(ROADMAP_SETTINGS_SHEET);
   if (!settings) return { plan: null, revision: 'empty', savedBy: '', savedAt: '' };
   const tz = ss.getSpreadsheetTimeZone();
-  const plan = { schemaVersion: 1 };
+  const plan = { schemaVersion: 2 };
   const meta = {};
   const rows = settings.getDataRange().getValues();
   for (let r = 1; r < rows.length; r++) {
@@ -469,6 +492,7 @@ function roadmapRead_(ss) {
     rowOf[tab.key] = {};
     plan[tab.key] = roadmapReadTab_(ss, tab, tz, problems, rowOf[tab.key]);
   });
+  roadmapMigrateLinks_(plan);
   roadmapCheckRefs_(plan, rowOf, problems);
   const revision = roadmapHash_(JSON.stringify(plan));
   return { plan: plan, revision: revision, problems: problems.slice(0, 25),
@@ -480,7 +504,7 @@ function roadmapCheckRefs_(plan, rowOf, problems) {
   const ids = key => new Set((plan[key] || []).map(r => r.id));
   const sets = { workstreams: ids('workstreams'), outcomes: ids('outcomes'), increments: ids('increments'),
     initiatives: ids('initiatives'), milestones: ids('milestones') };
-  const at = (key, rec) => roadmapTabName_(key) + ' row ' + rowOf[key][rec.id] + ' (' + (rec.title || rec.name || rec.id) + ')';
+  const at = (key, rec) => roadmapTabName_(key) + (rowOf ? ' row ' + rowOf[key][rec.id] : '') + ' (' + (rec.title || rec.name || rec.id) + ')';
   const check = (key, field, target, many) => (plan[key] || []).forEach(rec => {
     const values = many ? rec[field] || [] : rec[field] ? [rec[field]] : [];
     values.forEach(v => { if (!sets[target].has(v)) problems.push(at(key, rec) + ': ' + (field === 'stream' ? 'workstream' : field) + ' "' + v + '" is not an id on the ' + roadmapTabName_(target) + ' tab.'); });
@@ -488,11 +512,46 @@ function roadmapCheckRefs_(plan, rowOf, problems) {
   check('initiatives', 'stream', 'workstreams');
   check('initiatives', 'outcome', 'outcomes');
   check('initiatives', 'increment', 'increments');
-  check('initiatives', 'dependencies', 'initiatives', true);
   check('milestones', 'stream', 'workstreams');
   check('milestones', 'increment', 'increments');
   check('increments', 'stream', 'workstreams');
-  check('milestones', 'initiatives', 'initiatives', true);
+  check('stories', 'epic', 'initiatives');
+  check('stories', 'increment', 'increments');
+  const typeKey = { initiative: 'initiatives', milestone: 'milestones', increment: 'increments' };
+  (plan.connections || []).forEach(c => {
+    ['from', 'to'].forEach(end => {
+      const key = typeKey[c[end + 'Type']];
+      if (key && !sets[key].has(c[end])) problems.push(at('connections', c) + ': ' + end + ' "' + c[end] + '" is not an id on the ' + roadmapTabName_(key) + ' tab.');
+    });
+  });
+}
+
+/**
+ * Prerequisites are stored once, on the Connections tab. Plans from before kept initiative
+ * prerequisites in initiative.dependencies and milestone.initiatives; those move to connections
+ * with ids that are the same every time (the planner uses the same rule).
+ */
+function roadmapMigrateLinks_(plan) {
+  const list = plan.connections = plan.connections || [];
+  const keys = new Set(list.map(c => c.fromType + ':' + c.from + '>' + c.toType + ':' + c.to));
+  const ids = new Set(list.map(c => c.id));
+  const add = (from, toType, to) => {
+    const key = 'initiative:' + from + '>' + toType + ':' + to;
+    if (!from || keys.has(key)) return;
+    keys.add(key);
+    let id = roadmapLinkId_(key);
+    while (ids.has(id)) id += 'x';
+    ids.add(id);
+    list.push({ id: id, fromType: 'initiative', from: from, toType: toType, to: to });
+  };
+  (plan.initiatives || []).forEach(t => { (t.dependencies || []).forEach(d => add(d, 'initiative', t.id)); delete t.dependencies; });
+  (plan.milestones || []).forEach(m => { (m.initiatives || []).forEach(d => add(d, 'milestone', m.id)); delete m.initiatives; });
+}
+
+function roadmapLinkId_(key) {
+  let a = 0x811c9dc5, b = 0x01000193 ^ key.length;
+  for (let i = 0; i < key.length; i++) { const c = key.charCodeAt(i); a = Math.imul(a ^ c, 16777619); b = Math.imul(b ^ c, 2246822519); }
+  return 'link-' + (a >>> 0).toString(36) + (b >>> 0).toString(36);
 }
 
 function roadmapTabName_(key) { const tab = ROADMAP_TABS.filter(t => t.key === key)[0]; return tab ? tab.sheet : key; }
@@ -502,7 +561,9 @@ function roadmapParseSetting_(key, value, tz) {
   if (key === 'example') return roadmapBool_(value);
   if (value instanceof Date) return roadmapDate_(value, tz);
   const text = String(value).trim();
-  if (/^[\[{]/.test(text)) {
+  // Only these settings hold JSON; names and descriptions such as "[Q4] Launch" stay text.
+  if (ROADMAP_JSON_SETTINGS.indexOf(key) >= 0) {
+    if (!text) return {};
     try { return JSON.parse(text); } catch (err) { throw new Error('Settings → ' + key + ' is not valid JSON.'); }
   }
   return text;
@@ -543,6 +604,10 @@ function roadmapReadTab_(ss, tab, tz, problems, rowOf) {
       else if (c.type === 'number' && value !== '' && !isFinite(value)) problems.push(where + ': ' + c.header + ' "' + raw + '" must be a number.');
       else if (c.type === 'enum' && value && ROADMAP_ENUMS[c.values].indexOf(value) < 0) problems.push(where + ': ' + c.header + ' "' + raw + '" must be one of ' + ROADMAP_ENUMS[c.values].slice(0, 6).join(', ') + '.');
     });
+    tab.legacy.forEach(c => {
+      const at = roadmapColumnIndex_(values[0], { cols: [c] })[c.field];
+      if (at >= 0 && !roadmapIsBlank_(row[at])) rec[c.field] = roadmapFromCell_(c, row[at], tz);
+    });
     if (rowOf) rowOf[id] = r + 1;
     records.push(rec);
   }
@@ -560,6 +625,8 @@ function roadmapFromCell_(col, value, tz) {
       return value instanceof Date ? roadmapDate_(value, tz) : roadmapNormalizeDate_(String(value).trim());
     case 'list':
       return String(value).split(/[\s,;]+/).map(s => s.trim()).filter(Boolean);
+    case 'checklist':
+      return roadmapChecklist_(value);
     case 'enum': {
       const text = String(value).trim().toLowerCase().replace(/[\s-]+/g, '_');
       // Empty → the column default, or undefined so the planner applies its own default.
@@ -587,10 +654,50 @@ function roadmapColumnIndex_(headerRow, tab) {
 /* Writing                                                             */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Writes the plan so that a failure part-way never leaves a half-written Sheet:
+ * every tab's rows are prepared before anything is written, the current values are
+ * kept, and if any write fails every tab is put back as it was.
+ */
+function roadmapSafeWrite_(ss, plan) {
+  const snapshot = roadmapSnapshot_(ss);
+  try {
+    roadmapWrite_(ss, plan);
+    SpreadsheetApp.flush();
+  } catch (err) {
+    let restored = true;
+    try { roadmapRestore_(ss, snapshot); SpreadsheetApp.flush(); } catch (again) { restored = false; }
+    throw new Error('The plan could not be saved to the Sheet (' + roadmapMessage_(err) + '). ' + (restored
+      ? 'The Sheet was left as it was before; try saving again.'
+      : 'The Sheet may be incomplete. Restore it from File → Version history, then save again from the planner.'));
+  }
+}
+
 function roadmapWrite_(ss, plan) {
+  roadmapMigrateLinks_(plan);
   const created = roadmapEnsureSheets_(ss);
-  roadmapWriteSettings_(ss.getSheetByName(ROADMAP_SETTINGS_SHEET), plan, created[ROADMAP_SETTINGS_SHEET]);
-  ROADMAP_TABS.forEach(tab => roadmapWriteTab_(ss, tab, plan[tab.key] || [], created[tab.sheet]));
+  // Prepare everything first: nothing below can fail half-way through because of the data.
+  const settings = roadmapSettingsRows_(plan);
+  const tabs = ROADMAP_TABS.map(tab => roadmapPrepareTab_(ss, tab, plan[tab.key] || [], created[tab.sheet]));
+  roadmapWriteSettings_(ss.getSheetByName(ROADMAP_SETTINGS_SHEET), settings, created[ROADMAP_SETTINGS_SHEET]);
+  tabs.forEach(roadmapApplyTab_);
+}
+
+/** The current values of every planner tab (null for a tab that does not exist yet). */
+function roadmapSnapshot_(ss) {
+  return [ROADMAP_SETTINGS_SHEET].concat(ROADMAP_TABS.map(t => t.sheet)).map(name => {
+    const sh = ss.getSheetByName(name);
+    return { name: name, values: sh && sh.getLastRow() > 0 ? sh.getDataRange().getValues() : sh ? [] : null };
+  });
+}
+
+function roadmapRestore_(ss, snapshot) {
+  snapshot.forEach(s => {
+    const sh = ss.getSheetByName(s.name);
+    if (!sh) return;
+    if (sh.getLastRow() > 0) sh.getRange(1, 1, sh.getLastRow(), Math.max(sh.getLastColumn(), 1)).clearContent();
+    if (s.values && s.values.length) sh.getRange(1, 1, s.values.length, s.values[0].length).setValues(s.values);
+  });
 }
 
 /** Creates any missing tabs (in a sensible order) and reports which were new. */
@@ -605,7 +712,13 @@ function roadmapEnsureSheets_(ss) {
   return created;
 }
 
-function roadmapWriteSettings_(sh, plan, isNew) {
+function roadmapWriteSettings_(sh, rows, isNew) {
+  if (isNew) roadmapFormatSettings_(sh);
+  sh.clearContents();
+  sh.getRange(1, 1, rows.length, 3).setValues(rows);
+}
+
+function roadmapSettingsRows_(plan) {
   const keys = ROADMAP_SETTINGS_ORDER.filter(k => k in plan)
     .concat(Object.keys(plan).filter(k => ROADMAP_SETTINGS_ORDER.indexOf(k) < 0 && k !== 'schemaVersion' &&
       !ROADMAP_TABS.some(t => t.key === k)));
@@ -616,17 +729,19 @@ function roadmapWriteSettings_(sh, plan, isNew) {
   });
   rows.push(['lastSavedAt', Utilities.formatDate(new Date(), 'UTC', "yyyy-MM-dd HH:mm 'UTC'"), ROADMAP_SETTINGS_HELP.lastSavedAt]);
   rows.push(['lastSavedBy', roadmapUser_(), ROADMAP_SETTINGS_HELP.lastSavedBy]);
-  if (isNew) roadmapFormatSettings_(sh);
-  sh.clearContents();
-  sh.getRange(1, 1, rows.length, 3).setValues(rows);
+  return rows;
 }
 
-function roadmapWriteTab_(ss, tab, records, isNew) {
+/** Works out a tab's new rows (keeping columns people added themselves) without writing anything. */
+function roadmapPrepareTab_(ss, tab, records, isNew) {
   const sh = ss.getSheetByName(tab.sheet);
   const existing = sh.getLastRow() > 0 ? sh.getDataRange().getValues() : [];
   const oldHeaders = existing.length ? existing[0].map(h => String(h)) : [];
   const oldIndex = roadmapColumnIndex_(oldHeaders, tab);
   const canonicalAt = new Set(tab.cols.map(c => oldIndex[c.field]).filter(i => i >= 0));
+  // Old link columns are not kept: their links are on the Connections tab now.
+  const legacyIndex = roadmapColumnIndex_(oldHeaders, { cols: tab.legacy });
+  tab.legacy.forEach(c => { if (legacyIndex[c.field] >= 0) canonicalAt.add(legacyIndex[c.field]); });
 
   // Columns people added themselves are kept and follow their row's id.
   const extras = [];
@@ -647,6 +762,13 @@ function roadmapWriteTab_(ss, tab, records, isNew) {
   });
 
   const layoutChanged = isNew || oldHeaders.slice(0, tab.cols.length).join('\u0001') !== headers.slice(0, tab.cols.length).join('\u0001');
+  return { ss: ss, sh: sh, tab: tab, headers: headers, out: out, layoutChanged: layoutChanged,
+    oldRows: existing.length, oldCols: oldHeaders.length };
+}
+
+function roadmapApplyTab_(p) {
+  const ss = p.ss, sh = p.sh, tab = p.tab, headers = p.headers, out = p.out, layoutChanged = p.layoutChanged;
+  const existing = { length: p.oldRows }, oldHeaders = { length: p.oldCols };
   if (sh.getMaxColumns() < headers.length) sh.insertColumnsAfter(sh.getMaxColumns(), headers.length - sh.getMaxColumns());
   if (sh.getMaxRows() < out.length + 1) sh.insertRowsAfter(sh.getMaxRows(), out.length + 1 - sh.getMaxRows());
   if (layoutChanged) roadmapFormatTab_(ss, sh, tab, headers);
@@ -657,6 +779,7 @@ function roadmapWriteTab_(ss, tab, records, isNew) {
 function roadmapToCell_(col, value) {
   if (value === undefined || value === null) return col.type === 'bool' ? false : '';
   if (col.type === 'list') return (value || []).join(', ');
+  if (col.type === 'checklist') return (value || []).map(x => (x.done ? '[x] ' : '[ ] ') + x.text).join('\n');
   if (col.type === 'bool') return value === true;
   return value;
 }
@@ -677,6 +800,7 @@ function roadmapFormatTab_(ss, sh, tab, headers) {
     range.setDataValidation(null);
     if (c.type !== 'bool' && c.type !== 'number') range.setNumberFormat('@');
     if (c.type === 'bool') range.insertCheckboxes();
+    if (c.type === 'checklist') range.setWrap(true);
     if (c.type === 'enum') {
       range.setDataValidation(SpreadsheetApp.newDataValidation()
         // Warn instead of reject, so friendly spellings like "In review" can be typed.
@@ -709,13 +833,54 @@ function roadmapFormatSettings_(sh) {
 /* ------------------------------------------------------------------ */
 
 function roadmapCheckShape_(plan) {
-  if (!plan || plan.schemaVersion !== 1) throw new Error('This is not an Roadmap plan (schemaVersion 1).');
+  if (!plan || (plan.schemaVersion !== 1 && plan.schemaVersion !== 2)) throw new Error('This is not a Roadmap plan (schemaVersion 1 or 2).');
   ROADMAP_TABS.forEach(tab => {
     if (plan[tab.key] !== undefined && !Array.isArray(plan[tab.key])) throw new Error('Plan field ' + tab.key + ' must be a list.');
     (plan[tab.key] || []).forEach(rec => {
       if (!rec || typeof rec.id !== 'string' || !rec.id) throw new Error('Every ' + tab.key + ' record needs an id.');
     });
   });
+}
+
+/**
+ * Checks a plan sent by the planner before anything is written: every collection is
+ * present, required fields are filled, ids are unique and every reference resolves.
+ * The planner checks the same rules; this guards the Sheet against a broken or partial payload.
+ */
+function roadmapValidate_(plan) {
+  const problems = [];
+  if (typeof plan.name !== 'string' || !plan.name.trim()) problems.push('The plan has no name.');
+  ROADMAP_TABS.forEach(tab => { if (!Array.isArray(plan[tab.key])) problems.push('The plan has no ' + tab.key + ' list.'); });
+  if (problems.length) throw new Error('Nothing was saved: ' + problems.join(' '));
+  if (!plan.workstreams.length) problems.push('A plan needs at least one workstream.');
+  const ids = {};
+  ROADMAP_TABS.forEach(tab => {
+    ids[tab.key] = new Set();
+    plan[tab.key].forEach(rec => {
+      if (ids[tab.key].has(rec.id)) problems.push(tab.sheet + ': the id "' + rec.id + '" is used twice.');
+      ids[tab.key].add(rec.id);
+      (ROADMAP_REQUIRED[tab.key] || []).forEach(f => {
+        if (roadmapIsBlank_(rec[f]) || (typeof rec[f] === 'string' && !rec[f].trim())) problems.push(tab.sheet + ' "' + (rec.title || rec.name || rec.id) + '": ' + f + ' is empty.');
+      });
+    });
+  });
+  const refs = [];
+  roadmapCheckRefs_(plan, null, refs);
+  problems.push.apply(problems, refs);
+  const typeKey = { initiative: 'initiatives', milestone: 'milestones', increment: 'increments' };
+  plan.connections.forEach(c => {
+    if (!typeKey[c.fromType] || !typeKey[c.toType]) problems.push('Connections: a dependency has an unknown item type.');
+    else if (!ids[typeKey[c.fromType]].has(c.from) || !ids[typeKey[c.toType]].has(c.to)) problems.push('Connections: a dependency points to a missing item.');
+  });
+  if (problems.length) throw new Error('Nothing was saved: ' + problems.slice(0, 5).join(' ') + (problems.length > 5 ? ' (and ' + (problems.length - 5) + ' more)' : ''));
+}
+
+/** A checklist cell: one item per line, "[x] done item" or "[ ] open item" (a line without brackets is open). */
+function roadmapChecklist_(value) {
+  return String(value === null || value === undefined ? '' : value).split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(l => {
+    const m = /^\[([ xX✓✔]?)\]\s*(.*)$/.exec(l);
+    return m ? { text: m[2].trim(), done: !!m[1].trim() } : { text: l.replace(/^[-*•]\s+/, ''), done: false };
+  }).filter(x => x.text).map(x => ({ text: x.text.slice(0, 200), done: x.done })).slice(0, 50);
 }
 
 function roadmapIsBlank_(v) { return v === '' || v === null || v === undefined; }

@@ -4,13 +4,14 @@ This runs `roadmap.html` as a Google Apps Script web app. The Google Sheet is wh
 
 | Tab | One row per… | Notes |
 |---|---|---|
-| **Initiatives** | initiative (the issue list) | `workstream`, `outcome`, `increment` hold ids from those tabs. `dependencies` is a comma-separated list of initiative ids. |
+| **Initiatives** | initiative / epic (the dated bars) | `workstream`, `outcome`, `increment` hold ids from those tabs. `checklist` has one item per line: `[x] done item` or `[ ] open item`. |
+| **Stories** | story | `epic` is the id of its initiative. `increment` is the increment it is planned into; blank means the backlog. `points` is optional. `checklist` as on Initiatives. |
 | **Workstreams** | workstream / swimlane | |
 | **Outcomes** | outcome | |
-| **Milestones** | milestone | `workstream` puts it in that workstream's lane; blank means the plan-wide Milestones row. `initiatives` is a comma-separated list of initiative ids. `ganttAfter` is the initiative whose Gantt row it follows; blank puts it at the top of its workstream group. |
-| **Increments** | increment | `workstream` puts it in that workstream's lane; blank means the plan-wide Increments row. `ganttAfter` is the initiative whose Gantt row it follows; blank puts it at the top of its workstream group. |
-| **Connections** | extra dependency link | |
-| **Settings** | plan field (key / value) | Plan name, year, reference date, colors. Also `lastSavedAt` / `lastSavedBy`. |
+| **Milestones** | milestone | `workstream` puts it in that workstream's lane; blank means the plan-wide Milestones row. `ganttAfter` is the initiative whose Gantt row it follows; blank puts it at the top of its workstream group. |
+| **Increments** | increment | `workstream` puts it in that workstream's lane; blank means the plan-wide Increments row. `capacity` is the story points it can take (optional). `ganttAfter` is the initiative whose Gantt row it follows; blank puts it at the top of its workstream group. |
+| **Connections** | dependency (prerequisite → dependent) | The only place dependencies are stored. Older Sheets with a `dependencies` column (Initiatives) or an `initiatives` column (Milestones) are moved here on the next save. |
+| **Settings** | plan field (key / value) | Plan name, year, reference date, colors, `itemLabel` (initiative, epic or feature). Also `lastSavedAt` / `lastSavedBy`. |
 
 You can work in either place:
 

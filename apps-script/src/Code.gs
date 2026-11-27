@@ -4,7 +4,8 @@
  * The Sheet is the source of truth. Every record lives on its own row:
  *   Settings     key / value rows for plan-level fields
  *   Workstreams  one row per workstream (swimlane)
- *   Initiatives  one row per initiative (the issue list)
+ *   Initiatives  one row per initiative / epic (the dated bars; Settings → itemLabel names them)
+ *   Stories      one row per story: belongs to one initiative, planned into an increment or in the backlog
  *   Outcomes     one row per outcome
  *   Milestones   one row per milestone
  *   Increments   one row per increment
@@ -35,11 +36,12 @@ const ROADMAP_ENUM_ALIASES = {
 const ROADMAP_SETTINGS_SHEET = 'Settings';
 const ROADMAP_META_KEYS = ['lastSavedAt', 'lastSavedBy'];
 const ROADMAP_JSON_SETTINGS = ['customColorSchemes', 'customPaletteRecipes'];
-const ROADMAP_SETTINGS_ORDER = ['name', 'description', 'year', 'reviewDateMode', 'reviewDate', 'timelineColor', 'example', 'id',
+const ROADMAP_SETTINGS_ORDER = ['name', 'description', 'itemLabel', 'year', 'reviewDateMode', 'reviewDate', 'timelineColor', 'example', 'id',
   'colorScheme', 'customColorSchemes', 'customPaletteRecipes'];
 const ROADMAP_SETTINGS_HELP = {
   name: 'Plan name shown in the planner',
   description: 'Short plan description',
+  itemLabel: 'What the dated items are called: initiative, epic or feature',
   year: 'Default roadmap year',
   reviewDateMode: '"today" = the reference date is always today (default); "fixed" = use reviewDate below',
   reviewDate: 'Reference date (yyyy-mm-dd) for overdue warnings and the timeline marker. Only used when reviewDateMode is "fixed"',
@@ -79,11 +81,26 @@ const ROADMAP_TABS = [
     { field: 'increment', type: 'ref', ref: 'Increments' },
     { field: 'description', wide: true },
     { field: 'notes', wide: true },
+    // One item per line: "[x] done item" or "[ ] open item".
+    { field: 'checklist', type: 'checklist', wide: true },
     // Custom icon: a small PNG as a data URL, set from the planner (Choose image… or Ctrl+V).
     { field: 'icon', header: 'icon', wide: false }
   ],
   // Older Sheets kept prerequisites here; they are read once, moved to Connections, and the column is dropped.
   legacy: [{ field: 'dependencies', type: 'list' }] },
+  { key: 'stories', sheet: 'Stories', cols: [
+    { field: 'id' },
+    { field: 'title', wide: true },
+    // The initiative (epic) this story belongs to.
+    { field: 'epic', type: 'ref', ref: 'Initiatives' },
+    // Blank = in the backlog, not planned yet.
+    { field: 'increment', type: 'ref', ref: 'Increments' },
+    { field: 'status', type: 'enum', values: 'status', blank: 'planned' },
+    { field: 'points', type: 'number' },
+    { field: 'owner' },
+    { field: 'description', wide: true },
+    { field: 'checklist', type: 'checklist', wide: true }
+  ] },
   { key: 'outcomes', sheet: 'Outcomes', cols: [
     { field: 'id' },
     { field: 'title', wide: true },
@@ -122,6 +139,8 @@ const ROADMAP_TABS = [
     { field: 'start', type: 'date' },
     { field: 'end', type: 'date' },
     { field: 'color', type: 'enum', values: 'color' },
+    // Story points this increment can take; the planner's Backlog compares planned points with it.
+    { field: 'capacity', type: 'number' },
     // Gantt: the initiative whose row this increment follows. Blank = top of its workstream group.
     { field: 'after', header: 'ganttAfter' },
     { field: 'description', wide: true },
@@ -136,7 +155,7 @@ const ROADMAP_TABS = [
     { field: 'to' }
   ] }
 ];
-const ROADMAP_REQUIRED = {"workstreams":["name"],"initiatives":["title","stream","start","end"],"outcomes":["title","metric","baseline","target","due"],"milestones":["title","date"],"increments":["title","start","end"],"connections":["fromType","from","toType","to"]};
+const ROADMAP_REQUIRED = {"workstreams":["name"],"initiatives":["title","stream","start","end"],"stories":["title","epic"],"outcomes":["title","metric","baseline","target","due"],"milestones":["title","date"],"increments":["title","start","end"],"connections":["fromType","from","toType","to"]};
 ROADMAP_TABS.forEach(tab => {
   tab.legacy = tab.legacy || [];
   tab.cols.concat(tab.legacy).forEach(c => {
@@ -459,7 +478,7 @@ function roadmapRead_(ss) {
   const settings = ss.getSheetByName(ROADMAP_SETTINGS_SHEET);
   if (!settings) return { plan: null, revision: 'empty', savedBy: '', savedAt: '' };
   const tz = ss.getSpreadsheetTimeZone();
-  const plan = { schemaVersion: 1 };
+  const plan = { schemaVersion: 2 };
   const meta = {};
   const rows = settings.getDataRange().getValues();
   for (let r = 1; r < rows.length; r++) {
@@ -496,6 +515,8 @@ function roadmapCheckRefs_(plan, rowOf, problems) {
   check('milestones', 'stream', 'workstreams');
   check('milestones', 'increment', 'increments');
   check('increments', 'stream', 'workstreams');
+  check('stories', 'epic', 'initiatives');
+  check('stories', 'increment', 'increments');
   const typeKey = { initiative: 'initiatives', milestone: 'milestones', increment: 'increments' };
   (plan.connections || []).forEach(c => {
     ['from', 'to'].forEach(end => {
@@ -604,6 +625,8 @@ function roadmapFromCell_(col, value, tz) {
       return value instanceof Date ? roadmapDate_(value, tz) : roadmapNormalizeDate_(String(value).trim());
     case 'list':
       return String(value).split(/[\s,;]+/).map(s => s.trim()).filter(Boolean);
+    case 'checklist':
+      return roadmapChecklist_(value);
     case 'enum': {
       const text = String(value).trim().toLowerCase().replace(/[\s-]+/g, '_');
       // Empty → the column default, or undefined so the planner applies its own default.
@@ -756,6 +779,7 @@ function roadmapApplyTab_(p) {
 function roadmapToCell_(col, value) {
   if (value === undefined || value === null) return col.type === 'bool' ? false : '';
   if (col.type === 'list') return (value || []).join(', ');
+  if (col.type === 'checklist') return (value || []).map(x => (x.done ? '[x] ' : '[ ] ') + x.text).join('\n');
   if (col.type === 'bool') return value === true;
   return value;
 }
@@ -776,6 +800,7 @@ function roadmapFormatTab_(ss, sh, tab, headers) {
     range.setDataValidation(null);
     if (c.type !== 'bool' && c.type !== 'number') range.setNumberFormat('@');
     if (c.type === 'bool') range.insertCheckboxes();
+    if (c.type === 'checklist') range.setWrap(true);
     if (c.type === 'enum') {
       range.setDataValidation(SpreadsheetApp.newDataValidation()
         // Warn instead of reject, so friendly spellings like "In review" can be typed.
@@ -808,7 +833,7 @@ function roadmapFormatSettings_(sh) {
 /* ------------------------------------------------------------------ */
 
 function roadmapCheckShape_(plan) {
-  if (!plan || plan.schemaVersion !== 1) throw new Error('This is not an Roadmap plan (schemaVersion 1).');
+  if (!plan || (plan.schemaVersion !== 1 && plan.schemaVersion !== 2)) throw new Error('This is not a Roadmap plan (schemaVersion 1 or 2).');
   ROADMAP_TABS.forEach(tab => {
     if (plan[tab.key] !== undefined && !Array.isArray(plan[tab.key])) throw new Error('Plan field ' + tab.key + ' must be a list.');
     (plan[tab.key] || []).forEach(rec => {
@@ -848,6 +873,14 @@ function roadmapValidate_(plan) {
     else if (!ids[typeKey[c.fromType]].has(c.from) || !ids[typeKey[c.toType]].has(c.to)) problems.push('Connections: a dependency points to a missing item.');
   });
   if (problems.length) throw new Error('Nothing was saved: ' + problems.slice(0, 5).join(' ') + (problems.length > 5 ? ' (and ' + (problems.length - 5) + ' more)' : ''));
+}
+
+/** A checklist cell: one item per line, "[x] done item" or "[ ] open item" (a line without brackets is open). */
+function roadmapChecklist_(value) {
+  return String(value === null || value === undefined ? '' : value).split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(l => {
+    const m = /^\[([ xX✓✔]?)\]\s*(.*)$/.exec(l);
+    return m ? { text: m[2].trim(), done: !!m[1].trim() } : { text: l.replace(/^[-*•]\s+/, ''), done: false };
+  }).filter(x => x.text).map(x => ({ text: x.text.slice(0, 200), done: x.done })).slice(0, 50);
 }
 
 function roadmapIsBlank_(v) { return v === '' || v === null || v === undefined; }

@@ -43,8 +43,8 @@ html = html.slice(0, a) +
 
 // 3. Small hooks in the planner so it uses the Sheet when the bridge is active.
 html = replaceOnce(html,
-  "catch(e){initialPlan=samplePlan();startupMessage='The embedded plan could not be loaded. The example plan is shown.';}",
-  "catch(e){globalThis.RoadmapLoadError=e&&e.message||String(e);initialPlan=samplePlan();startupMessage='The embedded plan could not be loaded. The example plan is shown.';}",
+  "catch(e){initialPlan=validatePlan(samplePlan());startupMessage='The embedded plan could not be loaded. The example plan is shown.';}",
+  "catch(e){globalThis.RoadmapLoadError=e&&e.message||String(e);initialPlan=validatePlan(samplePlan());startupMessage='The embedded plan could not be loaded. The example plan is shown.';}",
   'record load error');
 html = replaceOnce(html,
   'let loadedPlan=initialPlan;try{const s=localStorage.getItem(STORAGE_KEY);',

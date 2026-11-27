@@ -52,7 +52,7 @@
       }
       return this;
     },
-    setNumberFormat() { return this; }, setDataValidation() { return this; }, insertCheckboxes() { return this; },
+    setNumberFormat() { return this; }, setDataValidation() { return this; }, insertCheckboxes() { return this; }, setWrap() { return this; },
     setFontWeight() { return this; }, setBackground() { return this; }, setFontColor() { return this; }
   };
 
@@ -81,7 +81,7 @@
     computeDigest(_, text) { let h1 = 0x811c9dc5, h2 = 0; for (let i = 0; i < text.length; i++) { h1 = Math.imul(h1 ^ text.charCodeAt(i), 16777619); h2 = (h2 * 31 + text.charCodeAt(i)) | 0; } return [h1 >>> 24, (h1 >>> 16) & 255, (h1 >>> 8) & 255, h1 & 255, h2 >>> 24, (h2 >>> 16) & 255, (h2 >>> 8) & 255, h2 & 255].map(b => (b > 127 ? b - 256 : b)); },
     formatDate(d, tz, fmt) { return fmt === 'yyyy-MM-dd' ? d.toISOString().slice(0, 10) : d.toISOString(); }
   };
-  function load(name) { const x = new XMLHttpRequest(); x.open('GET', '../dist/' + name + '.html', false); x.send(); return x.responseText; }
+  function load(name) { const x = new XMLHttpRequest(); x.open('GET', '../dist/' + name + '.html?' + Date.now(), false); x.send(); return x.responseText; }
   function output(html) { const o = { getContent: () => html, setTitle: () => o, addMetaTag: () => o, setWidth: () => o, setHeight: () => o }; return o; }
   window.HtmlService = { createHtmlOutputFromFile: n => output(load(n)), createHtmlOutput: output };
 

@@ -5,7 +5,7 @@
 <!-- Test-only: runs the real Code.gs against an in-memory fake Sheet and loads doGet()'s page in a frame. -->
 <script src="mock-gas.js"></script>
 <script>
-  const x = new XMLHttpRequest(); x.open('GET', '../src/Code.gs', false); x.send();
+  const x = new XMLHttpRequest(); x.open('GET', '../src/Code.gs?' + Date.now(), false); x.send();
   const s = document.createElement('script'); s.textContent = x.responseText; document.head.appendChild(s);
   window.openApp = function () {
     const html = doGet().getContent().replace('<head>', '<head><script>window.google=parent.google;<\/script>');
