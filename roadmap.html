@@ -3074,6 +3074,8 @@ const WORKBOOK_TABS=[
  {key:'connections',sheet:'Connections',cols:[['id'],['fromType',,'enum'],['from'],['toType',,'enum'],['to']]}
 ].map(t=>({...t,cols:t.cols.map(([field,header,type])=>({field,header:header||field,type:type||'text'}))}));
 const WORKBOOK_SETTINGS=['name','description','year','reviewDateMode','reviewDate','timelineColor','example','id','colorScheme','customColorSchemes','customPaletteRecipes'];
+// Only the palette settings hold JSON; a name such as "[Q4] Launch" stays text.
+const WORKBOOK_JSON_SETTINGS=['customColorSchemes','customPaletteRecipes'];
 const EXCEL_EPOCH=25569; // days from 1899-12-30 to 1970-01-01
 
 // A minimal .xlsx writer: stored (uncompressed) zip, inline strings, real date and boolean cells.
@@ -3133,7 +3135,7 @@ function planFromWorkbook(sheets){
  const settings=find('Settings')||[];
  for(const [k,v] of settings.slice(1)){
   const key=String(k||'').trim();if(!WORKBOOK_SETTINGS.includes(key))continue;const text=String(v??'').trim();
-  raw[key]=key==='year'?Number(text):key==='example'?/^(true|1|yes)$/i.test(text):key==='reviewDate'?importDate(text)||text:/^[[{]/.test(text)?JSON.parse(text):text;
+  raw[key]=key==='year'?Number(text):key==='example'?/^(true|1|yes)$/i.test(text):key==='reviewDate'?importDate(text)||text:WORKBOOK_JSON_SETTINGS.includes(key)?(text?JSON.parse(text):{}):text;
  }
  const ALIAS={in_review:'review',reviewing:'review',complete:'done',completed:'done',ontrack:'on_track',atrisk:'at_risk',red:'rose'};
  const parse=(col,v)=>{

@@ -34,6 +34,7 @@ const ROADMAP_ENUM_ALIASES = {
 
 const ROADMAP_SETTINGS_SHEET = 'Settings';
 const ROADMAP_META_KEYS = ['lastSavedAt', 'lastSavedBy'];
+const ROADMAP_JSON_SETTINGS = ['customColorSchemes', 'customPaletteRecipes'];
 const ROADMAP_SETTINGS_ORDER = ['name', 'description', 'year', 'reviewDateMode', 'reviewDate', 'timelineColor', 'example', 'id',
   'colorScheme', 'customColorSchemes', 'customPaletteRecipes'];
 const ROADMAP_SETTINGS_HELP = {
@@ -501,7 +502,9 @@ function roadmapParseSetting_(key, value, tz) {
   if (key === 'example') return roadmapBool_(value);
   if (value instanceof Date) return roadmapDate_(value, tz);
   const text = String(value).trim();
-  if (/^[\[{]/.test(text)) {
+  // Only these settings hold JSON; names and descriptions such as "[Q4] Launch" stay text.
+  if (ROADMAP_JSON_SETTINGS.indexOf(key) >= 0) {
+    if (!text) return {};
     try { return JSON.parse(text); } catch (err) { throw new Error('Settings → ' + key + ' is not valid JSON.'); }
   }
   return text;
