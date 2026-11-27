@@ -4046,9 +4046,12 @@ function canvasFlatMilestoneLayout(milestones,r){
 }
 function canvasIncrementMilestoneLayout(milestones,r){return canvasFlatMilestoneLayout(milestones,r);}
 function canvasIncrementTitleLayout(x,r,milestones){
- const p=barPosition(x.start,x.end,r),end=p.left+p.width,blocks=milestones.map(m=>(day(m.date)-r.start)/(r.end-r.start)*100).filter(left=>left+2>p.left&&left-2<end).sort((a,b)=>a-b);
+ // Each milestone keeps about 20 px clear around its marker. (This used to be 2% of the whole range, which on a
+ // long, zoomed-in timeline covered most of the increment and left no room for its name.)
+ const gantt=state.view==='timeline',labelW=gantt?240:250,axisW=Math.max(timelineMinWidth(r,gantt),document.getElementById('content')?.clientWidth||0)-labelW,pad=Math.min(2,20/Math.max(axisW,1)*100);
+ const p=barPosition(x.start,x.end,r),end=p.left+p.width,blocks=milestones.map(m=>(day(m.date)-r.start)/(r.end-r.start)*100).filter(left=>left+pad>p.left&&left-pad<end).sort((a,b)=>a-b);
  let cursor=p.left,best={left:p.left,width:0};
- for(const left of blocks){const edge=Math.max(p.left,left-2);if(edge-cursor>best.width)best={left:cursor,width:edge-cursor};cursor=Math.max(cursor,Math.min(end,left+2));}
+ for(const left of blocks){const edge=Math.max(p.left,left-pad);if(edge-cursor>best.width)best={left:cursor,width:edge-cursor};cursor=Math.max(cursor,Math.min(end,left+pad));}
  if(end-cursor>best.width)best={left:cursor,width:end-cursor};
  return{left:(best.left-p.left)/Math.max(p.width,.001)*100,width:best.width/Math.max(p.width,.001)*100};
 }
