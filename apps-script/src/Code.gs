@@ -8,7 +8,7 @@
  *   Outcomes     one row per outcome
  *   Milestones   one row per milestone
  *   Increments   one row per increment
- *   Connections  one row per extra dependency link
+ *   Connections  one row per dependency (prerequisite → dependent); the only place links are stored
  *
  * The web app (doGet) serves Index.html with the plan read from these tabs.
  * The planner saves back through savePlan(); a content hash guards against
@@ -77,12 +77,13 @@ const ROADMAP_TABS = [
     { field: 'progress', type: 'number', blank: 0 },
     { field: 'outcome', type: 'ref', ref: 'Outcomes' },
     { field: 'increment', type: 'ref', ref: 'Increments' },
-    { field: 'dependencies', type: 'list' },
     { field: 'description', wide: true },
     { field: 'notes', wide: true },
     // Custom icon: a small PNG as a data URL, set from the planner (Choose image… or Ctrl+V).
     { field: 'icon', header: 'icon', wide: false }
-  ] },
+  ],
+  // Older Sheets kept prerequisites here; they are read once, moved to Connections, and the column is dropped.
+  legacy: [{ field: 'dependencies', type: 'list' }] },
   { key: 'outcomes', sheet: 'Outcomes', cols: [
     { field: 'id' },
     { field: 'title', wide: true },
@@ -106,13 +107,13 @@ const ROADMAP_TABS = [
     { field: 'color', type: 'enum', values: 'color' },
     { field: 'showLine', type: 'bool' },
     { field: 'increment', type: 'ref', ref: 'Increments' },
-    { field: 'initiatives', type: 'list' },
     // Gantt: the initiative whose row this milestone follows. Blank = top of its workstream group.
     { field: 'after', header: 'ganttAfter' },
     { field: 'description', wide: true },
     // Custom icon: a small PNG as a data URL, set from the planner (Choose image… or Ctrl+V).
     { field: 'icon', header: 'icon', wide: false }
-  ] },
+  ],
+  legacy: [{ field: 'initiatives', type: 'list' }] },
   { key: 'increments', sheet: 'Increments', cols: [
     { field: 'id' },
     { field: 'title', wide: true },
@@ -136,11 +137,14 @@ const ROADMAP_TABS = [
   ] }
 ];
 const ROADMAP_REQUIRED = {"workstreams":["name"],"initiatives":["title","stream","start","end"],"outcomes":["title","metric","baseline","target","due"],"milestones":["title","date"],"increments":["title","start","end"],"connections":["fromType","from","toType","to"]};
-ROADMAP_TABS.forEach(tab => tab.cols.forEach(c => {
-  c.header = c.header || c.field;
-  c.type = c.type || 'text';
-  c.required = (ROADMAP_REQUIRED[tab.key] || []).indexOf(c.field) >= 0;
-}));
+ROADMAP_TABS.forEach(tab => {
+  tab.legacy = tab.legacy || [];
+  tab.cols.concat(tab.legacy).forEach(c => {
+    c.header = c.header || c.field;
+    c.type = c.type || 'text';
+    c.required = (ROADMAP_REQUIRED[tab.key] || []).indexOf(c.field) >= 0;
+  });
+});
 
 /* ------------------------------------------------------------------ */
 /* Sheet menu                                                          */
@@ -469,6 +473,7 @@ function roadmapRead_(ss) {
     rowOf[tab.key] = {};
     plan[tab.key] = roadmapReadTab_(ss, tab, tz, problems, rowOf[tab.key]);
   });
+  roadmapMigrateLinks_(plan);
   roadmapCheckRefs_(plan, rowOf, problems);
   const revision = roadmapHash_(JSON.stringify(plan));
   return { plan: plan, revision: revision, problems: problems.slice(0, 25),
@@ -488,11 +493,44 @@ function roadmapCheckRefs_(plan, rowOf, problems) {
   check('initiatives', 'stream', 'workstreams');
   check('initiatives', 'outcome', 'outcomes');
   check('initiatives', 'increment', 'increments');
-  check('initiatives', 'dependencies', 'initiatives', true);
   check('milestones', 'stream', 'workstreams');
   check('milestones', 'increment', 'increments');
   check('increments', 'stream', 'workstreams');
-  check('milestones', 'initiatives', 'initiatives', true);
+  const typeKey = { initiative: 'initiatives', milestone: 'milestones', increment: 'increments' };
+  (plan.connections || []).forEach(c => {
+    ['from', 'to'].forEach(end => {
+      const key = typeKey[c[end + 'Type']];
+      if (key && !sets[key].has(c[end])) problems.push(at('connections', c) + ': ' + end + ' "' + c[end] + '" is not an id on the ' + roadmapTabName_(key) + ' tab.');
+    });
+  });
+}
+
+/**
+ * Prerequisites are stored once, on the Connections tab. Plans from before kept initiative
+ * prerequisites in initiative.dependencies and milestone.initiatives; those move to connections
+ * with ids that are the same every time (the planner uses the same rule).
+ */
+function roadmapMigrateLinks_(plan) {
+  const list = plan.connections = plan.connections || [];
+  const keys = new Set(list.map(c => c.fromType + ':' + c.from + '>' + c.toType + ':' + c.to));
+  const ids = new Set(list.map(c => c.id));
+  const add = (from, toType, to) => {
+    const key = 'initiative:' + from + '>' + toType + ':' + to;
+    if (!from || keys.has(key)) return;
+    keys.add(key);
+    let id = roadmapLinkId_(key);
+    while (ids.has(id)) id += 'x';
+    ids.add(id);
+    list.push({ id: id, fromType: 'initiative', from: from, toType: toType, to: to });
+  };
+  (plan.initiatives || []).forEach(t => { (t.dependencies || []).forEach(d => add(d, 'initiative', t.id)); delete t.dependencies; });
+  (plan.milestones || []).forEach(m => { (m.initiatives || []).forEach(d => add(d, 'milestone', m.id)); delete m.initiatives; });
+}
+
+function roadmapLinkId_(key) {
+  let a = 0x811c9dc5, b = 0x01000193 ^ key.length;
+  for (let i = 0; i < key.length; i++) { const c = key.charCodeAt(i); a = Math.imul(a ^ c, 16777619); b = Math.imul(b ^ c, 2246822519); }
+  return 'link-' + (a >>> 0).toString(36) + (b >>> 0).toString(36);
 }
 
 function roadmapTabName_(key) { const tab = ROADMAP_TABS.filter(t => t.key === key)[0]; return tab ? tab.sheet : key; }
@@ -544,6 +582,10 @@ function roadmapReadTab_(ss, tab, tz, problems, rowOf) {
       else if (c.type === 'date' && value && !/^\d{4}-\d{2}-\d{2}$/.test(value)) problems.push(where + ': ' + c.header + ' "' + value + '" must be a date like 2027-03-15.');
       else if (c.type === 'number' && value !== '' && !isFinite(value)) problems.push(where + ': ' + c.header + ' "' + raw + '" must be a number.');
       else if (c.type === 'enum' && value && ROADMAP_ENUMS[c.values].indexOf(value) < 0) problems.push(where + ': ' + c.header + ' "' + raw + '" must be one of ' + ROADMAP_ENUMS[c.values].slice(0, 6).join(', ') + '.');
+    });
+    tab.legacy.forEach(c => {
+      const at = roadmapColumnIndex_(values[0], { cols: [c] })[c.field];
+      if (at >= 0 && !roadmapIsBlank_(row[at])) rec[c.field] = roadmapFromCell_(c, row[at], tz);
     });
     if (rowOf) rowOf[id] = r + 1;
     records.push(rec);
@@ -609,6 +651,7 @@ function roadmapSafeWrite_(ss, plan) {
 }
 
 function roadmapWrite_(ss, plan) {
+  roadmapMigrateLinks_(plan);
   const created = roadmapEnsureSheets_(ss);
   // Prepare everything first: nothing below can fail half-way through because of the data.
   const settings = roadmapSettingsRows_(plan);
@@ -673,6 +716,9 @@ function roadmapPrepareTab_(ss, tab, records, isNew) {
   const oldHeaders = existing.length ? existing[0].map(h => String(h)) : [];
   const oldIndex = roadmapColumnIndex_(oldHeaders, tab);
   const canonicalAt = new Set(tab.cols.map(c => oldIndex[c.field]).filter(i => i >= 0));
+  // Old link columns are not kept: their links are on the Connections tab now.
+  const legacyIndex = roadmapColumnIndex_(oldHeaders, { cols: tab.legacy });
+  tab.legacy.forEach(c => { if (legacyIndex[c.field] >= 0) canonicalAt.add(legacyIndex[c.field]); });
 
   // Columns people added themselves are kept and follow their row's id.
   const extras = [];

@@ -2592,6 +2592,8 @@ document.addEventListener('paste',event=>{
  const target=pasteIconTarget();if(!target)return;
  event.preventDefault();event.stopPropagation();applyIconImage(target,item.getAsFile());
 },true);
+// A stable id for a link moved from an older plan, so the same plan always migrates the same way.
+function linkId(key){let a=0x811c9dc5,b=0x01000193^key.length;for(let i=0;i<key.length;i++){const c=key.charCodeAt(i);a=Math.imul(a^c,16777619);b=Math.imul(b^c,2246822519);}return 'link-'+(a>>>0).toString(36)+(b>>>0).toString(36);}
 function validatePlan(raw){
  if(!raw||typeof raw!=='object'||raw.schemaVersion!==1)throw Error('This is not a supported Roadmap plan (schemaVersion 1).');
  const str=(v,label,max=200,optional=false)=>{if(typeof v!=='string'||v.length>max||(!optional&&!v.trim()))throw Error(`Invalid ${label}.`);return v.trim();};
@@ -2612,34 +2614,39 @@ function validatePlan(raw){
  if(p.outcomes.some(o=>o.baseline===o.target))throw Error('An outcome target must differ from its baseline.');
  const streamIDs=new Set(p.workstreams.map(s=>s.id)),outcomeIDs=new Set(p.outcomes.map(s=>s.id));
  if(p.increments.some(x=>x.stream&&!streamIDs.has(x.stream)))throw Error('An increment refers to a missing workstream.');
- p.initiatives=unique(arr(raw.initiatives,'initiatives',500).map(t=>{if(!streamIDs.has(t.stream))throw Error('An initiative refers to a missing workstream.');if(!Object.hasOwn(STATUS,t.status)||!Object.hasOwn(PRIORITY,t.priority))throw Error('An initiative has an unknown status or priority.');if(t.outcome&&!outcomeIDs.has(t.outcome))throw Error('An initiative refers to a missing outcome.');const start=date(t.start,'start date'),end=date(t.end,'end date');if(start>end)throw Error('An initiative ends before it starts.');return{id:id(t.id),title:str(t.title,'initiative title',160),icon:iconOf(t.icon),description:str(t.description??'','description',5000,true),stream:t.stream,owner:str(t.owner??'','owner',80,true),priority:t.priority,status:t.status,health:Object.hasOwn(HEALTH,t.health)?t.health:'on_track',start,end,progress:t.status==='done'?100:number(t.progress,'progress',0,100),outcome:t.outcome||'',dependencies:[...new Set(arr(t.dependencies??[],'dependencies',500).map(id))],notes:str(t.notes??'','notes',10000,true)};}));
- const taskIDs=new Set(p.initiatives.map(t=>t.id));for(const t of p.initiatives)if(t.dependencies.some(d=>d===t.id||!taskIDs.has(d)))throw Error('A dependency is missing or points to itself.');
- const visited=new Set(),visiting=new Set(),map=new Map(p.initiatives.map(t=>[t.id,t]));function visit(key){if(visiting.has(key))throw Error('Dependencies cannot form a cycle.');if(visited.has(key))return;visiting.add(key);map.get(key).dependencies.forEach(visit);visiting.delete(key);visited.add(key);}p.initiatives.forEach(t=>visit(t.id));
+ p.initiatives=unique(arr(raw.initiatives,'initiatives',500).map(t=>{if(!streamIDs.has(t.stream))throw Error('An initiative refers to a missing workstream.');if(!Object.hasOwn(STATUS,t.status)||!Object.hasOwn(PRIORITY,t.priority))throw Error('An initiative has an unknown status or priority.');if(t.outcome&&!outcomeIDs.has(t.outcome))throw Error('An initiative refers to a missing outcome.');const start=date(t.start,'start date'),end=date(t.end,'end date');if(start>end)throw Error('An initiative ends before it starts.');return{id:id(t.id),title:str(t.title,'initiative title',160),icon:iconOf(t.icon),description:str(t.description??'','description',5000,true),stream:t.stream,owner:str(t.owner??'','owner',80,true),priority:t.priority,status:t.status,health:Object.hasOwn(HEALTH,t.health)?t.health:'on_track',start,end,progress:t.status==='done'?100:number(t.progress,'progress',0,100),outcome:t.outcome||'',notes:str(t.notes??'','notes',10000,true)};}));
+ const taskIDs=new Set(p.initiatives.map(t=>t.id));
  p.milestones=unique(arr(raw.milestones,'milestones',100).map(m=>{
   const shape=m.shape??'star',color=m.color??'amber';
   if(typeof shape!=='string'||!Object.hasOwn(MILESTONE_SHAPES,shape))throw Error('A milestone has an unknown shape.');
   if(!RoadmapColors.isSlot(color))throw Error('A milestone has an unknown color.');
   if(m.stream!=null&&m.stream!==''&&!streamIDs.has(m.stream))throw Error('A milestone refers to a missing workstream.');
-  return{id:id(m.id),title:str(m.title,'milestone title',120),icon:iconOf(m.icon),stream:m.stream==null||m.stream===''?'':id(m.stream),after:m.after==null||m.after===''?'':id(m.after),date:date(m.date,'milestone date'),description:str(m.description??'','description',4000,true),done:m.done===true,shape,color,showLine:m.showLine===true,increment:m.increment==null||m.increment===''?'':id(m.increment),initiatives:[...new Set(arr(m.initiatives??[],'milestone links',500).map(id))]};
+  return{id:id(m.id),title:str(m.title,'milestone title',120),icon:iconOf(m.icon),stream:m.stream==null||m.stream===''?'':id(m.stream),after:m.after==null||m.after===''?'':id(m.after),date:date(m.date,'milestone date'),description:str(m.description??'','description',4000,true),done:m.done===true,shape,color,showLine:m.showLine===true,increment:m.increment==null||m.increment===''?'':id(m.increment)};
  }));
- if(p.milestones.some(m=>m.initiatives.some(t=>!taskIDs.has(t))))throw Error('A milestone refers to a missing initiative.');
  p.milestones.forEach(m=>{if(m.after&&!taskIDs.has(m.after))m.after='';});
  p.increments.forEach(x=>{if(x.after&&!taskIDs.has(x.after))x.after='';});
  const incrementIDs=new Set(p.increments.map(x=>x.id));
  p.initiatives.forEach((t,i)=>{t.increment=raw.initiatives[i].increment||'';if(t.increment&&!incrementIDs.has(t.increment))throw Error('An initiative refers to a missing increment.');});
  if(p.milestones.some(m=>m.increment&&!incrementIDs.has(m.increment)))throw Error('A milestone refers to a missing increment.');
  const recordIDs={initiative:taskIDs,milestone:new Set(p.milestones.map(x=>x.id)),increment:incrementIDs};
- p.connections=unique(arr(raw.connections??[],'connections',2000).map(x=>{
+ // Prerequisites are stored once, in connections (prerequisite → dependent). Older plans kept initiative
+ // prerequisites in initiative.dependencies and milestone.initiatives; those lists are moved here.
+ const legacy=[];
+ raw.initiatives.forEach(t=>arr(t.dependencies??[],'dependencies',500).forEach(d=>legacy.push({fromType:'initiative',from:id(d),toType:'initiative',to:t.id})));
+ raw.milestones.forEach(m=>arr(m.initiatives??[],'milestone links',500).forEach(d=>legacy.push({fromType:'initiative',from:id(d),toType:'milestone',to:m.id})));
+ for(const x of legacy)if(!taskIDs.has(x.from)||x.toType==='initiative'&&x.from===x.to)throw Error(x.toType==='milestone'?'A milestone refers to a missing initiative.':'A dependency is missing or points to itself.');
+ p.connections=unique(arr(raw.connections??[],'connections',5000).map(x=>{
   if(!Object.hasOwn(recordIDs,x.fromType)||!Object.hasOwn(recordIDs,x.toType))throw Error('A dependency has an unknown item type.');
   const from=id(x.from),to=id(x.to);
   if(!recordIDs[x.fromType].has(from)||!recordIDs[x.toType].has(to))throw Error('A dependency refers to a missing item.');
   if(x.fromType===x.toType&&from===to)throw Error('An item cannot depend on itself.');
   return{id:id(x.id),fromType:x.fromType,from,toType:x.toType,to};
  }));
+ const linkKeys=new Set(p.connections.map(x=>x.fromType+':'+x.from+'>'+x.toType+':'+x.to)),linkIDs=new Set(p.connections.map(x=>x.id));
+ for(const x of legacy){const key=x.fromType+':'+x.from+'>'+x.toType+':'+x.to;if(linkKeys.has(key))continue;linkKeys.add(key);let lid=linkId(key);while(linkIDs.has(lid))lid+='x';linkIDs.add(lid);p.connections.push({id:lid,...x});}
+ if(p.connections.length>5000)throw Error('Invalid connections (maximum 5000).');
  const graph=new Map(),seenEdges=new Set();
  function edge(ft,f,tt,t){const from=ft+':'+f,to=tt+':'+t,key=from+'>'+to;if(seenEdges.has(key))return;seenEdges.add(key);if(!graph.has(from))graph.set(from,[]);graph.get(from).push(to);}
- p.initiatives.forEach(t=>t.dependencies.forEach(d=>edge('initiative',d,'initiative',t.id)));
- p.milestones.forEach(m=>m.initiatives.forEach(d=>edge('initiative',d,'milestone',m.id)));
  p.connections.forEach(x=>edge(x.fromType,x.from,x.toType,x.to));
  const reached=new Set(),active=new Set();
  function checkGraph(key){if(active.has(key))throw Error('Dependencies cannot form a cycle.');if(reached.has(key))return;active.add(key);(graph.get(key)||[]).forEach(checkGraph);active.delete(key);reached.add(key);}
@@ -2742,6 +2749,18 @@ function streamName(id){return state.plan.workstreams.find(s=>s.id===id)?.name||
 function getTask(id){return state.plan.initiatives.find(t=>t.id===id);}
 function getOutcome(id){return state.plan.outcomes.find(t=>t.id===id);}
 function getIncrement(id){return state.plan.increments.find(t=>t.id===id);}
+// Prerequisites (dependencies) live only in plan.connections, directed prerequisite → dependent.
+const LINK_COLLECTION={initiative:'initiatives',milestone:'milestones',increment:'increments'};
+function linkRecord(type,id,plan=state.plan){return (plan[LINK_COLLECTION[type]]||[]).find(x=>x.id===id)||null;}
+const linkIndexCache=new WeakMap();
+function incomingLinks(plan){const list=plan.connections||[];let c=linkIndexCache.get(list);if(!c||c.n!==list.length){const m=new Map();for(const x of list){const k=x.toType+':'+x.to;if(!m.has(k))m.set(k,[]);m.get(k).push(x);}c={n:list.length,m};linkIndexCache.set(list,c);}return c.m;}
+function prerequisites(type,id,plan=state.plan){return (incomingLinks(plan).get(type+':'+id)||[]).map(c=>({type:c.fromType,id:c.from,rec:linkRecord(c.fromType,c.from,plan)})).filter(x=>x.rec);}
+function prerequisiteIds(type,id,of='initiative',plan=state.plan){return prerequisites(type,id,plan).filter(x=>x.type===of).map(x=>x.id);}
+// A prerequisite must finish before its dependent starts. A milestone is an end-of-day checkpoint,
+// so work ending on its date is fine. Dates are never moved automatically; conflicts are only shown.
+function linkConflict(fromType,from,toType,to){const finish=fromType==='milestone'?from.date:from.end,start=toType==='milestone'?to.date:to.start;return toType==='milestone'?finish>start:finish>=start;}
+// Replaces the initiative prerequisites of one item; prerequisites of other kinds stay.
+function setPrerequisiteInitiatives(p,type,id,ids){const keep=new Set(ids.filter(x=>!(type==='initiative'&&x===id)));p.connections=(p.connections||[]).filter(c=>!(c.toType===type&&c.to===id&&c.fromType==='initiative'&&!keep.delete(c.from)));for(const from of keep)p.connections.push({id:uid(),fromType:'initiative',from,toType:type,to:id});}
 // Where a milestone or increment sits: '' is the plan-wide rows at the top, otherwise a workstream id.
 function laneOf(x){return x&&x.stream||'';}
 // lane: '' = plan-wide rows, a workstream id = that lane.
@@ -2751,8 +2770,8 @@ function inLane(x,lane){return laneOf(x)===lane;}
 function milestoneOnIncrement(m){if(!state.showIncrements||!m.increment)return false;const x=getIncrement(m.increment);return !!x&&laneOf(x)===laneOf(m)&&(!!laneOf(x)||state.showIncrementRow);}
 function metricProgress(o){const d=o.target-o.baseline;return d===0?(o.current===o.target?100:0):clamp(Math.round((o.current-o.baseline)/d*100),0,100);}
 function metricValue(n,unit){return fmtNum(n)+(unit==='%'?'%':unit?' '+esc(unit):'');}
-function conflicts(t){return t.dependencies.map(getTask).filter(d=>d&&d.end>=t.start);}
-function warnings(t){const reasons=[];if(t.health==='blocked')reasons.push('Marked as blocked');else if(t.health==='at_risk')reasons.push('Marked as at risk');if(t.end<state.plan.reviewDate&&t.status!=='done')reasons.push('Past its due date');for(const d of conflicts(t))reasons.push(`Starts before ${d.title} finishes`);return reasons;}
+function conflicts(t){return prerequisites('initiative',t.id).filter(x=>linkConflict(x.type,x.rec,'initiative',t)).map(x=>x.rec);}
+function warnings(t){const reasons=[];if(t.health==='blocked')reasons.push('Marked as blocked');else if(t.health==='at_risk')reasons.push('Marked as at risk');if(t.end<state.plan.reviewDate&&t.status!=='done')reasons.push('Past its due date');for(const x of prerequisites('initiative',t.id))if(linkConflict(x.type,x.rec,'initiative',t))reasons.push(x.type==='milestone'?`Starts before the ${x.rec.title} milestone`:`Starts before ${x.rec.title} finishes`);return reasons;}
 function persist(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state.plan));storageOK=true;}catch(e){storageOK=false;}$('#saveIndicator').innerHTML=storageOK?'<span class="saved-dot"></span>Saved':icon('warning')+'Not saved · export a backup';$('#saveIndicator').title=storageOK?'This plan is stored only in this browser. Export a backup to move it to another device.':'Browser storage is unavailable or full. Export this plan to keep your changes.';}
 function commit(change,label,options={}){const before=clone(state.plan);try{change(state.plan);state.plan=validatePlan(state.plan);}catch(e){state.plan=before;toast(e.message,true);return false;}state.undo.push(before);if(state.undo.length>40)state.undo.shift();state.redo=[];persist();if(options.render!==false)render();else{$('#undoBtn').disabled=!state.undo.length;$('#redoBtn').disabled=!state.redo.length;}if(label)toast(label,false,true);return true;}
 function undo(){if(!state.undo.length)return;state.redo.push(clone(state.plan));const previousPlan=state.plan,previousYear=previousPlan.year;state.plan=state.undo.pop();RoadmapCanvas.reconcileOutcomeFilter(previousPlan,state.plan);if(state.plan.year!==previousYear)state.year=state.plan.year;cleanFilters();persist();render();toast('Change undone');}
@@ -2893,11 +2912,11 @@ function renderTable(){const ts=filteredTasks(),sort=state.sort,priorityRank={cr
 function renderOutcomes(){
  $('#content').innerHTML=state.plan.outcomes.length?`<div class="outcomes-grid">${state.plan.outcomes.map(o=>{const ts=state.plan.initiatives.filter(t=>t.outcome===o.id),progress=metricProgress(o),achieved=progress>=100;return `<article class="outcome-card" data-outcome-id="${esc(o.id)}"><div class="outcome-header"><span class="outcome-icon">${icon('target')}</span><span class="outcome-due">Due ${fmtDate(o.due,true)}</span></div><h2>${esc(o.title)}</h2><p class="outcome-description">${esc(o.description)}</p><div class="outcome-metric"><strong>${metricValue(o.current,o.unit)}</strong><span>${esc(o.metric)}</span></div><div class="metric-comparison"><span>Baseline <strong>${metricValue(o.baseline,o.unit)}</strong></span><span>Target <strong>${metricValue(o.target,o.unit)}</strong></span></div><div class="progress-track"><span class="progress-fill" style="width:${progress}%"></span></div><div class="outcome-progress-label"><strong>${progress}% of target change</strong><span>${achieved?'Target reached':o.target<o.baseline?'Lower is better':'Higher is better'}</span></div><div class="section-title">${ts.length} linked initiatives</div><div class="linked-initiatives">${ts.map(t=>`<button class="linked-initiative" data-canvas-reveal-initiative="${esc(t.id)}" data-stream-id="${esc(t.stream)}" style="${RoadmapColors.style(palette(t.stream))}" title="${esc(streamName(t.stream))} · ${esc(STATUS[t.status])}"><span class="status-dot" data-status="${t.status}"></span><span>${esc(t.title)}</span><small>${t.progress}%</small></button>`).join('')||'<p class="form-help">Select an initiative and choose this outcome under Linked outcome to link it here.</p>'}</div><div class="outcome-card-actions"><button class="btn secondary" data-show-outcome="${esc(o.id)}" aria-label="View roadmap for ${esc(o.title)}">View roadmap</button><button class="btn ghost" data-edit-outcome="${esc(o.id)}" aria-label="Edit outcome ${esc(o.title)}">Edit outcome</button></div></article>`;}).join('')}</div><div class="outcomes-note">${icon('target')}Outcome progress measures the change from baseline to target. It is independent of initiative completion.</div>`:`<div class="empty-state">${icon('target')}<h3>Give the plan a purpose.</h3><p>Add a measurable outcome, then connect the initiatives that support it.</p><button class="btn" data-action="new-outcome">${icon('plus')}New outcome</button></div>`;
 }
-function milestoneState(m){if(m.done)return {label:'Achieved',className:'achieved'};const ts=m.initiatives.map(getTask).filter(Boolean);if(m.date<state.plan.reviewDate||ts.some(t=>t.end>m.date||(t.status!=='done'&&warnings(t).length>0)))return{label:'Needs attention',className:'attention'};if(ts.length&&ts.every(t=>t.status==='done'))return {label:'Ready for review',className:'ready'};return{label:'Upcoming',className:'upcoming'};}
+function milestoneState(m){if(m.done)return {label:'Achieved',className:'achieved'};const prs=prerequisites('milestone',m.id),ts=prs.filter(x=>x.type==='initiative').map(x=>x.rec);if(m.date<state.plan.reviewDate||prs.some(x=>linkConflict(x.type,x.rec,'milestone',m))||ts.some(t=>t.status!=='done'&&warnings(t).length>0))return{label:'Needs attention',className:'attention'};if(prs.length&&prs.every(x=>x.type==='initiative'?x.rec.status==='done':x.type==='milestone'?x.rec.done:x.rec.end<state.plan.reviewDate))return {label:'Ready for review',className:'ready'};return{label:'Upcoming',className:'upcoming'};}
 function renderMilestones(){
  const ms=[...state.plan.milestones].sort((a,b)=>a.date.localeCompare(b.date));
  $('#content').innerHTML=ms.length?`<div class="milestones-list">${ms.map(m=>{
-  const st=milestoneState(m),ts=m.initiatives.map(getTask).filter(Boolean),done=ts.filter(t=>t.status==='done').length,paint=RoadmapColors.streamPalette(m.color||'amber'),color=paint.solid;
+  const st=milestoneState(m),ts=prerequisiteIds('milestone',m.id).map(getTask).filter(Boolean),done=ts.filter(t=>t.status==='done').length,paint=RoadmapColors.streamPalette(m.color||'amber'),color=paint.solid;
   return `<article class="milestone-card" data-milestone-id="${esc(m.id)}" style="${RoadmapColors.style(paint)}"><div class="milestone-date-block"><span>${new Date(m.date+'T00:00:00Z').toLocaleString('en-GB',{month:'short',timeZone:'UTC'})}</span><strong>${Number(m.date.slice(8))}</strong><small>${m.date.slice(0,4)}</small></div><div class="milestone-info"><div class="milestone-card-top"><h2><button class="text-button" data-canvas-select="milestone" data-record-id="${esc(m.id)}"><span style="display:inline-flex;vertical-align:middle;margin-right:8px;--milestone-color:${color};color:${color}" aria-hidden="true">${canvasMilestoneShape(m)}</span><span data-title>${esc(m.title)}</span></button></h2><span class="milestone-status ${st.className}">${st.label}</span></div><p>${esc(m.description)}</p>${m.stream?`<span class="canvas-increment-chip milestone-lane-chip" style="${RoadmapColors.style(palette(m.stream))}" title="Shown in the ${esc(streamName(m.stream))} lane">${icon('roadmap')}<span class="canvas-increment-chip-label">${esc(streamName(m.stream))}</span></span>`:''}${canvasIncrementBadge(m)}<div class="milestone-linked">${ts.map(t=>`<button class="milestone-task-tag" data-edit-task="${esc(t.id)}" data-stream-id="${esc(t.stream)}" style="${RoadmapColors.style(palette(t.stream))}" title="${esc(streamName(t.stream))} · ${esc(STATUS[t.status])}"><span class="status-dot" data-status="${t.status}"></span>${esc(t.title)}</button>`).join('')||'<span class="form-help">No linked initiatives</span>'}</div><div class="milestone-card-bottom"><span>${done} of ${ts.length} linked initiatives completed${m.showLine?' · Vertical date line visible':''}</span><button class="btn ghost small" data-edit-milestone="${esc(m.id)}">Edit milestone</button></div></div></article>`;
  }).join('')}</div>`:`<div class="empty-state">${icon('flag')}<h3>Mark what comes next.</h3><p>Add a release, decision or checkpoint and connect its required initiatives.</p><button class="btn" data-action="new-milestone">${icon('plus')}New milestone</button></div>`;
 }
@@ -2905,7 +2924,8 @@ function options(obj,value){return Object.entries(obj).map(([k,v])=>`<option val
 function field(label,html,hint=''){return `<div class="field"><label class="field-label">${esc(label)}</label>${html}${hint?`<p class="form-help">${esc(hint)}</p>`:''}</div>`;}
 function input(name,value,opts=''){return `<input name="${name}" aria-label="${name==='title'?'Title':name.charAt(0).toUpperCase()+name.slice(1)}" value="${esc(value)}" ${opts}>`;}
 function defaultDates(){const r=timelineRange(),candidate=day(state.plan.reviewDate),start=candidate>=r.start&&candidate<r.end?candidate:r.start;return{start:iso(start),end:iso(Math.min(start+27,r.end-1))};}
-function dependsOn(start,target,seen=new Set()){if(start===target)return true;if(seen.has(start))return false;seen.add(start);return(getTask(start)?.dependencies||[]).some(id=>dependsOn(id,target,seen));}
+// Does initiative start (directly or through other items) depend on initiative target?
+function dependsOn(start,target){const goal='initiative:'+target,seen=new Set(),stack=[['initiative',start]];while(stack.length){const [type,id]=stack.pop(),k=type+':'+id;if(k===goal)return true;if(seen.has(k))continue;seen.add(k);for(const x of prerequisites(type,id))stack.push([x.type,x.id]);}return false;}
 function showDrawer(){lastFocus=document.activeElement;$('#detailOverlay').hidden=false;$('.app-shell').inert=true;document.body.classList.add('drawer-open');requestAnimationFrame(()=>{const el=$('#detailBody input');if(el)el.focus();else $('#detailPanel').focus();});}
 function detailIconField(data){return field('Icon',`<input type="hidden" name="icon" value="${validIcon(data.icon)?data.icon:''}">${iconPickerHTML('detail',{id:'',icon:data.icon})}`);}
 function detailStreamField(data){return field('Workstream',`<div class="select-wrap"><select name="stream" aria-label="Workstream"><option value="">All workstreams (top row)</option>${state.plan.workstreams.map(s=>`<option value="${esc(s.id)}"${s.id===data.stream?' selected':''}>${esc(s.name)}</option>`).join('')}</select></div>`);}
@@ -2913,6 +2933,7 @@ function openDetail(type,id=null,opts={}){
  if(detail?.dirty){confirmDialog('Discard unsaved changes?','Your saved plan will stay as it is.',()=>{closeDetail(true);openDetail(type,id,opts);},'Discard changes');return;}
  const source=type==='initiative'?getTask(id):type==='outcome'?getOutcome(id):type==='increment'?getIncrement(id):state.plan.milestones.find(m=>m.id===id);
  const dates=defaultDates();let data=source?clone(source):type==='initiative'?{id:uid(),title:'',description:'',stream:opts.stream||(state.stream!=='all'?state.stream:state.plan.workstreams[0].id),owner:'',priority:'medium',status:opts.status||'planned',health:'on_track',...dates,progress:opts.status==='done'?100:0,outcome:state.outcome||'',increment:'',dependencies:[],notes:''}:type==='outcome'?{id:uid(),title:'',metric:'',description:'',baseline:0,current:0,target:100,unit:'%',owner:'',due:state.year+'-12-31'}:type==='increment'?{id:uid(),title:'',description:'',color:'blue',...dates}:{id:uid(),title:'',date:dates.end,description:'',initiatives:[],done:false,shape:'diamond',color:'rose',showLine:false,increment:opts.increment||''};
+ if(type==='initiative')data.dependencies=source?prerequisiteIds('initiative',id):data.dependencies||[];if(type==='milestone')data.initiatives=source?prerequisiteIds('milestone',id):data.initiatives||[];
  detail={type,id:source?id:null,data,dirty:false};$('#detailEyebrow').textContent=type.toUpperCase();$('#detailTitle').textContent=source?'Edit '+type:'New '+type;
  let html='';
  if(type==='initiative'){
@@ -2929,7 +2950,7 @@ function openDetail(type,id=null,opts={}){
  $('#detailBody').innerHTML=html;$('#detailSecondary').innerHTML=source?`<button type="button" class="icon-btn danger-icon" id="deleteRecord" aria-label="Delete ${type}" title="Delete ${type}">${icon('trash')}</button><button type="button" class="icon-btn" id="duplicateRecord" aria-label="Duplicate ${type}" title="Duplicate ${type}">${icon('duplicate')}</button>`:'';
  showDrawer();updateDraftWarnings();
 }
-function updateDraftWarnings(){if(!detail||detail.type!=='initiative'||!$('#draftWarnings'))return;const f=$('#detailForm'),start=f.elements.start.value,end=f.elements.end.value;if(!dateOK(start)||!dateOK(end))return;const reasons=[];if(end<start)reasons.push('The end date must be on or after the start date.');for(const el of $$('input[name="dependency"]:checked')){const d=getTask(el.value);if(d&&d.end>=start)reasons.push(`${d.title} finishes on ${fmtDate(d.end)}. Start this initiative after that date, or adjust the dependency.`);}$('#draftWarnings').innerHTML=reasons.length?`<div class="warning-box">${icon('warning')}<div>${reasons.map(r=>`<p>${esc(r)}</p>`).join('')}</div></div>`:'';}
+function updateDraftWarnings(){if(!detail||detail.type!=='initiative'||!$('#draftWarnings'))return;const f=$('#detailForm'),start=f.elements.start.value,end=f.elements.end.value;if(!dateOK(start)||!dateOK(end))return;const reasons=[];if(end<start)reasons.push('The end date must be on or after the start date.');if(detail.id)for(const x of prerequisites('initiative',detail.id))if(x.type!=='initiative'&&linkConflict(x.type,x.rec,'initiative',{start}))reasons.push(`${x.rec.title} ${x.type==='milestone'?'is on':'ends on'} ${fmtDate(x.type==='milestone'?x.rec.date:x.rec.end)}. Start this initiative after that date, or adjust the dependency.`);for(const el of $$('input[name="dependency"]:checked')){const d=getTask(el.value);if(d&&d.end>=start)reasons.push(`${d.title} finishes on ${fmtDate(d.end)}. Start this initiative after that date, or adjust the dependency.`);}$('#draftWarnings').innerHTML=reasons.length?`<div class="warning-box">${icon('warning')}<div>${reasons.map(r=>`<p>${esc(r)}</p>`).join('')}</div></div>`:'';}
 function closeDetail(force=false){if(detail?.dirty&&!force){confirmDialog('Discard unsaved changes?','Your saved plan will stay as it is.',()=>closeDetail(true),'Discard changes');return;}$('#detailOverlay').hidden=true;$('.app-shell').inert=false;document.body.classList.remove('drawer-open');detail=null;if(lastFocus&&document.contains(lastFocus))lastFocus.focus();else $('#primaryAdd').focus();}
 function saveDetail(event){event.preventDefault();if(!detail)return;const f=event.currentTarget,fd=new FormData(f),v=n=>String(fd.get(n)??'').trim(),data={...detail.data},type=detail.type;data.title=v('title');data.description=v('description');if(type!=='outcome')data.icon=validIcon(v('icon'))?v('icon'):'';
  if(type==='initiative'){Object.assign(data,{stream:v('stream'),owner:v('owner'),priority:v('priority'),status:v('status'),health:v('health'),start:v('start'),end:v('end'),progress:v('status')==='done'?100:Number(f.elements.progress.value),outcome:v('outcome'),increment:v('increment'),dependencies:fd.getAll('dependency'),notes:v('notes')});if(data.end<data.start){toast('The end date must be on or after the start date.',true);f.elements.end.focus();return;}}
@@ -2937,9 +2958,10 @@ function saveDetail(event){event.preventDefault();if(!detail)return;const f=even
  else if(type==='outcome'){Object.assign(data,{metric:v('metric'),baseline:Number(v('baseline')),target:Number(v('target')),current:Number(v('current')),unit:v('unit'),owner:v('owner'),due:v('due')});if(data.baseline===data.target){toast('Choose a target that differs from the baseline.',true);f.elements.target.focus();return;}}
  else Object.assign(data,{stream:v('stream'),date:v('date'),done:fd.has('done'),shape:v('shape'),color:v('color'),showLine:fd.has('showLine'),increment:v('increment'),initiatives:fd.getAll('linked')});
  const collection=type==='initiative'?'initiatives':type==='outcome'?'outcomes':type==='increment'?'increments':'milestones',isNew=!detail.id;
- if(commit(p=>{const i=p[collection].findIndex(x=>x.id===data.id);if(i<0)p[collection].push(data);else p[collection][i]=data;},`${type.charAt(0).toUpperCase()+type.slice(1)} ${isNew?'created':'updated'}`)){closeDetail(true);}
+ const links=type==='initiative'?data.dependencies:type==='milestone'?data.initiatives:null;delete data.dependencies;delete data.initiatives;
+ if(commit(p=>{const i=p[collection].findIndex(x=>x.id===data.id);if(i<0)p[collection].push(data);else p[collection][i]=data;if(links)setPrerequisiteInitiatives(p,type,data.id,links);},`${type.charAt(0).toUpperCase()+type.slice(1)} ${isNew?'created':'updated'}`)){closeDetail(true);}
 }
-function deleteRecord(){if(!detail?.id)return;const {type,id,data}=detail,extra=type==='initiative'?'Its dependency and milestone links will also be removed.':type==='outcome'?'Its initiatives will remain, without this outcome link.':type==='increment'?'Assigned initiatives and milestones will remain with their dates.':'Linked initiatives will remain.';confirmDialog(`Delete ${type}?`,`“${data.title}” will be removed. ${extra} You can undo this change.`,()=>{const collection=type==='initiative'?'initiatives':type==='outcome'?'outcomes':type==='increment'?'increments':'milestones';commit(p=>{p[collection]=p[collection].filter(x=>x.id!==id);if(type==='initiative'){p.initiatives.forEach(t=>t.dependencies=t.dependencies.filter(x=>x!==id));p.milestones.forEach(m=>m.initiatives=m.initiatives.filter(x=>x!==id));}if(type==='outcome')p.initiatives.forEach(t=>{if(t.outcome===id)t.outcome='';});if(type==='increment'){p.initiatives.forEach(t=>{if(t.increment===id)t.increment='';});p.milestones.forEach(m=>{if(m.increment===id)m.increment='';});}p.connections=p.connections.filter(x=>!(x.fromType===type&&x.from===id)&&!(x.toType===type&&x.to===id));},`${type.charAt(0).toUpperCase()+type.slice(1)} deleted`);closeDetail(true);},'Delete',true);}
+function deleteRecord(){if(!detail?.id)return;const {type,id,data}=detail,extra=type==='initiative'?'Its dependency and milestone links will also be removed.':type==='outcome'?'Its initiatives will remain, without this outcome link.':type==='increment'?'Assigned initiatives and milestones will remain with their dates.':'Linked initiatives will remain.';confirmDialog(`Delete ${type}?`,`“${data.title}” will be removed. ${extra} You can undo this change.`,()=>{const collection=type==='initiative'?'initiatives':type==='outcome'?'outcomes':type==='increment'?'increments':'milestones';commit(p=>{p[collection]=p[collection].filter(x=>x.id!==id);if(type==='outcome')p.initiatives.forEach(t=>{if(t.outcome===id)t.outcome='';});if(type==='increment'){p.initiatives.forEach(t=>{if(t.increment===id)t.increment='';});p.milestones.forEach(m=>{if(m.increment===id)m.increment='';});}p.connections=p.connections.filter(x=>!(x.fromType===type&&x.from===id)&&!(x.toType===type&&x.to===id));},`${type.charAt(0).toUpperCase()+type.slice(1)} deleted`);closeDetail(true);},'Delete',true);}
 function duplicateRecord(){if(!detail?.id)return;if(detail.dirty){confirmDialog('Duplicate the saved version?','Your unsaved edits will be discarded. Save your changes first if you want them in the copy.',()=>{detail.dirty=false;duplicateRecord();},'Duplicate saved version');return;}const {type,data}=detail;const copy=clone(data);copy.id=uid();copy.title=copy.title.slice(0,type==='initiative'?150:110)+' (copy)';const collection=type==='initiative'?'initiatives':type==='outcome'?'outcomes':type==='increment'?'increments':'milestones';if(commit(p=>p[collection].push(copy),'Copy created')){closeDetail(true);openDetail(type,copy.id);}}
 function confirmDialog(title,body,callback,label='Continue',danger=false){$('#confirmTitle').textContent=title;$('#confirmBody').textContent=body;$('#confirmAction').textContent=label;$('#confirmAction').className='btn'+(danger?' danger':'');confirmCallback=callback;$('#confirmModal').showModal();}
 function openSettings(){settingsStreams=clone(state.plan.workstreams);settingsStreamMoves=[];settingsRemoving='';const p=state.plan;$('#settingsBody').innerHTML=field('Project name',input('name',p.name,'required maxlength="80"'))+field('Description',`<textarea name="description" aria-label="Plan description" rows="2" maxlength="500">${esc(p.description)}</textarea>`)+`<div class="field-grid">${field('Default roadmap year',input('year',p.year,'type="number" min="2000" max="2099" step="1" required'))}${field('Reference date',input('reviewDate',p.reviewDate,'type="date" min="2000-01-01" max="2099-12-31" required'+(p.reviewDateMode==='today'?' readonly':'')))}</div><label class="check-row"><input type="checkbox" name="reviewDateToday" onchange="this.form.reviewDate.readOnly=this.checked;if(this.checked)this.form.reviewDate.value=today()" ${p.reviewDateMode==='today'?'checked':''}><span>Always use today's date</span></label><div class="settings-timeline-color"><span class="settings-timeline-label">Timeline colour</span><input type="color" name="timelineColor" value="${p.timelineColor||TIMELINE_DEFAULT_COLOR}" aria-label="Timeline header colour" ${p.timelineColor?'':'disabled'}><label class="check-row"><input type="checkbox" name="timelineColorDefault" onchange="this.form.timelineColor.disabled=this.checked" ${p.timelineColor?'':'checked'}><span>Default grey</span></label></div><p class="form-help">The reference date drives overdue warnings and the vertical marker. With "Always use today's date" on, it moves with the calendar. Changing the roadmap year does not move existing initiatives.</p><label class="check-row"><input type="checkbox" name="example" ${p.example?'checked':''}><span>Label this as an example plan</span></label><div class="section-title">Workstreams</div><div id="settingsStreams"></div><button type="button" class="btn secondary small" id="addWorkstream">${icon('plus')}Add workstream</button><div class="settings-reset"><div class="section-title">A fresh starting point</div><p class="form-help">Replace the current plan with a blank workspace or the example. Both actions can be undone.</p><div class="reset-buttons"><button type="button" class="btn secondary small" id="blankPlan">Start blank plan</button><button type="button" class="btn ghost small" id="loadExample">Load example</button></div></div>`;renderSettingsStreams();$('#settingsModal').showModal();}
@@ -2965,8 +2987,6 @@ function applySettingsStreamMoves(p){
  p.initiatives.forEach(t=>{let s=t.stream;for(const m of settingsStreamMoves){if(s===m.from){s=m.to;if(s===null)break;}}if(s===null)gone.add(t.id);else if(s!==t.stream){t.stream=s;moved++;}});
  if(gone.size){
   p.initiatives=p.initiatives.filter(t=>!gone.has(t.id));
-  p.initiatives.forEach(t=>t.dependencies=t.dependencies.filter(x=>!gone.has(x)));
-  p.milestones.forEach(m=>m.initiatives=m.initiatives.filter(x=>!gone.has(x)));
   p.connections=p.connections.filter(x=>!(x.fromType==='initiative'&&gone.has(x.from))&&!(x.toType==='initiative'&&gone.has(x.to)));
  }
  return {moved,deleted:gone.size};
@@ -3007,7 +3027,7 @@ function endDrag(event,cancel=false){const d=activeDrag;if(!d||event&&d.pointerI
 function download(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);}
 function slugName(){return(state.plan.name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'product-plan');}
 function exportJSON(){download(new Blob([JSON.stringify(state.plan,null,2)],{type:'application/json'}),slugName()+'.json');toast('Plan backup downloaded');}
-function exportCSV(){const cols=['Initiative','Workstream','Status','Owner','Priority','Health','Start','End','Progress (%)','Outcome','Increment','Depends on','Description','Notes'];const rows=state.plan.initiatives.map(t=>[t.title,streamName(t.stream),STATUS[t.status],t.owner,PRIORITY[t.priority],HEALTH[t.health],t.start,t.end,t.progress,getOutcome(t.outcome)?.title||'',getIncrement(t.increment)?.title||'',t.dependencies.map(id=>getTask(id)?.title||'').join('; '),t.description,t.notes]);const cell=x=>{let s=String(x??'');if(/^[\s]*[=+@-]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';};download(new Blob(['\ufeff'+[cols,...rows].map(r=>r.map(cell).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}),slugName()+'-initiatives.csv');toast('Initiatives exported');}
+function exportCSV(){const cols=['Initiative','Workstream','Status','Owner','Priority','Health','Start','End','Progress (%)','Outcome','Increment','Depends on','Description','Notes'];const rows=state.plan.initiatives.map(t=>[t.title,streamName(t.stream),STATUS[t.status],t.owner,PRIORITY[t.priority],HEALTH[t.health],t.start,t.end,t.progress,getOutcome(t.outcome)?.title||'',getIncrement(t.increment)?.title||'',prerequisiteIds('initiative',t.id).map(id=>getTask(id)?.title||'').join('; '),t.description,t.notes]);const cell=x=>{let s=String(x??'');if(/^[\s]*[=+@-]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';};download(new Blob(['\ufeff'+[cols,...rows].map(r=>r.map(cell).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}),slugName()+'-initiatives.csv');toast('Initiatives exported');}
 // ---- Import initiatives and milestones from a spreadsheet (CSV, tab-separated or Excel .xlsx).
 // Columns are matched by name; the CSV export's own columns work, so export → edit → import round-trips.
 // A row whose title and workstream match an existing item updates it; other rows are added.
@@ -3067,12 +3087,12 @@ async function readXlsx(buffer,all=false){
 // version (apps-script/src/Code.gs → ROADMAP_TABS). Keep both lists in step.
 const WORKBOOK_TABS=[
  {key:'workstreams',sheet:'Workstreams',cols:[['id'],['name'],['color'],['customColor','customColor (#hex)'],['description'],['icon']]},
- {key:'initiatives',sheet:'Initiatives',cols:[['id'],['title'],['stream','workstream'],['status',,'enum'],['priority',,'enum'],['health',,'enum'],['owner'],['start',,'date'],['end',,'date'],['progress',,'number'],['outcome'],['increment'],['dependencies',,'list'],['description'],['notes'],['icon']]},
+ {key:'initiatives',sheet:'Initiatives',cols:[['id'],['title'],['stream','workstream'],['status',,'enum'],['priority',,'enum'],['health',,'enum'],['owner'],['start',,'date'],['end',,'date'],['progress',,'number'],['outcome'],['increment'],['description'],['notes'],['icon']],legacy:[['dependencies',,'list']]},
  {key:'outcomes',sheet:'Outcomes',cols:[['id'],['title'],['metric'],['baseline',,'number'],['current',,'number'],['target',,'number'],['unit'],['owner'],['due',,'date'],['description']]},
- {key:'milestones',sheet:'Milestones',cols:[['id'],['title'],['stream','workstream'],['date',,'date'],['done',,'bool'],['shape',,'enum'],['color',,'enum'],['showLine',,'bool'],['increment'],['initiatives',,'list'],['after','ganttAfter'],['description'],['icon']]},
+ {key:'milestones',sheet:'Milestones',cols:[['id'],['title'],['stream','workstream'],['date',,'date'],['done',,'bool'],['shape',,'enum'],['color',,'enum'],['showLine',,'bool'],['increment'],['after','ganttAfter'],['description'],['icon']],legacy:[['initiatives',,'list']]},
  {key:'increments',sheet:'Increments',cols:[['id'],['title'],['stream','workstream'],['start',,'date'],['end',,'date'],['color',,'enum'],['after','ganttAfter'],['description'],['icon']]},
  {key:'connections',sheet:'Connections',cols:[['id'],['fromType',,'enum'],['from'],['toType',,'enum'],['to']]}
-].map(t=>({...t,cols:t.cols.map(([field,header,type])=>({field,header:header||field,type:type||'text'}))}));
+].map(t=>{const col=([field,header,type])=>({field,header:header||field,type:type||'text'});return {...t,cols:t.cols.map(col),legacy:(t.legacy||[]).map(col)};});
 const WORKBOOK_SETTINGS=['name','description','year','reviewDateMode','reviewDate','timelineColor','example','id','colorScheme','customColorSchemes','customPaletteRecipes'];
 // Only the palette settings hold JSON; a name such as "[Q4] Launch" stays text.
 const WORKBOOK_JSON_SETTINGS=['customColorSchemes','customPaletteRecipes'];
@@ -3151,11 +3171,12 @@ function planFromWorkbook(sheets){
  for(const tab of WORKBOOK_TABS){
   const rows=find(tab.sheet);raw[tab.key]=[];if(!rows||!rows.length)continue;
   const header=rows[0].map(h=>String(h??'').trim().toLowerCase()),at={};
-  tab.cols.forEach(c=>{at[c.field]=header.findIndex(h=>h===c.header.toLowerCase()||h===c.field.toLowerCase());});
+  const cols=[...tab.cols,...tab.legacy];
+  cols.forEach(c=>{at[c.field]=header.findIndex(h=>h===c.header.toLowerCase()||h===c.field.toLowerCase());});
   for(const row of rows.slice(1)){
    if(!row.some(v=>String(v??'').trim()))continue;
    const rec={...clone(DEFAULTS[tab.key]||{})};
-   tab.cols.forEach(c=>{if(at[c.field]<0)return;const v=parse(c,row[at[c.field]]);if(v===''&&c.field in rec)return;rec[c.field]=v;});
+   cols.forEach(c=>{if(at[c.field]<0)return;const v=parse(c,row[at[c.field]]);if(v===''&&c.field in rec)return;rec[c.field]=v;});
    if(!rec.id)rec.id=uid();
    raw[tab.key].push(rec);
   }
@@ -3231,7 +3252,7 @@ async function importSpreadsheet(file){
   if(get('depends'))deps.push([t,get('depends')]);
  });
  // Dependencies by title, once every row is in.
- for(const [t,list] of deps)t.dependencies=[...new Set(list.split(/[;,]/).map(x=>byName(p.initiatives,x.trim())?.id).filter(id=>id&&id!==t.id))];
+ for(const [t,list] of deps)setPrerequisiteInitiatives(p,'initiative',t.id,[...new Set(list.split(/[;,]/).map(x=>byName(p.initiatives,x.trim())?.id).filter(id=>id&&id!==t.id))]);
  let next;try{next=validatePlan(p);}catch(e){toast('Nothing imported: '+e.message,true);return;}
  const parts=[stats.added&&`${stats.added} new initiative${stats.added===1?'':'s'}`,stats.updated&&`${stats.updated} updated`,stats.milestones&&`${stats.milestones} milestone${stats.milestones===1?'':'s'}`,stats.streams&&`${stats.streams} new workstream${stats.streams===1?'':'s'}`].filter(Boolean);
  if(!parts.length){toast('No rows could be imported. '+skipped.slice(0,3).join('; '),true);return;}
@@ -3531,7 +3552,7 @@ function canvasOutcomeContextAll(){
  const {initiatives,milestones,increments}=state.plan;
  if(!state.outcome)return{initiatives,milestones,increments};
  const work=initiatives.filter(t=>t.outcome===state.outcome),workIDs=new Set(work.map(t=>t.id)),incrementIDs=new Set(work.map(t=>t.increment).filter(Boolean));
- const directlyLinked=new Set(milestones.filter(m=>m.initiatives.some(id=>workIDs.has(id))).map(m=>m.id));
+ const directlyLinked=new Set(milestones.filter(m=>prerequisiteIds('milestone',m.id).some(id=>workIDs.has(id))).map(m=>m.id));
  for(const milestone of milestones)if(directlyLinked.has(milestone.id)&&milestone.increment)incrementIDs.add(milestone.increment);
  return{initiatives:work,increments:increments.filter(x=>incrementIDs.has(x.id)),milestones:milestones.filter(m=>directlyLinked.has(m.id)||m.increment&&incrementIDs.has(m.increment))};
 }
@@ -3744,8 +3765,6 @@ const RoadmapDeps=(()=>{
  const getRecord=(plan,type,id)=>(type==='initiative'?plan.initiatives:type==='milestone'?plan.milestones:type==='increment'?plan.increments:[])?.find(x=>x.id===id);
  function edges(plan=state.plan){
   const list=[];
-  for(const t of plan.initiatives||[])for(const id of t.dependencies||[])list.push({fromType:'initiative',from:id,toType:'initiative',to:t.id,storage:'initiative'});
-  for(const m of plan.milestones||[])for(const id of m.initiatives||[])list.push({fromType:'initiative',from:id,toType:'milestone',to:m.id,storage:'milestone'});
   for(const c of plan.connections||[])list.push({...c,storage:'connection',connectionId:c.id});
   const seen=new Set();return list.map(e=>({...e,key:edgeKey(e)})).filter(e=>{if(seen.has(e.key))return false;seen.add(e.key);return true;});
  }
@@ -3760,14 +3779,10 @@ const RoadmapDeps=(()=>{
   return '';
  }
  function removeFrom(plan,edge){
-  if(edge.fromType==='initiative'&&edge.toType==='initiative'){const t=getRecord(plan,'initiative',edge.to);if(t)t.dependencies=(t.dependencies||[]).filter(id=>id!==edge.from);}
-  if(edge.fromType==='initiative'&&edge.toType==='milestone'){const m=getRecord(plan,'milestone',edge.to);if(m)m.initiatives=(m.initiatives||[]).filter(id=>id!==edge.from);}
   plan.connections=(plan.connections||[]).filter(e=>edgeKey(e)!==edge.key);
  }
  function addTo(plan,edge){
-  if(edge.fromType==='initiative'&&edge.toType==='initiative'){const t=getRecord(plan,'initiative',edge.to);t.dependencies=[...new Set([...(t.dependencies||[]),edge.from])];}
-  else if(edge.fromType==='initiative'&&edge.toType==='milestone'){const m=getRecord(plan,'milestone',edge.to);m.initiatives=[...new Set([...(m.initiatives||[]),edge.from])];}
-  else{plan.connections=plan.connections||[];plan.connections.push({id:uid(),fromType:edge.fromType,from:edge.from,toType:edge.toType,to:edge.to});}
+  plan.connections=plan.connections||[];plan.connections.push({id:uid(),fromType:edge.fromType,from:edge.from,toType:edge.toType,to:edge.to});
  }
  function getSurface(){return document.querySelector('#content .timeline')||document.querySelector('#content .board-grid');}
  function getNode(ref,surface=getSurface()){if(!ref||!surface)return null;return [...surface.querySelectorAll(entitySelector)].find(el=>el.dataset.entity===ref.type&&el.dataset.id===ref.id)||null;}
@@ -3943,9 +3958,7 @@ const RoadmapDeps=(()=>{
  }
  function dateConflict(edge){
   const from=getRecord(state.plan,edge.fromType,edge.from),to=getRecord(state.plan,edge.toType,edge.to);if(!from||!to)return false;
-  const finish=from.end||from.date,start=to.start||to.date;
-  // A milestone is an end-of-day checkpoint; work ending on that day is compatible.
-  return edge.toType==='milestone'?finish>start:finish>=start;
+  return linkConflict(edge.fromType,from,edge.toType,to);
  }
  function toolbar(){
   const host=document.querySelector('#dependencySelection');if(!host)return;
@@ -4383,7 +4396,7 @@ const RoadmapCanvas=(()=>{
   if(!selection)return;const {type,id}=selection;if(!find(type,id))return;finishEditor(false);selection=null;inspectorOpen=false;
   commit(p=>{
    p[collection(type)]=(p[collection(type)]||[]).filter(x=>x.id!==id);
-   if(type==='initiative'){p.initiatives.forEach(t=>t.dependencies=t.dependencies.filter(x=>x!==id));p.milestones.forEach(m=>m.initiatives=m.initiatives.filter(x=>x!==id));}
+   
    if(type==='increment')[...p.initiatives,...p.milestones].forEach(t=>{if(t.increment===id)t.increment='';});
    if(p.connections)p.connections=p.connections.filter(c=>!(c.fromType===type&&c.from===id)&&!(c.toType===type&&c.to===id));
   },`${names[type]} deleted`);
@@ -4879,7 +4892,7 @@ function pdfSelection(){
  if(allDates&&source.length)period={start:Math.min(...source.map(t=>day(t.start))),end:Math.max(...source.map(t=>day(t.end)))+1,month:0,endMonth:12};
  const selected=allDates?source:source.filter(t=>day(t.end)>=period.start&&day(t.start)<period.end);
  const ids=new Set(selected.map(t=>t.id)),selectedIncrementIDs=new Set(selected.map(t=>t.increment).filter(Boolean));
- const milestones=!board&&f.milestones.checked?state.plan.milestones.filter(m=>day(m.date)>=period.start&&day(m.date)<period.end&&(!hasFilters||(m.initiatives||[]).some(id=>ids.has(id))||selectedIncrementIDs.has(m.increment)||!!m.stream&&m.stream===state.stream)):[];
+ const milestones=!board&&f.milestones.checked?state.plan.milestones.filter(m=>day(m.date)>=period.start&&day(m.date)<period.end&&(!hasFilters||prerequisiteIds('milestone',m.id).some(id=>ids.has(id))||selectedIncrementIDs.has(m.increment)||!!m.stream&&m.stream===state.stream)):[];
  const milestoneIncrementIDs=new Set(milestones.map(m=>m.increment).filter(Boolean));
  const increments=f.increments.checked?state.plan.increments.filter(x=>board?selectedIncrementIDs.has(x.id):(day(x.end)>=period.start&&day(x.start)<period.end||milestoneIncrementIDs.has(x.id))&&(!hasFilters||selectedIncrementIDs.has(x.id)||milestoneIncrementIDs.has(x.id)||!!x.stream&&x.stream===state.stream)):[];
  const filters=[];
