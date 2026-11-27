@@ -43,7 +43,7 @@ The PDF engine (pdf-lib plus Open Sans) is about 1.1 MB, so it lives in separate
 4. Optional: turn on **Project Settings → Show "appsscript.json"** and replace that file with `dist/appsscript.json`. It sets the deployment defaults described in step 6.
 5. Reload the Sheet. A new **🗺️ Roadmap** menu appears in the menu bar, and a note in the corner points to it. Choose **🗺️ Roadmap → 🚀 Open planner**. The planner opens in a large window on top of the Sheet. This needs no deployment.
    The first time the planner opens, it writes the plan bundled in the page into the Sheet and creates the tabs.
-   To start from a ready-made roadmap, choose **🗺️ Roadmap → 📥 Load example plan…** and pick one of the five examples (the *Advanced* one is the plan the live demo shows). It replaces the data on the planner tabs. The build (`build.mjs`) copies the examples from `roadmap.html` into `DemoPlan.gs`, so they always match the planner.
+   To start from a ready-made roadmap, choose **🗺️ Roadmap → 📥 Load example plan…** and pick one of the seven examples (the *Advanced* one is the plan the live demo shows). It replaces the data on the planner tabs. The build (`build.mjs`) copies the examples from `roadmap.html` into `DemoPlan.gs`, so they always match the planner.
 6. Optional, for the planner in its own browser tab and a link you can send: choose **Deploy → New deployment → Web app**.
    - **Execute as: User accessing the web app.** This is the recommended setting. People can then only open and edit the plan if they have that access to the Sheet itself, so normal Sheet sharing controls everything.
    - **Who has access: Anyone with a Google account**, or your organization only.

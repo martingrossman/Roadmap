@@ -79,7 +79,8 @@ const ROADMAP_DEMO_PLAN = {
    "start": "2027-01-04",
    "end": "2027-05-28",
    "color": "blue",
-   "description": "Everything needed to open the public beta."
+   "description": "Everything needed to open the public beta.",
+   "capacity": 20
   },
   {
    "id": "ga",
@@ -87,7 +88,8 @@ const ROADMAP_DEMO_PLAN = {
    "start": "2027-06-01",
    "end": "2027-11-19",
    "color": "violet",
-   "description": "Scale, collaboration and enterprise features for launch."
+   "description": "Scale, collaboration and enterprise features for launch.",
+   "capacity": 30
   },
   {
    "id": "pilot",
@@ -238,7 +240,21 @@ const ROADMAP_DEMO_PLAN = {
    "outcome": "ready",
    "increment": "",
    "dependencies": [],
-   "notes": "Blocked: waiting for the identity provider contract."
+   "notes": "Blocked: waiting for the identity provider contract.",
+   "checklist": [
+    {
+     "text": "SAML connection",
+     "done": true
+    },
+    {
+     "text": "SCIM provisioning",
+     "done": false
+    },
+    {
+     "text": "Security review",
+     "done": false
+    }
+   ]
   },
   {
    "id": "N2",
@@ -327,7 +343,139 @@ const ROADMAP_DEMO_PLAN = {
    "initiatives": []
   }
  ],
- "connections": []
+ "connections": [
+  {
+   "id": "x1",
+   "fromType": "increment",
+   "from": "beta",
+   "toType": "milestone",
+   "to": "m2"
+  },
+  {
+   "id": "x2",
+   "fromType": "milestone",
+   "from": "m1",
+   "toType": "initiative",
+   "to": "E1"
+  }
+ ],
+ "stories": [
+  {
+   "id": "S1",
+   "title": "Welcome checklist",
+   "epic": "E1",
+   "increment": "beta",
+   "status": "done",
+   "points": 3,
+   "owner": "Growth",
+   "description": "",
+   "checklist": [
+    {
+     "text": "Design",
+     "done": true
+    },
+    {
+     "text": "Build",
+     "done": true
+    }
+   ]
+  },
+  {
+   "id": "S2",
+   "title": "Sample plan on first visit",
+   "epic": "E1",
+   "increment": "beta",
+   "status": "done",
+   "points": 2,
+   "owner": "Growth",
+   "description": "",
+   "checklist": []
+  },
+  {
+   "id": "S3",
+   "title": "Invite your team",
+   "epic": "E1",
+   "increment": "beta",
+   "status": "building",
+   "points": 5,
+   "owner": "Growth",
+   "description": "",
+   "checklist": [
+    {
+     "text": "Invite form",
+     "done": true
+    },
+    {
+     "text": "Email template",
+     "done": false
+    }
+   ]
+  },
+  {
+   "id": "S4",
+   "title": "Onboarding analytics",
+   "epic": "E1",
+   "increment": "",
+   "status": "planned",
+   "points": 3,
+   "owner": "",
+   "description": "Waiting in the backlog.",
+   "checklist": []
+  },
+  {
+   "id": "S5",
+   "title": "Board view",
+   "epic": "C1",
+   "increment": "beta",
+   "status": "done",
+   "points": 5,
+   "owner": "Collaboration",
+   "description": "",
+   "checklist": []
+  },
+  {
+   "id": "S6",
+   "title": "Drag cards between columns",
+   "epic": "C1",
+   "increment": "beta",
+   "status": "review",
+   "points": 3,
+   "owner": "Collaboration",
+   "description": "",
+   "checklist": [
+    {
+     "text": "Pointer drag",
+     "done": true
+    },
+    {
+     "text": "Keyboard moves",
+     "done": false
+    }
+   ]
+  },
+  {
+   "id": "S7",
+   "title": "Board filters",
+   "epic": "C1",
+   "increment": "ga",
+   "status": "planned",
+   "points": 5,
+   "owner": "",
+   "description": "",
+   "checklist": []
+  },
+  {
+   "id": "S8",
+   "title": "Card colours by workstream",
+   "epic": "C1",
+   "increment": "",
+   "status": "planned",
+   "points": 2,
+   "owner": "",
+   "description": "",
+   "checklist": []
+  }
+ ]
 };
 const ROADMAP_EXAMPLES = [
  {
@@ -492,7 +640,8 @@ const ROADMAP_EXAMPLES = [
     }
    ],
    "milestones": [],
-   "connections": []
+   "connections": [],
+   "stories": []
   }
  },
  {
@@ -677,7 +826,8 @@ const ROADMAP_EXAMPLES = [
      "initiatives": []
     }
    ],
-   "connections": []
+   "connections": [],
+   "stories": []
   }
  },
  {
@@ -891,342 +1041,691 @@ const ROADMAP_EXAMPLES = [
      "after": "d-r1"
     }
    ],
-   "connections": []
+   "connections": [],
+   "stories": []
   }
  },
  {
-  "key": "advanced",
-  "title": "Advanced (all options)",
-  "description": "Increments, milestones, outcomes and dependencies, in the top rows and in workstreams.",
+  "key": "outcomes",
+  "title": "Outcomes & dependencies",
+  "description": "Measurable outcomes, the work that moves them, health, and dependency arrows (one with a date conflict).",
   "plan": {
    "schemaVersion": 1,
-   "id": "arc-atlas-workspace-v2",
-   "name": "Atlas 2027",
-   "description": "An example roadmap: from product discovery to general availability in one year.",
+   "id": "example-outcomes",
+   "name": "Support experience",
+   "description": "Outcomes with metrics, the initiatives that move them, and dependencies between work and milestones.",
    "year": 2027,
    "reviewDate": "2027-04-15",
    "reviewDateMode": "fixed",
    "example": true,
    "workstreams": [
     {
-     "id": "foundations",
-     "name": "Foundations",
-     "color": "blue",
-     "description": "Research, data and the platform everything else builds on."
-    },
-    {
-     "id": "experience",
-     "name": "Core experience",
-     "color": "amber",
-     "description": "The first-run and everyday product experience."
-    },
-    {
-     "id": "collaboration",
-     "name": "Collaboration",
+     "id": "self",
+     "name": "Self-service",
      "color": "teal",
-     "description": "Planning together as a team."
+     "description": "Help customers help themselves."
     },
     {
-     "id": "enterprise",
-     "name": "Enterprise",
-     "color": "violet",
-     "description": "What larger organisations need to roll Atlas out."
+     "id": "agents",
+     "name": "Agent tools",
+     "color": "blue",
+     "description": "Make support agents faster."
+    },
+    {
+     "id": "quality",
+     "name": "Quality",
+     "color": "rose",
+     "description": "Measure and improve answers."
     }
    ],
    "outcomes": [
     {
-     "id": "value",
-     "title": "Faster time to value",
-     "metric": "Median time to first shared plan",
-     "description": "A new team gets to a useful, shared plan quickly and without help.",
-     "baseline": 18,
-     "current": 12,
-     "target": 7,
-     "unit": "min",
-     "owner": "Growth",
-     "due": "2027-06-30"
+     "id": "o-tickets",
+     "title": "Fewer tickets",
+     "metric": "Tickets per 1,000 customers",
+     "description": "Customers find answers before they need to ask.",
+     "baseline": 42,
+     "current": 35,
+     "target": 25,
+     "unit": "",
+     "owner": "Self-service",
+     "due": "2027-09-30"
     },
     {
-     "id": "together",
-     "title": "Teams plan together",
-     "metric": "Weekly active teams editing a shared plan",
-     "description": "Shared planning becomes a weekly habit.",
-     "baseline": 22,
-     "current": 31,
-     "target": 55,
+     "id": "o-speed",
+     "title": "Faster answers",
+     "metric": "Median first response time",
+     "description": "Every customer hears back quickly.",
+     "baseline": 9,
+     "current": 6,
+     "target": 2,
+     "unit": "h",
+     "owner": "Agent tools",
+     "due": "2027-08-31"
+    },
+    {
+     "id": "o-csat",
+     "title": "Happier customers",
+     "metric": "Customer satisfaction (CSAT)",
+     "description": "Customers rate their support experience highly.",
+     "baseline": 78,
+     "current": 81,
+     "target": 90,
      "unit": "%",
-     "owner": "Collaboration",
-     "due": "2027-11-30"
-    },
-    {
-     "id": "ready",
-     "title": "Ready for enterprise",
-     "metric": "Pilot teams passing acceptance",
-     "description": "Enterprise pilots adopt Atlas with the access control and support they need.",
-     "baseline": 0,
-     "current": 2,
-     "target": 8,
-     "unit": "teams",
-     "owner": "Product",
-     "due": "2027-12-10"
+     "owner": "Quality",
+     "due": "2027-12-31"
     }
    ],
-   "increments": [
-    {
-     "id": "beta",
-     "title": "Beta",
-     "start": "2027-01-04",
-     "end": "2027-05-28",
-     "color": "blue",
-     "description": "Everything needed to open the public beta."
-    },
-    {
-     "id": "ga",
-     "title": "General availability",
-     "start": "2027-06-01",
-     "end": "2027-11-19",
-     "color": "violet",
-     "description": "Scale, collaboration and enterprise features for launch."
-    },
-    {
-     "id": "pilot",
-     "title": "Pilot cohort",
-     "stream": "enterprise",
-     "start": "2027-07-05",
-     "end": "2027-09-24",
-     "color": "violet",
-     "description": "A controlled rollout with three enterprise design partners. Shows an increment that belongs to one workstream."
-    }
-   ],
+   "increments": [],
    "initiatives": [
     {
-     "id": "F1",
-     "title": "Customer research",
-     "description": "Interview design partners and find the highest-friction planning jobs.",
-     "stream": "foundations",
-     "owner": "Product",
-     "priority": "high",
+     "id": "o-s1",
+     "title": "Help centre rewrite",
+     "description": "Rewrite the 50 most-read articles.",
+     "stream": "self",
+     "owner": "Content",
+     "priority": "medium",
      "status": "done",
      "health": "on_track",
-     "start": "2027-01-04",
-     "end": "2027-02-26",
+     "start": "2027-01-11",
+     "end": "2027-03-19",
      "progress": 100,
-     "outcome": "value",
-     "increment": "",
-     "dependencies": [],
-     "notes": "12 interviews. Top three jobs to be done agreed with the team."
-    },
-    {
-     "id": "F2",
-     "title": "Product analytics",
-     "description": "Track activation and set a baseline for every outcome.",
-     "stream": "foundations",
-     "owner": "Data",
-     "priority": "medium",
-     "status": "review",
-     "health": "on_track",
-     "start": "2027-03-08",
-     "end": "2027-05-07",
-     "progress": 90,
-     "outcome": "value",
+     "outcome": "o-tickets",
      "increment": "",
      "dependencies": [],
      "notes": ""
     },
     {
-     "id": "F3",
-     "title": "Performance & scale",
-     "description": "Keep large plans fast as usage grows after launch.",
-     "stream": "foundations",
-     "owner": "Platform",
-     "priority": "low",
+     "id": "o-s2",
+     "title": "Chat bot for top questions",
+     "description": "Answers the ten most common questions; hands over to an agent.",
+     "stream": "self",
+     "owner": "Self-service",
+     "priority": "high",
+     "status": "building",
+     "health": "at_risk",
+     "start": "2027-03-22",
+     "end": "2027-06-11",
+     "progress": 50,
+     "outcome": "o-tickets",
+     "increment": "",
+     "dependencies": [
+      "o-s1"
+     ],
+     "notes": ""
+    },
+    {
+     "id": "o-a1",
+     "title": "Unified inbox",
+     "description": "",
+     "stream": "agents",
+     "owner": "Agent tools",
+     "priority": "high",
+     "status": "review",
+     "health": "on_track",
+     "start": "2027-02-01",
+     "end": "2027-04-16",
+     "progress": 90,
+     "outcome": "o-speed",
+     "increment": "",
+     "dependencies": [],
+     "notes": ""
+    },
+    {
+     "id": "o-a2",
+     "title": "Reply templates",
+     "description": "",
+     "stream": "agents",
+     "owner": "Agent tools",
+     "priority": "medium",
      "status": "planned",
      "health": "on_track",
-     "start": "2027-07-05",
-     "end": "2027-09-24",
+     "start": "2027-04-19",
+     "end": "2027-05-28",
      "progress": 0,
+     "outcome": "o-speed",
+     "increment": "",
+     "dependencies": [
+      "o-a1"
+     ],
+     "notes": ""
+    },
+    {
+     "id": "o-a3",
+     "title": "Smart routing",
+     "description": "Send each ticket to the right team first time. Its dependency on “Inbox live” has a date conflict to resolve.",
+     "stream": "agents",
+     "owner": "Agent tools",
+     "priority": "critical",
+     "status": "building",
+     "health": "blocked",
+     "start": "2027-03-29",
+     "end": "2027-06-25",
+     "progress": 50,
+     "outcome": "o-speed",
+     "increment": "",
+     "dependencies": [],
+     "notes": "Waiting for API access to the CRM."
+    },
+    {
+     "id": "o-q1",
+     "title": "Survey after each ticket",
+     "description": "",
+     "stream": "quality",
+     "owner": "Quality",
+     "priority": "medium",
+     "status": "done",
+     "health": "on_track",
+     "start": "2027-01-25",
+     "end": "2027-03-05",
+     "progress": 100,
+     "outcome": "o-csat",
+     "increment": "",
+     "dependencies": [],
+     "notes": ""
+    },
+    {
+     "id": "o-q2",
+     "title": "Weekly quality review",
+     "description": "",
+     "stream": "quality",
+     "owner": "Quality",
+     "priority": "medium",
+     "status": "building",
+     "health": "on_track",
+     "start": "2027-03-08",
+     "end": "2027-07-30",
+     "progress": 50,
+     "outcome": "o-csat",
+     "increment": "",
+     "dependencies": [],
+     "notes": ""
+    }
+   ],
+   "milestones": [
+    {
+     "id": "o-m1",
+     "title": "Inbox live",
+     "stream": "",
+     "date": "2027-04-16",
+     "description": "",
+     "done": false,
+     "shape": "diamond",
+     "color": "blue",
+     "showLine": false,
+     "increment": "",
+     "initiatives": [
+      "o-a1"
+     ]
+    },
+    {
+     "id": "o-m2",
+     "title": "Bot in production",
+     "stream": "",
+     "date": "2027-06-11",
+     "description": "",
+     "done": false,
+     "shape": "star",
+     "color": "teal",
+     "showLine": true,
+     "increment": "",
+     "initiatives": [
+      "o-s2"
+     ]
+    },
+    {
+     "id": "o-m3",
+     "title": "Quarterly review",
+     "stream": "quality",
+     "date": "2027-06-30",
+     "description": "",
+     "done": false,
+     "shape": "circle",
+     "color": "rose",
+     "showLine": false,
+     "increment": "",
+     "initiatives": [],
+     "after": "o-q2"
+    }
+   ],
+   "connections": [
+    {
+     "id": "o-c1",
+     "fromType": "milestone",
+     "from": "o-m1",
+     "toType": "initiative",
+     "to": "o-a3"
+    }
+   ],
+   "stories": []
+  }
+ },
+ {
+  "key": "epics",
+  "title": "Epics, stories & sprints",
+  "description": "Epics split into stories with points and checklists, planned into two-week sprints. See the Backlog.",
+  "plan": {
+   "schemaVersion": 1,
+   "id": "example-epics",
+   "name": "Shop app",
+   "description": "Epics split into stories with points and checklists, planned into two-week sprints in the Backlog.",
+   "year": 2027,
+   "reviewDate": "2027-04-15",
+   "reviewDateMode": "fixed",
+   "example": true,
+   "workstreams": [
+    {
+     "id": "web",
+     "name": "Web shop",
+     "color": "blue",
+     "description": ""
+    },
+    {
+     "id": "app",
+     "name": "Mobile app",
+     "color": "violet",
+     "description": ""
+    },
+    {
+     "id": "pay",
+     "name": "Payments",
+     "color": "teal",
+     "description": ""
+    }
+   ],
+   "outcomes": [],
+   "increments": [
+    {
+     "id": "sp1",
+     "title": "Sprint 1",
+     "stream": "",
+     "start": "2027-03-01",
+     "end": "2027-03-12",
+     "color": "slate",
+     "description": "Two-week sprint.",
+     "capacity": 15
+    },
+    {
+     "id": "sp2",
+     "title": "Sprint 2",
+     "stream": "",
+     "start": "2027-03-15",
+     "end": "2027-03-26",
+     "color": "slate",
+     "description": "Two-week sprint.",
+     "capacity": 15
+    },
+    {
+     "id": "sp3",
+     "title": "Sprint 3",
+     "stream": "",
+     "start": "2027-03-29",
+     "end": "2027-04-09",
+     "color": "slate",
+     "description": "Two-week sprint.",
+     "capacity": 15
+    },
+    {
+     "id": "sp4",
+     "title": "Sprint 4",
+     "stream": "",
+     "start": "2027-04-12",
+     "end": "2027-04-23",
+     "color": "slate",
+     "description": "Two-week sprint.",
+     "capacity": 15
+    },
+    {
+     "id": "sp5",
+     "title": "Sprint 5",
+     "stream": "",
+     "start": "2027-04-26",
+     "end": "2027-05-07",
+     "color": "slate",
+     "description": "Two-week sprint.",
+     "capacity": 15
+    },
+    {
+     "id": "sp6",
+     "title": "Sprint 6",
+     "stream": "",
+     "start": "2027-05-10",
+     "end": "2027-05-21",
+     "color": "slate",
+     "description": "Two-week sprint.",
+     "capacity": 15
+    }
+   ],
+   "initiatives": [
+    {
+     "id": "e-1",
+     "title": "Guest checkout",
+     "description": "",
+     "stream": "web",
+     "owner": "Web",
+     "priority": "high",
+     "status": "done",
+     "health": "on_track",
+     "start": "2027-03-01",
+     "end": "2027-04-09",
+     "progress": 100,
      "outcome": "",
      "increment": "",
      "dependencies": [],
      "notes": ""
     },
     {
-     "id": "E1",
-     "title": "Guided onboarding",
-     "description": "Help a new team build its first useful plan without assistance.",
-     "stream": "experience",
-     "owner": "Growth",
-     "priority": "critical",
+     "id": "e-2",
+     "title": "Product search",
+     "description": "",
+     "stream": "web",
+     "owner": "Web",
+     "priority": "high",
      "status": "building",
      "health": "on_track",
-     "start": "2027-03-01",
-     "end": "2027-05-14",
-     "progress": 60,
-     "outcome": "value",
-     "increment": "beta",
-     "dependencies": [
-      "F1"
-     ],
-     "notes": "Success: a new team shares its first plan in under seven minutes."
+     "start": "2027-03-29",
+     "end": "2027-05-21",
+     "progress": 50,
+     "outcome": "",
+     "increment": "",
+     "dependencies": [],
+     "notes": ""
     },
     {
-     "id": "E2",
-     "title": "Mobile companion",
-     "description": "Check status and comment on the go.",
-     "stream": "experience",
+     "id": "e-3",
+     "title": "Wish lists",
+     "description": "",
+     "stream": "app",
      "owner": "Mobile",
      "priority": "medium",
-     "status": "discovery",
+     "status": "building",
      "health": "on_track",
-     "start": "2027-07-12",
-     "end": "2027-10-29",
-     "progress": 0,
-     "outcome": "together",
+     "start": "2027-03-15",
+     "end": "2027-05-07",
+     "progress": 50,
+     "outcome": "",
      "increment": "",
      "dependencies": [],
      "notes": ""
     },
     {
-     "id": "C1",
-     "title": "Shared planning boards",
-     "description": "One place for initiatives, owners and status.",
-     "stream": "collaboration",
-     "owner": "Collaboration",
+     "id": "e-4",
+     "title": "Apple Pay & Google Pay",
+     "description": "",
+     "stream": "pay",
+     "owner": "Payments",
      "priority": "high",
-     "status": "building",
-     "health": "at_risk",
-     "start": "2027-03-15",
-     "end": "2027-06-18",
-     "progress": 35,
-     "outcome": "together",
-     "increment": "beta",
+     "status": "review",
+     "health": "on_track",
+     "start": "2027-03-01",
+     "end": "2027-04-23",
+     "progress": 90,
+     "outcome": "",
+     "increment": "",
      "dependencies": [],
-     "notes": "At risk: real-time sync needs another two weeks of hardening."
+     "notes": ""
     },
     {
-     "id": "C2",
-     "title": "Comments & mentions",
-     "description": "Discuss decisions right where the work is planned.",
-     "stream": "collaboration",
-     "owner": "Collaboration",
+     "id": "e-5",
+     "title": "Fraud checks",
+     "description": "No stories yet: its progress comes from the checklist.",
+     "stream": "pay",
+     "owner": "Payments",
      "priority": "medium",
      "status": "planned",
      "health": "on_track",
-     "start": "2027-08-02",
-     "end": "2027-11-12",
+     "start": "2027-04-26",
+     "end": "2027-06-04",
      "progress": 0,
-     "outcome": "together",
-     "increment": "ga",
-     "dependencies": [
-      "C1"
-     ],
-     "notes": ""
-    },
-    {
-     "id": "N1",
-     "title": "Single sign-on",
-     "description": "Sign in through the company identity provider.",
-     "stream": "enterprise",
-     "owner": "Platform",
-     "priority": "high",
-     "status": "building",
-     "health": "blocked",
-     "start": "2027-04-05",
-     "end": "2027-06-25",
-     "progress": 20,
-     "outcome": "ready",
+     "outcome": "",
      "increment": "",
-     "dependencies": [],
-     "notes": "Blocked: waiting for the identity provider contract."
-    },
-    {
-     "id": "N2",
-     "title": "Admin console",
-     "description": "Manage members, roles and billing in one place.",
-     "stream": "enterprise",
-     "owner": "Platform",
-     "priority": "high",
-     "status": "planned",
-     "health": "on_track",
-     "start": "2027-08-23",
-     "end": "2027-12-10",
-     "progress": 0,
-     "outcome": "ready",
-     "increment": "ga",
      "dependencies": [
-      "N1"
+      "e-4"
      ],
-     "notes": ""
+     "notes": "",
+     "checklist": [
+      {
+       "text": "Pick a provider",
+       "done": true
+      },
+      {
+       "text": "Agree the risk rules",
+       "done": false
+      },
+      {
+       "text": "Data protection review",
+       "done": false
+      }
+     ]
     }
    ],
    "milestones": [
     {
-     "id": "m1",
-     "title": "Research readout",
-     "date": "2027-02-26",
-     "description": "Agree the opportunity, evidence and product direction.",
-     "done": true,
-     "shape": "diamond",
-     "color": "blue",
-     "showLine": false,
-     "increment": "",
-     "initiatives": []
-    },
-    {
-     "id": "m2",
-     "title": "Public beta",
-     "date": "2027-05-28",
-     "description": "Open the core planning experience to everyone.",
+     "id": "e-m1",
+     "title": "Spring release",
+     "stream": "",
+     "date": "2027-05-21",
+     "description": "",
      "done": false,
      "shape": "star",
      "color": "amber",
      "showLine": true,
      "increment": "",
      "initiatives": [
-      "E1"
+      "e-1",
+      "e-2"
+     ]
+    }
+   ],
+   "connections": [],
+   "stories": [
+    {
+     "id": "st-1",
+     "title": "Guest details form",
+     "epic": "e-1",
+     "increment": "sp1",
+     "status": "done",
+     "points": 3,
+     "owner": "",
+     "description": "",
+     "checklist": [
+      {
+       "text": "Fields and validation",
+       "done": true
+      },
+      {
+       "text": "Address lookup",
+       "done": true
+      }
      ]
     },
     {
-     "id": "m3",
-     "title": "Enterprise pilot",
-     "stream": "enterprise",
-     "date": "2027-08-06",
-     "description": "Start a controlled rollout with three enterprise design partners.",
-     "done": false,
-     "shape": "flag",
-     "color": "violet",
-     "showLine": false,
-     "increment": "pilot",
-     "initiatives": []
+     "id": "st-2",
+     "title": "Order confirmation email",
+     "epic": "e-1",
+     "increment": "sp2",
+     "status": "done",
+     "points": 2,
+     "owner": "",
+     "description": "",
+     "checklist": []
     },
     {
-     "id": "m5",
-     "title": "Platform freeze",
-     "stream": "foundations",
-     "after": "F2",
-     "date": "2027-06-25",
-     "description": "No breaking platform changes after this date. Shows a milestone that belongs to one workstream.",
-     "done": false,
-     "shape": "diamond",
-     "color": "blue",
-     "showLine": false,
-     "increment": "",
-     "initiatives": []
+     "id": "st-3",
+     "title": "Create an account after buying",
+     "epic": "e-1",
+     "increment": "sp3",
+     "status": "done",
+     "points": 3,
+     "owner": "",
+     "description": "",
+     "checklist": [
+      {
+       "text": "Design",
+       "done": true
+      },
+      {
+       "text": "Build",
+       "done": true
+      },
+      {
+       "text": "Test",
+       "done": true
+      }
+     ]
     },
     {
-     "id": "m4",
-     "title": "General availability",
-     "date": "2027-11-19",
-     "description": "Launch with a repeatable onboarding process.",
-     "done": false,
-     "shape": "star",
-     "color": "teal",
-     "showLine": true,
+     "id": "st-4",
+     "title": "Search box with suggestions",
+     "epic": "e-2",
+     "increment": "sp4",
+     "status": "building",
+     "points": 5,
+     "owner": "Ana",
+     "description": "",
+     "checklist": [
+      {
+       "text": "Suggestions API",
+       "done": true
+      },
+      {
+       "text": "Search box UI",
+       "done": false
+      },
+      {
+       "text": "Analytics events",
+       "done": false
+      }
+     ]
+    },
+    {
+     "id": "st-5",
+     "title": "Filters and sorting",
+     "epic": "e-2",
+     "increment": "sp4",
+     "status": "planned",
+     "points": 8,
+     "owner": "",
+     "description": "Pulled into Sprint 4 on top of the plan: the sprint is over capacity.",
+     "checklist": []
+    },
+    {
+     "id": "st-6",
+     "title": "Search ranking",
+     "epic": "e-2",
      "increment": "",
-     "initiatives": []
+     "status": "planned",
+     "points": 5,
+     "owner": "",
+     "description": "",
+     "checklist": []
+    },
+    {
+     "id": "st-7",
+     "title": "Recently viewed",
+     "epic": "e-2",
+     "increment": "",
+     "status": "planned",
+     "points": 3,
+     "owner": "",
+     "description": "",
+     "checklist": []
+    },
+    {
+     "id": "st-8",
+     "title": "Save to wish list",
+     "epic": "e-3",
+     "increment": "sp3",
+     "status": "done",
+     "points": 3,
+     "owner": "",
+     "description": "",
+     "checklist": []
+    },
+    {
+     "id": "st-9",
+     "title": "Share a wish list",
+     "epic": "e-3",
+     "increment": "sp4",
+     "status": "review",
+     "points": 5,
+     "owner": "Jon",
+     "description": "",
+     "checklist": [
+      {
+       "text": "Share sheet",
+       "done": true
+      },
+      {
+       "text": "Deep link",
+       "done": true
+      },
+      {
+       "text": "QA",
+       "done": false
+      }
+     ]
+    },
+    {
+     "id": "st-10",
+     "title": "Price-drop alerts",
+     "epic": "e-3",
+     "increment": "",
+     "status": "planned",
+     "points": null,
+     "owner": "",
+     "description": "",
+     "checklist": [
+      {
+       "text": "Decide how often to notify",
+       "done": false
+      }
+     ]
+    },
+    {
+     "id": "st-11",
+     "title": "Apple Pay",
+     "epic": "e-4",
+     "increment": "sp2",
+     "status": "done",
+     "points": 5,
+     "owner": "",
+     "description": "",
+     "checklist": []
+    },
+    {
+     "id": "st-12",
+     "title": "Google Pay",
+     "epic": "e-4",
+     "increment": "sp3",
+     "status": "done",
+     "points": 5,
+     "owner": "",
+     "description": "",
+     "checklist": []
+    },
+    {
+     "id": "st-13",
+     "title": "Wallet button on product page",
+     "epic": "e-4",
+     "increment": "sp4",
+     "status": "review",
+     "points": 3,
+     "owner": "",
+     "description": "",
+     "checklist": [
+      {
+       "text": "Design",
+       "done": true
+      },
+      {
+       "text": "A/B test set-up",
+       "done": false
+      }
+     ]
     }
    ],
-   "connections": []
+   "itemLabel": "epic"
   }
  },
  {
@@ -1516,7 +2015,491 @@ const ROADMAP_EXAMPLES = [
      "initiatives": []
     }
    ],
-   "connections": []
+   "connections": [],
+   "stories": []
+  }
+ },
+ {
+  "key": "advanced",
+  "title": "Advanced (all options)",
+  "description": "Everything together: increments, milestones, outcomes, stories, checklists, capacity and dependencies.",
+  "plan": {
+   "schemaVersion": 1,
+   "id": "arc-atlas-workspace-v2",
+   "name": "Atlas 2027",
+   "description": "An example roadmap: from product discovery to general availability in one year.",
+   "year": 2027,
+   "reviewDate": "2027-04-15",
+   "reviewDateMode": "fixed",
+   "example": true,
+   "workstreams": [
+    {
+     "id": "foundations",
+     "name": "Foundations",
+     "color": "blue",
+     "description": "Research, data and the platform everything else builds on."
+    },
+    {
+     "id": "experience",
+     "name": "Core experience",
+     "color": "amber",
+     "description": "The first-run and everyday product experience."
+    },
+    {
+     "id": "collaboration",
+     "name": "Collaboration",
+     "color": "teal",
+     "description": "Planning together as a team."
+    },
+    {
+     "id": "enterprise",
+     "name": "Enterprise",
+     "color": "violet",
+     "description": "What larger organisations need to roll Atlas out."
+    }
+   ],
+   "outcomes": [
+    {
+     "id": "value",
+     "title": "Faster time to value",
+     "metric": "Median time to first shared plan",
+     "description": "A new team gets to a useful, shared plan quickly and without help.",
+     "baseline": 18,
+     "current": 12,
+     "target": 7,
+     "unit": "min",
+     "owner": "Growth",
+     "due": "2027-06-30"
+    },
+    {
+     "id": "together",
+     "title": "Teams plan together",
+     "metric": "Weekly active teams editing a shared plan",
+     "description": "Shared planning becomes a weekly habit.",
+     "baseline": 22,
+     "current": 31,
+     "target": 55,
+     "unit": "%",
+     "owner": "Collaboration",
+     "due": "2027-11-30"
+    },
+    {
+     "id": "ready",
+     "title": "Ready for enterprise",
+     "metric": "Pilot teams passing acceptance",
+     "description": "Enterprise pilots adopt Atlas with the access control and support they need.",
+     "baseline": 0,
+     "current": 2,
+     "target": 8,
+     "unit": "teams",
+     "owner": "Product",
+     "due": "2027-12-10"
+    }
+   ],
+   "increments": [
+    {
+     "id": "beta",
+     "title": "Beta",
+     "start": "2027-01-04",
+     "end": "2027-05-28",
+     "color": "blue",
+     "description": "Everything needed to open the public beta.",
+     "capacity": 20
+    },
+    {
+     "id": "ga",
+     "title": "General availability",
+     "start": "2027-06-01",
+     "end": "2027-11-19",
+     "color": "violet",
+     "description": "Scale, collaboration and enterprise features for launch.",
+     "capacity": 30
+    },
+    {
+     "id": "pilot",
+     "title": "Pilot cohort",
+     "stream": "enterprise",
+     "start": "2027-07-05",
+     "end": "2027-09-24",
+     "color": "violet",
+     "description": "A controlled rollout with three enterprise design partners. Shows an increment that belongs to one workstream."
+    }
+   ],
+   "initiatives": [
+    {
+     "id": "F1",
+     "title": "Customer research",
+     "description": "Interview design partners and find the highest-friction planning jobs.",
+     "stream": "foundations",
+     "owner": "Product",
+     "priority": "high",
+     "status": "done",
+     "health": "on_track",
+     "start": "2027-01-04",
+     "end": "2027-02-26",
+     "progress": 100,
+     "outcome": "value",
+     "increment": "",
+     "dependencies": [],
+     "notes": "12 interviews. Top three jobs to be done agreed with the team."
+    },
+    {
+     "id": "F2",
+     "title": "Product analytics",
+     "description": "Track activation and set a baseline for every outcome.",
+     "stream": "foundations",
+     "owner": "Data",
+     "priority": "medium",
+     "status": "review",
+     "health": "on_track",
+     "start": "2027-03-08",
+     "end": "2027-05-07",
+     "progress": 90,
+     "outcome": "value",
+     "increment": "",
+     "dependencies": [],
+     "notes": ""
+    },
+    {
+     "id": "F3",
+     "title": "Performance & scale",
+     "description": "Keep large plans fast as usage grows after launch.",
+     "stream": "foundations",
+     "owner": "Platform",
+     "priority": "low",
+     "status": "planned",
+     "health": "on_track",
+     "start": "2027-07-05",
+     "end": "2027-09-24",
+     "progress": 0,
+     "outcome": "",
+     "increment": "",
+     "dependencies": [],
+     "notes": ""
+    },
+    {
+     "id": "E1",
+     "title": "Guided onboarding",
+     "description": "Help a new team build its first useful plan without assistance.",
+     "stream": "experience",
+     "owner": "Growth",
+     "priority": "critical",
+     "status": "building",
+     "health": "on_track",
+     "start": "2027-03-01",
+     "end": "2027-05-14",
+     "progress": 60,
+     "outcome": "value",
+     "increment": "beta",
+     "dependencies": [
+      "F1"
+     ],
+     "notes": "Success: a new team shares its first plan in under seven minutes."
+    },
+    {
+     "id": "E2",
+     "title": "Mobile companion",
+     "description": "Check status and comment on the go.",
+     "stream": "experience",
+     "owner": "Mobile",
+     "priority": "medium",
+     "status": "discovery",
+     "health": "on_track",
+     "start": "2027-07-12",
+     "end": "2027-10-29",
+     "progress": 0,
+     "outcome": "together",
+     "increment": "",
+     "dependencies": [],
+     "notes": ""
+    },
+    {
+     "id": "C1",
+     "title": "Shared planning boards",
+     "description": "One place for initiatives, owners and status.",
+     "stream": "collaboration",
+     "owner": "Collaboration",
+     "priority": "high",
+     "status": "building",
+     "health": "at_risk",
+     "start": "2027-03-15",
+     "end": "2027-06-18",
+     "progress": 35,
+     "outcome": "together",
+     "increment": "beta",
+     "dependencies": [],
+     "notes": "At risk: real-time sync needs another two weeks of hardening."
+    },
+    {
+     "id": "C2",
+     "title": "Comments & mentions",
+     "description": "Discuss decisions right where the work is planned.",
+     "stream": "collaboration",
+     "owner": "Collaboration",
+     "priority": "medium",
+     "status": "planned",
+     "health": "on_track",
+     "start": "2027-08-02",
+     "end": "2027-11-12",
+     "progress": 0,
+     "outcome": "together",
+     "increment": "ga",
+     "dependencies": [
+      "C1"
+     ],
+     "notes": ""
+    },
+    {
+     "id": "N1",
+     "title": "Single sign-on",
+     "description": "Sign in through the company identity provider.",
+     "stream": "enterprise",
+     "owner": "Platform",
+     "priority": "high",
+     "status": "building",
+     "health": "blocked",
+     "start": "2027-04-05",
+     "end": "2027-06-25",
+     "progress": 20,
+     "outcome": "ready",
+     "increment": "",
+     "dependencies": [],
+     "notes": "Blocked: waiting for the identity provider contract.",
+     "checklist": [
+      {
+       "text": "SAML connection",
+       "done": true
+      },
+      {
+       "text": "SCIM provisioning",
+       "done": false
+      },
+      {
+       "text": "Security review",
+       "done": false
+      }
+     ]
+    },
+    {
+     "id": "N2",
+     "title": "Admin console",
+     "description": "Manage members, roles and billing in one place.",
+     "stream": "enterprise",
+     "owner": "Platform",
+     "priority": "high",
+     "status": "planned",
+     "health": "on_track",
+     "start": "2027-08-23",
+     "end": "2027-12-10",
+     "progress": 0,
+     "outcome": "ready",
+     "increment": "ga",
+     "dependencies": [
+      "N1"
+     ],
+     "notes": ""
+    }
+   ],
+   "milestones": [
+    {
+     "id": "m1",
+     "title": "Research readout",
+     "date": "2027-02-26",
+     "description": "Agree the opportunity, evidence and product direction.",
+     "done": true,
+     "shape": "diamond",
+     "color": "blue",
+     "showLine": false,
+     "increment": "",
+     "initiatives": []
+    },
+    {
+     "id": "m2",
+     "title": "Public beta",
+     "date": "2027-05-28",
+     "description": "Open the core planning experience to everyone.",
+     "done": false,
+     "shape": "star",
+     "color": "amber",
+     "showLine": true,
+     "increment": "",
+     "initiatives": [
+      "E1"
+     ]
+    },
+    {
+     "id": "m3",
+     "title": "Enterprise pilot",
+     "stream": "enterprise",
+     "date": "2027-08-06",
+     "description": "Start a controlled rollout with three enterprise design partners.",
+     "done": false,
+     "shape": "flag",
+     "color": "violet",
+     "showLine": false,
+     "increment": "pilot",
+     "initiatives": []
+    },
+    {
+     "id": "m5",
+     "title": "Platform freeze",
+     "stream": "foundations",
+     "after": "F2",
+     "date": "2027-06-25",
+     "description": "No breaking platform changes after this date. Shows a milestone that belongs to one workstream.",
+     "done": false,
+     "shape": "diamond",
+     "color": "blue",
+     "showLine": false,
+     "increment": "",
+     "initiatives": []
+    },
+    {
+     "id": "m4",
+     "title": "General availability",
+     "date": "2027-11-19",
+     "description": "Launch with a repeatable onboarding process.",
+     "done": false,
+     "shape": "star",
+     "color": "teal",
+     "showLine": true,
+     "increment": "",
+     "initiatives": []
+    }
+   ],
+   "connections": [
+    {
+     "id": "x1",
+     "fromType": "increment",
+     "from": "beta",
+     "toType": "milestone",
+     "to": "m2"
+    },
+    {
+     "id": "x2",
+     "fromType": "milestone",
+     "from": "m1",
+     "toType": "initiative",
+     "to": "E1"
+    }
+   ],
+   "stories": [
+    {
+     "id": "S1",
+     "title": "Welcome checklist",
+     "epic": "E1",
+     "increment": "beta",
+     "status": "done",
+     "points": 3,
+     "owner": "Growth",
+     "description": "",
+     "checklist": [
+      {
+       "text": "Design",
+       "done": true
+      },
+      {
+       "text": "Build",
+       "done": true
+      }
+     ]
+    },
+    {
+     "id": "S2",
+     "title": "Sample plan on first visit",
+     "epic": "E1",
+     "increment": "beta",
+     "status": "done",
+     "points": 2,
+     "owner": "Growth",
+     "description": "",
+     "checklist": []
+    },
+    {
+     "id": "S3",
+     "title": "Invite your team",
+     "epic": "E1",
+     "increment": "beta",
+     "status": "building",
+     "points": 5,
+     "owner": "Growth",
+     "description": "",
+     "checklist": [
+      {
+       "text": "Invite form",
+       "done": true
+      },
+      {
+       "text": "Email template",
+       "done": false
+      }
+     ]
+    },
+    {
+     "id": "S4",
+     "title": "Onboarding analytics",
+     "epic": "E1",
+     "increment": "",
+     "status": "planned",
+     "points": 3,
+     "owner": "",
+     "description": "Waiting in the backlog.",
+     "checklist": []
+    },
+    {
+     "id": "S5",
+     "title": "Board view",
+     "epic": "C1",
+     "increment": "beta",
+     "status": "done",
+     "points": 5,
+     "owner": "Collaboration",
+     "description": "",
+     "checklist": []
+    },
+    {
+     "id": "S6",
+     "title": "Drag cards between columns",
+     "epic": "C1",
+     "increment": "beta",
+     "status": "review",
+     "points": 3,
+     "owner": "Collaboration",
+     "description": "",
+     "checklist": [
+      {
+       "text": "Pointer drag",
+       "done": true
+      },
+      {
+       "text": "Keyboard moves",
+       "done": false
+      }
+     ]
+    },
+    {
+     "id": "S7",
+     "title": "Board filters",
+     "epic": "C1",
+     "increment": "ga",
+     "status": "planned",
+     "points": 5,
+     "owner": "",
+     "description": "",
+     "checklist": []
+    },
+    {
+     "id": "S8",
+     "title": "Card colours by workstream",
+     "epic": "C1",
+     "increment": "",
+     "status": "planned",
+     "points": 2,
+     "owner": "",
+     "description": "",
+     "checklist": []
+    }
+   ]
   }
  }
 ];
