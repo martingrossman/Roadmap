@@ -34,6 +34,7 @@ The PDF engine (pdf-lib plus Open Sans) is about 1.1 MB, so it lives in separate
    | Editor file | Paste from | How to create it |
    |---|---|---|
    | `Code.gs` | `dist/Code.gs` | Already exists. Replace its contents. |
+   | `DemoPlan.gs` | `dist/DemoPlan.gs` | **+ → Script**, name it `DemoPlan` |
    | `Index.html` | `dist/Index.html` | **+ → HTML**, name it `Index` |
    | `PdfVendor.html` | `dist/PdfVendor.html` | **+ → HTML**, name it `PdfVendor` |
    | `PdfFonts.html` | `dist/PdfFonts.html` | **+ → HTML**, name it `PdfFonts` |
@@ -73,13 +74,15 @@ Anyone who can open the Sheet can choose **File → Make a copy**. The copy gets
 
 ## Updating the planner
 
-After changing `roadmap.html`, rebuild and paste the files that changed (usually just `Index.html`):
+After changing `roadmap.html` or `apps-script/src`, rebuild the package and commit the changed files in `apps-script/dist` with their sources.
 
 ```powershell
 node apps-script/build.mjs
 ```
 
-Then choose **Deploy → Manage deployments → Edit → Version: New version**. The link stays the same.
+To verify a checkout, run the build and then `git diff --exit-code HEAD -- apps-script/dist`. A clean build produces no diff.
+
+Paste the updated files into the Apps Script editor. To update the web app, choose **Deploy → Manage deployments → Edit → Version: New version**. The link stays the same.
 
 The build makes a few small, exact edits to the planner's script: where it loads and saves, and where it loads the PDF engine. If the planner code changes in those places, the build stops with a message naming the step to update.
 
