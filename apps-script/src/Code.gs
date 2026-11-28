@@ -141,6 +141,8 @@ const ROADMAP_TABS = [
     { field: 'color', type: 'enum', values: 'color' },
     // Story points this increment can take; the planner's Backlog compares planned points with it.
     { field: 'capacity', type: 'number' },
+    // Finished and reviewed; the planner can hide closed increments.
+    { field: 'closed', type: 'bool' },
     // Gantt: the initiative whose row this increment follows. Blank = top of its workstream group.
     { field: 'after', header: 'ganttAfter' },
     { field: 'description', wide: true },
