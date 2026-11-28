@@ -519,10 +519,11 @@ body.streams-collapsed .swimlane-timeline .empty-sticky{left:calc(52px + 12px)}
 .ep-done-offer .icon{width:15px;height:15px}
 .ep-done-offer button{margin-left:auto}
 /* Planning modes. */
-.mode-switch{display:inline-flex;gap:2px;padding:3px;margin:0 auto 0 18px;border:1px solid #E2E8F0;border-radius:10px;background:#F8FAFC}
-.mode-switch button{border:0;background:transparent;padding:6px 14px;border-radius:7px;font:inherit;font-size:13.5px;font-weight:500;color:#475569;cursor:pointer}
+.mode-switch{display:inline-flex;align-self:stretch;gap:4px;margin:0 auto 0 28px}
+.mode-switch button{position:relative;border:0;background:transparent;padding:0 14px;font:inherit;font-size:14px;font-weight:500;color:#64748B;cursor:pointer}
 .mode-switch button:hover{color:#0F172A}
-.mode-switch button[aria-selected=true]{background:#fff;color:#0F172A;font-weight:650;box-shadow:0 1px 3px #0f172a1f}
+.mode-switch button[aria-selected=true]{color:#0F172A;font-weight:650}
+.mode-switch button[aria-selected=true]::after{content:"";position:absolute;left:10px;right:10px;bottom:-1px;height:2px;border-radius:2px;background:#4F46E5}
 .mode-switch button:focus-visible{outline:2px solid #4F46E5;outline-offset:1px}
 #nav .nav-item[hidden]{display:none}
 @media (max-width:760px){.mode-switch{margin:0 0 0 8px}.mode-switch button{padding:5px 9px;font-size:12.5px}}
@@ -1694,7 +1695,6 @@ body.bar-style-solid .canvas-item.canvas-increment{border-radius:6px;box-shadow:
               <button class="view-tab" data-view="table" role="tab" aria-selected="false"><span data-icon="table"></span>Table</button>
             </div>
             <div class="toolbar-controls">
-              <div class="detail-switch" id="detailSwitch" role="group" aria-label="Detail: what the views show" title="Detail: what the views show" hidden><button type="button" data-detail="epics" aria-pressed="true">Epics</button><button type="button" data-detail="both" aria-pressed="false">Epics + stories</button><button type="button" data-detail="stories" aria-pressed="false">Stories</button></div>
               <div class="search-box"><span data-icon="search"></span><input id="searchInput" type="search" placeholder="Search…" aria-label="Search initiatives" autocomplete="off"><kbd>/</kbd></div>
               <div class="filter-wrap">
                 <button class="btn secondary small" id="filtersBtn" type="button" aria-label="Show or hide" aria-expanded="false" aria-controls="filtersPopover"><span data-icon="filter"></span><span>Display</span><span id="filtersCount" class="filters-count" hidden=""></span></button>
