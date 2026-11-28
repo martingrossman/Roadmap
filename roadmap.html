@@ -284,7 +284,6 @@ body.streams-collapsed .swimlane-milestone-label>span,body.streams-collapsed .ca
 /* Date lock. */
 .date-lock .icon{width:15px;height:15px}
 .date-lock.is-locked,.date-lock.is-locked:hover{color:#B45309;background:#FEF3C7;box-shadow:inset 0 0 0 1px #FCD34D}
-body.dates-locked .canvas-item [data-resize],body.dates-locked .resize-handle{display:none!important}
 /* Epics grid. */
 .eg-wrap{display:flex;flex-direction:column;gap:26px;padding-bottom:24px}
 .eg-head{display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:15px;font-weight:650;color:#1E293B}
@@ -3525,7 +3524,7 @@ const STREAMS_COLLAPSED_KEY='roadmap.view.streamsCollapsed';
 // Date lock: bars and milestones keep their dates when dragged (they can still change lane); no resizing or arrow-key nudges.
 const DATES_LOCKED_KEY='roadmap.view.datesLocked';
 let datesLocked=false;try{datesLocked=localStorage.getItem(DATES_LOCKED_KEY)==='true';}catch{}
-function dateLockHTML(){const tip=datesLocked?'Dates are locked: the timeline stays within the plan’s dates and dragging keeps start and end dates. Click to unlock':'Lock dates: keep the timeline within the plan’s dates, and keep start and end dates when dragging';return `<button type="button" class="freeze-lock date-lock${datesLocked?' is-locked':''}" data-dates-lock aria-pressed="${datesLocked}" aria-label="${tip}" title="${tip}">${icon(datesLocked?'lock':'unlock')}</button>`;}
+function dateLockHTML(){const tip=datesLocked?'The timeline is locked to the plan’s dates. Click to unlock':'Lock the timeline to the plan’s dates (no scrolling into empty months)';return `<button type="button" class="freeze-lock date-lock${datesLocked?' is-locked':''}" data-dates-lock aria-pressed="${datesLocked}" aria-label="${tip}" title="${tip}">${icon(datesLocked?'lock':'unlock')}</button>`;}
 let streamsCollapsed=false;try{streamsCollapsed=localStorage.getItem(STREAMS_COLLAPSED_KEY)==='true';}catch{}
 // Time scale of the roadmap and Gantt: how wide a day is. The period (year, quarter, custom) does not change;
 // a wider timeline scrolls sideways. Months is the original scale.
@@ -3921,7 +3920,7 @@ function openExamples(){
 }
 function resetPlan(example,key='advanced'){const chosen=example?examplePlans().find(x=>x.key===key)||examplePlans().find(x=>x.key==='advanced'):null;confirmDialog(example?`Load the “${chosen.title}” example?`:'Start a blank plan?',`This replaces the current plan${example?' with the fictional “'+chosen.plan.name+'” plan':''}. Export a backup first if you want to keep a separate copy. You can undo this change.`,()=>{const next=example?clone(chosen.plan):samplePlan();if(example){const v=chosen.view||{};setIncrementVisibility(v.increments??true,false);setIncrementRowVisibility(v.incrementRow??true,false);setMilestonesVisibility(v.milestones??true,false);setMilestoneRowVisibility(v.milestoneRow??true,false);}else{setIncrementRowVisibility(true,false);setMilestonesVisibility(true,false);setMilestoneRowVisibility(true,false);}if(!example){next.name='My product plan';next.description='A clear path from strategy to delivery.';next.example=false;next.year=state.year;next.reviewDate=today();next.reviewDateMode='today';next.initiatives=[];next.stories=[];next.itemLabel='epic';next.outcomes=[];next.milestones=[];next.increments=[];next.connections=[];}const id=state.plan.id;if(commit(p=>Object.assign(p,next,{id}),example?'Example loaded':'Blank plan created')){state.year=next.year;state.range='rolling';pendingTodayScroll=true;state.collapsed.clear();clearFilters();$('#settingsModal').close();}},example?'Load example':'Start blank plan');}
 function updateStatus(id,status){const task=getTask(id);if(!task||task.status===status||!STATUS[status])return;commit(p=>{const t=p.initiatives.find(x=>x.id===id),old=t.status;t.status=status;if(status==='done')t.progress=100;else if(old==='done')t.progress=0;},`Moved to ${STATUS[status]}`);}
-function startDrag(event){const el=event.target.closest('[data-bar]');if(!el||datesLocked||state.presentation||event.pointerType==='touch'||(event.pointerType==='mouse'&&event.button!==0))return;const task=getTask(el.dataset.bar),track=el.parentElement,r=timelineRange();activeDrag={pointerId:event.pointerId,el,id:task.id,kind:event.target.closest('[data-resize]')?.dataset.resize||'move',x:event.clientX,start:day(task.start),end:day(task.end),newStart:day(task.start),newEnd:day(task.end),width:track.getBoundingClientRect().width,r,moved:false};el.setPointerCapture(event.pointerId);}
+function startDrag(event){const el=event.target.closest('[data-bar]');if(!el||state.presentation||event.pointerType==='touch'||(event.pointerType==='mouse'&&event.button!==0))return;const task=getTask(el.dataset.bar),track=el.parentElement,r=timelineRange();activeDrag={pointerId:event.pointerId,el,id:task.id,kind:event.target.closest('[data-resize]')?.dataset.resize||'move',x:event.clientX,start:day(task.start),end:day(task.end),newStart:day(task.start),newEnd:day(task.end),width:track.getBoundingClientRect().width,r,moved:false};el.setPointerCapture(event.pointerId);}
 function moveDrag(event){const d=activeDrag;if(!d||d.pointerId!==event.pointerId)return;const pixels=event.clientX-d.x;if(Math.abs(pixels)<4&&!d.moved)return;d.moved=true;event.preventDefault();const delta=Math.round(pixels/d.width*(d.r.end-d.r.start));let start=d.start,end=d.end;
  if(d.kind==='move'){const min=Math.max(day('2000-01-01')-d.start,d.r.start-d.end),max=Math.min(day('2099-12-31')-d.end,d.r.end-1-d.start),shift=clamp(delta,min,max);start+=shift;end+=shift;}else if(d.kind==='start')start=clamp(d.start+delta,day('2000-01-01'),Math.min(d.end,d.r.end-1));else end=clamp(d.end+delta,Math.max(d.start,d.r.start),day('2099-12-31'));
  start=clamp(start,day('2000-01-01'),day('2099-12-31'));end=clamp(end,start,day('2099-12-31'));d.newStart=start;d.newEnd=end;const p=barPosition(iso(start),iso(end),d.r);d.el.style.left=p.left+'%';d.el.style.width=p.width+'%';d.el.classList.add('dragging');const tt=$('#dragTooltip');tt.textContent=`${fmtDate(iso(start))} – ${fmtDate(iso(end))} · ${end-start+1} days`;tt.hidden=false;tt.style.left=clamp(event.clientX,110,window.innerWidth-110)+'px';tt.style.top=Math.max(12,event.clientY-54)+'px';drawDependencies();}
@@ -4227,7 +4226,7 @@ function handleClick(event){if(event.target.closest('[data-canvas-show-increment
  handlers[b.id]?.();
 }
 document.addEventListener('click',event=>{
- const dl=event.target.closest('[data-dates-lock]');if(dl){event.stopPropagation();const keep=timelineLeftDay();datesLocked=!datesLocked;try{localStorage.setItem(DATES_LOCKED_KEY,String(datesLocked));}catch{}if(datesLocked)state.range='rolling';render();if(keep!=null&&!scrollToDay(keep)){const sc=document.querySelector('#content .timeline-scroll');if(sc)sc.scrollLeft=keep<timelineRange().start?0:sc.scrollWidth;}updateVisibleLabel();const span=planMonthSpan(),f=m=>new Date(Date.UTC(state.year,m,1)).toLocaleString('en-GB',{month:'short',year:'numeric',timeZone:'UTC'});toast(datesLocked?`Dates locked: the timeline stays within ${span?f(span.month)+' – '+f(span.endMonth-1):'the plan'} and dragging keeps dates. Edit dates in the details.`:'Dates unlocked');return;}
+ const dl=event.target.closest('[data-dates-lock]');if(dl){event.stopPropagation();const keep=timelineLeftDay();datesLocked=!datesLocked;try{localStorage.setItem(DATES_LOCKED_KEY,String(datesLocked));}catch{}if(datesLocked)state.range='rolling';render();if(keep!=null&&!scrollToDay(keep)){const sc=document.querySelector('#content .timeline-scroll');if(sc)sc.scrollLeft=keep<timelineRange().start?0:sc.scrollWidth;}updateVisibleLabel();const span=planMonthSpan(),f=m=>new Date(Date.UTC(state.year,m,1)).toLocaleString('en-GB',{month:'short',year:'numeric',timeZone:'UTC'});toast(datesLocked?`Timeline locked to ${span?f(span.month)+' – '+f(span.endMonth-1):'the plan’s dates'}.`:'Timeline unlocked');return;}
  const opts=event.target.closest('#timeOptionsBtn');if(opts){const open=$('#timeBar').classList.toggle('options-open');opts.setAttribute('aria-expanded',String(open));return;}
  const sc=event.target.closest('[data-streams-collapse]');if(sc){streamsCollapsed=!streamsCollapsed;try{localStorage.setItem(STREAMS_COLLAPSED_KEY,String(streamsCollapsed));}catch{}render();return;}
 });
@@ -4493,7 +4492,7 @@ document.addEventListener('keydown',event=>{
  if(event.key.toLowerCase()==='f'&&!event.ctrlKey&&!event.metaKey&&!event.altKey&&state.section==='roadmap'&&['swimlane','timeline'].includes(state.view)){event.preventDefault();zoomFit();return;}
  if(event.key==='?'){openHelp();return;}
  if(target.matches('[data-board-task]')&&(event.key==='Enter'||event.key===' ')){event.preventDefault();RoadmapCanvas.select('initiative',target.dataset.boardTask);return;}
- if(target.matches('[data-bar]')&&['ArrowLeft','ArrowRight'].includes(event.key)&&!datesLocked){event.preventDefault();const id=target.dataset.bar,task=getTask(id),delta=(event.key==='ArrowRight'?1:-1)*(event.shiftKey?7:1);if(!dateOK(iso(day(task.start)+delta))||!dateOK(iso(day(task.end)+delta)))return;commit(p=>{const t=p.initiatives.find(t=>t.id===id);t.start=iso(day(t.start)+delta);t.end=iso(day(t.end)+delta);},'Initiative rescheduled');$(`[data-bar="${id}"]`)?.focus();}
+ if(target.matches('[data-bar]')&&['ArrowLeft','ArrowRight'].includes(event.key)){event.preventDefault();const id=target.dataset.bar,task=getTask(id),delta=(event.key==='ArrowRight'?1:-1)*(event.shiftKey?7:1);if(!dateOK(iso(day(task.start)+delta))||!dateOK(iso(day(task.end)+delta)))return;commit(p=>{const t=p.initiatives.find(t=>t.id===id);t.start=iso(day(t.start)+delta);t.end=iso(day(t.end)+delta);},'Initiative rescheduled');$(`[data-bar="${id}"]`)?.focus();}
 });
 window.addEventListener('resize',()=>{requestAnimationFrame(drawDependencies);if(window.innerWidth>780)closeMobile();});
 window.addEventListener('beforeunload',event=>{if(detail?.dirty||!storageOK){event.preventDefault();event.returnValue='';}});
@@ -5610,7 +5609,7 @@ const RoadmapCanvas=(()=>{
    const point=target.type==='milestone',kind=point?'move':event.target.closest('[data-resize]')?.dataset.resize||'move';
    const start=day(point?item.date:item.start),end=day(point?item.date:item.end),scroll=track.closest('.timeline-scroll');
    select(target.type,target.id,true);guardGesture();
-   gesture={kind,type:target.type,id:target.id,el:target.element,track,canvas:track.closest('.timeline'),pointerId:event.pointerId,x:event.clientX,y:event.clientY,grabY:event.clientY-target.element.getBoundingClientRect().top,windowScrollY:window.scrollY,width:track.getBoundingClientRect().width,r:timelineRange(),start,end,newStart:start,newEnd:end,stream:item.stream,newStream:item.stream,increment:item.increment||'',newIncrement:item.increment||'',dateLocked:datesLocked,moved:false,style:target.element.style.cssText,scroll,scrollLeft:scroll?.scrollLeft||0};
+   gesture={kind,type:target.type,id:target.id,el:target.element,track,canvas:track.closest('.timeline'),pointerId:event.pointerId,x:event.clientX,y:event.clientY,grabY:event.clientY-target.element.getBoundingClientRect().top,windowScrollY:window.scrollY,width:track.getBoundingClientRect().width,r:timelineRange(),start,end,newStart:start,newEnd:end,stream:item.stream,newStream:item.stream,increment:item.increment||'',newIncrement:item.increment||'',moved:false,style:target.element.style.cssText,scroll,scrollLeft:scroll?.scrollLeft||0};
    // No selection outline on a milestone while it is pressed or dragged; it shows again on release.
    quietSelection='';
    if(target.type==='milestone')target.element.classList.add('canvas-pressing');
@@ -5767,7 +5766,7 @@ const RoadmapCanvas=(()=>{
   const dx=event.clientX-d.x,dy=event.clientY-d.y+window.scrollY-(d.windowScrollY||0);
   d.verticalOnly=['initiative','milestone'].includes(d.type)&&d.kind==='move'&&Math.abs(dy)>10&&Math.abs(dx)<Math.max(12,Math.abs(dy)*.35);
   if(d.scroll&&!d.verticalOnly&&!finishing){const b=d.scroll.getBoundingClientRect();if(event.clientX>b.right-30)d.scroll.scrollLeft+=12;else if(event.clientX<b.left+30)d.scroll.scrollLeft-=12;}
-  const pixels=dx+((d.scroll?.scrollLeft||0)-d.scrollLeft),delta=d.verticalOnly||d.dateLocked?(d.dateLocked&&!d.lockNotified&&Math.abs(dx)>16&&(d.lockNotified=true,toast('Dates are locked. Unlock them with the lock on the date row.')),0):Math.round(pixels/Math.max(d.width,1)*(d.r.end-d.r.start));
+  const pixels=dx+((d.scroll?.scrollLeft||0)-d.scrollLeft),delta=d.verticalOnly?0:Math.round(pixels/Math.max(d.width,1)*(d.r.end-d.r.start));
   let start=d.start,end=d.end;
   if(d.kind==='move'){const shift=clamp(delta,Math.max(day('2000-01-01')-d.start,d.r.start-d.end),Math.min(day('2099-12-31')-d.end,d.r.end-1-d.start));start+=shift;end+=shift;}
   else if(d.kind==='start')start=clamp(d.start+delta,day('2000-01-01'),Math.min(d.end,d.r.end-1));
@@ -5960,7 +5959,7 @@ const RoadmapCanvas=(()=>{
   if(target&&(!selection||target.type!==selection.type||target.id!==selection.id))select(target.type,target.id,true);
   if(selection&&event.key==='F2'){event.preventDefault();rename(selection.type,selection.id);return true;}
   if(selection&&['Delete','Backspace'].includes(event.key)){event.preventDefault();removeSelected();return true;}
-  if(selection&&['ArrowLeft','ArrowRight'].includes(event.key)&&target&&!datesLocked){
+  if(selection&&['ArrowLeft','ArrowRight'].includes(event.key)&&target){
    hideInspector();
    event.preventDefault();const {type,id}=selection,item=selected(),delta=(event.key==='ArrowRight'?1:-1)*(event.shiftKey?7:1),a=iso(day(type==='milestone'?item.date:item.start)+delta),b=type==='milestone'?a:iso(day(item.end)+delta);
    if(dateOK(a)&&dateOK(b)){commit(p=>{const x=find(type,id,p);if(type==='milestone')x.date=a;else{x.start=a;x.end=b;}},`${names[type]} rescheduled`);itemElement(type,id)?.focus({preventScroll:true});}return true;
