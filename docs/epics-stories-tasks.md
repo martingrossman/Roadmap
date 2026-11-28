@@ -15,7 +15,7 @@ Branch `worktree-epics-stories-tasks`. Decided in discussion on 2026-11-27.
 
 Hierarchy: **Workstream → Epic → Story (checklist inside)**.
 
-- **Epic** is today's bar item. Its data key stays `initiatives`, so there is no migration. What the level is called is a plan setting, **`itemLabel`**: `initiative` (the default for existing plans), `epic` (the default for new plans) or `feature`. Labels in the UI read it from one helper.
+- **Epic** is today's bar item. Its data key stays `initiatives`, so there is no migration. What the level is called is a plan setting, **`itemLabel`**: `epic` (the default, also for plans that never set it), `initiative` or `feature`. Labels in the UI read it from one helper.
 - **Story** is a new record: `{id, title, epic, increment, status, points, owner, description, checklist, order}`.
   - `epic` is required.
   - `increment` blank means the story is in the backlog; otherwise the story is planned into that increment, which can be a sprint or a PI.
