@@ -3305,9 +3305,9 @@ function editStory(id,change,label){commit(p=>{const s=p.stories.find(x=>x.id===
 // Plan-wide Increments and Milestones rows: hide one with a click on its icon; bring it back from the strip.
 function rowToggleHTML(row){return icon(row==='increments'?'layers':'flag');const name=row==='increments'?'Increments':'Milestones';return `<button type="button" class="row-toggle" data-row-toggle="${row}" title="Hide the ${name} row" aria-label="Hide the ${name} row">${icon(row==='increments'?'layers':'flag')}</button>`;}
 function hiddenRowsStrip(){
- const rows=[state.showIncrements?['increments','layers','Increments',state.showIncrementRow]:null,state.showMilestones?['milestones','flag','Milestones',state.showMilestoneRow]:null].filter(Boolean);
+ const rows=[state.showIncrements?['increments','layers','Increments row',state.showIncrementRow]:null,state.showMilestones?['milestones','flag','Milestones row',state.showMilestoneRow]:null].filter(Boolean);
  if(!rows.length)return '';
- return `<div class="row-hidden-strip"><div class="row-hidden-inner">${rows.map(([k,ic,l,on])=>`<button type="button" class="row-show${on?' is-shown':''}" data-row-toggle="${k}" aria-pressed="${on}" title="${on?'Hide':'Show'} the ${l} row">${icon(ic)}${l}<span>${on?'hide':'show'}</span></button>`).join('')}</div></div>`;
+ return `<div class="row-hidden-strip"><div class="row-hidden-inner">${rows.map(([k,ic,l,on])=>`<button type="button" class="row-show${on?' is-shown':''}" data-row-toggle="${k}" aria-pressed="${on}" title="${on?'Hide':'Show'} the ${l}">${icon(ic)}${l}<span>${on?'hide':'show'}</span></button>`).join('')}</div></div>`;
 }
 function workCounts(t){const ss=storiesOf(t.id),list=t.checklist||[];return {stories:ss.length,storiesDone:ss.filter(s=>s.status==='done').length,items:list.length,itemsDone:checklistDone(list)};}
 function workTitle(w){return [w.stories?`${w.storiesDone} of ${w.stories} stories done`:'',w.items?`Checklist: ${w.itemsDone} of ${w.items} done`:''].filter(Boolean).join(' · ');}
@@ -4609,7 +4609,7 @@ function swimlaneMilestones(r,lane=''){
  const markers=layout.placed.map(p=>canvasMilestoneMarker(p.milestone,r,0,true,null,p)).join('');
  if(lane)return ms.length?`<div class="swimlane-lane-milestones swimlane-milestone-track" data-canvas-track="milestone" data-lane-id="${esc(lane)}">${gridHTML(r)}${markers}</div>`:'';
  const height=ms.length?54:42;
- return `<div class="swimlane-milestone-band" style="min-height:${height}px"><div class="swimlane-milestone-label"><span>${rowToggleHTML('milestones')}Milestones</span><button class="icon-btn swimlane-milestone-add" data-action="new-milestone" aria-label="Add milestone">${icon('plus')}</button></div><div class="swimlane-milestone-track" data-canvas-track="milestone">${gridHTML(r)}${markers||'<span class="empty-sticky"><button class="canvas-empty-prompt" data-action="new-milestone">'+icon('plus')+'Add milestone</button></span>'}</div></div>`;
+ return `<div class="swimlane-milestone-band" style="min-height:${height}px"><div class="swimlane-milestone-label"><span>${rowToggleHTML('milestones')}Milestones</span><button class="icon-btn swimlane-milestone-add" data-action="new-milestone" aria-label="Add milestone">${icon('plus')}</button></div><div class="swimlane-milestone-track" data-canvas-track="milestone">${gridHTML(r)}${markers||''}</div></div>`;
 }
 function swimlaneBar(t,r,c){return canvasInitiativeBar(t,r,c,true);}
 function renderSwimlanes(){
@@ -4774,7 +4774,7 @@ function canvasIncrementBand(r,swimlane=false,lane='',onlyId=''){
   }).join('');
  }else{
   if(lane)return '';
-  tracks=`<div class="canvas-increment-track" data-canvas-track="increment" data-increment-track="0">${gridHTML(r)}<span class="empty-sticky"><button class="canvas-empty-prompt" data-action="new-increment">${icon('plus')}Add increment</button></span></div>`;
+  tracks=`<div class="canvas-increment-track" data-canvas-track="increment" data-increment-track="0">${gridHTML(r)}</div>`;
  }
  if(lane)return `<div class="swimlane-lane-increments canvas-increment-lanes" data-lane-id="${esc(lane)}">${tracks}</div>`;
  return `<div class="canvas-increment-band ${swimlane?'is-swimlane':''}">${label}<div class="canvas-increment-lanes">${tracks}</div></div>`;
@@ -4787,7 +4787,7 @@ function renderTimeline(){
  const milestones=canvasOutcomeContext().milestones.filter(m=>inLane(m,'')&&!milestoneOnIncrement(m)&&day(m.date)>=r.start&&day(m.date)<r.end),layout=canvasFlatMilestoneLayout(milestones,r);
  const markers=layout.placed.map(p=>canvasMilestoneMarker(p.milestone,r,0,false,null,p)).join('');
  const markerHeight=milestones.length?54:42;
- let rows=`<div class="timeline-header"><div class="lane-heading">${itemLabel(true).toUpperCase()} <span>${n}</span><span class="freeze-locks"><button type="button" class="freeze-lock" data-freeze-toggle aria-pressed="false" aria-label="Keep dates and tools visible while scrolling" title="Keep dates and tools visible while scrolling">${icon('pin')}</button>${dateLockHTML()}</span></div><div class="time-axis">${axis}</div></div>${hiddenRowsStrip()}${(state.showIncrementRow?canvasIncrementBand(r,false,''):'')}${state.showMilestoneRow&&state.showMilestones?`<div class="milestone-row" style="height:${markerHeight}px"><div class="lane-label">${rowToggleHTML('milestones')}<span>Milestones</span><button class="icon-btn" data-action="new-milestone" aria-label="Add milestone">${icon('plus')}</button></div><div class="milestone-track" data-canvas-track="milestone" style="height:${markerHeight}px">${gridHTML(r)}${markers||'<span class="empty-sticky"><button class="canvas-empty-prompt" data-action="new-milestone">'+icon('plus')+'Add milestone</button></span>'}</div></div>`:''}`;
+ let rows=`<div class="timeline-header"><div class="lane-heading">${itemLabel(true).toUpperCase()} <span>${n}</span><span class="freeze-locks"><button type="button" class="freeze-lock" data-freeze-toggle aria-pressed="false" aria-label="Keep dates and tools visible while scrolling" title="Keep dates and tools visible while scrolling">${icon('pin')}</button>${dateLockHTML()}</span></div><div class="time-axis">${axis}</div></div>${hiddenRowsStrip()}${(state.showIncrementRow?canvasIncrementBand(r,false,''):'')}${state.showMilestoneRow&&state.showMilestones?`<div class="milestone-row" style="height:${markerHeight}px"><div class="lane-label">${rowToggleHTML('milestones')}<span>Milestones</span><button class="icon-btn" data-action="new-milestone" aria-label="Add milestone">${icon('plus')}</button></div><div class="milestone-track" data-canvas-track="milestone" style="height:${markerHeight}px">${gridHTML(r)}${markers||''}</div></div>`:''}`;
  for(const s of state.plan.workstreams.filter(s=>state.stream==='all'||state.stream===s.id)){
   // The saved initiative order owns each row; date edits must not move rows.
   const st=tasks.filter(t=>t.stream===s.id);if(!st.length&&(state.query||state.status!=='all'||state.outcome))continue;const collapsed=state.collapsed.has(s.id),c=RoadmapColors.streamPalette(s);
