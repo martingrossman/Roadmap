@@ -283,7 +283,7 @@ body.streams-collapsed .swimlane-milestone-label>span,body.streams-collapsed .ca
 .bar-work[data-epic-toggle]:hover,.bar-work.is-open{background:color-mix(in srgb,currentColor 24%,transparent)}
 /* Date lock. */
 .date-lock .icon{width:15px;height:15px}
-.date-lock.is-locked{color:#B45309;background:#FEF3C7}
+.date-lock.is-locked,.date-lock.is-locked:hover{color:#B45309;background:#FEF3C7;box-shadow:inset 0 0 0 1px #FCD34D}
 body.dates-locked .canvas-item [data-resize],body.dates-locked .resize-handle{display:none!important}
 /* Epics grid. */
 .eg-wrap{display:flex;flex-direction:column;gap:26px;padding-bottom:24px}
@@ -3307,7 +3307,7 @@ const STREAMS_COLLAPSED_KEY='roadmap.view.streamsCollapsed';
 // Date lock: bars and milestones keep their dates when dragged (they can still change lane); no resizing or arrow-key nudges.
 const DATES_LOCKED_KEY='roadmap.view.datesLocked';
 let datesLocked=false;try{datesLocked=localStorage.getItem(DATES_LOCKED_KEY)==='true';}catch{}
-function dateLockHTML(){const tip=datesLocked?'Dates are locked: dragging keeps start and end dates. Click to unlock':'Lock dates: dragging keeps start and end dates';return `<button type="button" class="freeze-lock date-lock${datesLocked?' is-locked':''}" data-dates-lock aria-pressed="${datesLocked}" aria-label="${tip}" title="${tip}">${icon(datesLocked?'lock':'unlock')}</button>`;}
+function dateLockHTML(){const tip=datesLocked?'Dates are locked: the timeline stays within the plan’s dates and dragging keeps start and end dates. Click to unlock':'Lock dates: keep the timeline within the plan’s dates, and keep start and end dates when dragging';return `<button type="button" class="freeze-lock date-lock${datesLocked?' is-locked':''}" data-dates-lock aria-pressed="${datesLocked}" aria-label="${tip}" title="${tip}">${icon(datesLocked?'lock':'unlock')}</button>`;}
 let streamsCollapsed=false;try{streamsCollapsed=localStorage.getItem(STREAMS_COLLAPSED_KEY)==='true';}catch{}
 // Time scale of the roadmap and Gantt: how wide a day is. The period (year, quarter, custom) does not change;
 // a wider timeline scrolls sideways. Months is the original scale.
@@ -3509,8 +3509,11 @@ const TIMELINE_DEFAULT_COLOR='#334155';
 function applyTimelineColor(){const c=state.plan.timelineColor||TIMELINE_DEFAULT_COLOR,h=c.replace('#',''),[r,g,b]=[0,2,4].map(i=>parseInt(h.slice(i,i+2),16)/255).map(v=>v<=.03928?v/12.92:((v+.055)/1.055)**2.4),lum=.2126*r+.7152*g+.0722*b,root=document.documentElement.style;root.setProperty('--roadmap-quarter-color',c);root.setProperty('--roadmap-quarter-text',lum>.4?'#172A32':'#FFFFFF');}
 // Month index of a yyyy-mm-dd date, counted from January of state.year (may be negative).
 function monthIndex(date){return (Number(date.slice(0,4))-state.year)*12+Number(date.slice(5,7))-1;}
+// The months the plan's items cover: the first item's start month to the last item's end month.
+function planMonthSpan(){let a=Infinity,b=-Infinity;for(const [s,e] of [...state.plan.initiatives.map(x=>[x.start,x.end]),...state.plan.increments.map(x=>[x.start,x.end]),...state.plan.milestones.map(x=>[x.date,x.date])]){a=Math.min(a,monthIndex(s));b=Math.max(b,monthIndex(e)+1);}return Number.isFinite(a)?{month:a,endMonth:Math.max(b,a+1)}:null;}
 function timelineRange(){
  if(state.range==='rolling'){
+  const lockedSpan=datesLocked&&planMonthSpan();if(lockedSpan)return{start:Date.UTC(state.year,lockedSpan.month,1)/DAY,end:Date.UTC(state.year,lockedSpan.endMonth,1)/DAY,month:lockedSpan.month,endMonth:lockedSpan.endMonth};
   const ref=monthIndex(state.plan.reviewDate);let month=ref-24,endMonth=ref+48;
   for(const [a,b] of [...state.plan.initiatives.map(x=>[x.start,x.end]),...state.plan.increments.map(x=>[x.start,x.end]),...state.plan.milestones.map(x=>[x.date,x.date])]){month=Math.min(month,monthIndex(a)-1);endMonth=Math.max(endMonth,monthIndex(b)+2);}
   month=Math.max(month,ref-120);endMonth=Math.min(endMonth,ref+120);
@@ -4006,7 +4009,7 @@ function handleClick(event){if(event.target.closest('[data-canvas-show-increment
  handlers[b.id]?.();
 }
 document.addEventListener('click',event=>{
- const dl=event.target.closest('[data-dates-lock]');if(dl){event.stopPropagation();datesLocked=!datesLocked;try{localStorage.setItem(DATES_LOCKED_KEY,String(datesLocked));}catch{}render();toast(datesLocked?'Dates locked: dragging keeps start and end dates. Edit dates in the details.':'Dates unlocked');return;}
+ const dl=event.target.closest('[data-dates-lock]');if(dl){event.stopPropagation();const keep=timelineLeftDay();datesLocked=!datesLocked;try{localStorage.setItem(DATES_LOCKED_KEY,String(datesLocked));}catch{}if(datesLocked)state.range='rolling';render();if(keep!=null&&!scrollToDay(keep)){const sc=document.querySelector('#content .timeline-scroll');if(sc)sc.scrollLeft=keep<timelineRange().start?0:sc.scrollWidth;}updateVisibleLabel();const span=planMonthSpan(),f=m=>new Date(Date.UTC(state.year,m,1)).toLocaleString('en-GB',{month:'short',year:'numeric',timeZone:'UTC'});toast(datesLocked?`Dates locked: the timeline stays within ${span?f(span.month)+' – '+f(span.endMonth-1):'the plan'} and dragging keeps dates. Edit dates in the details.`:'Dates unlocked');return;}
  const opts=event.target.closest('#timeOptionsBtn');if(opts){const open=$('#timeBar').classList.toggle('options-open');opts.setAttribute('aria-expanded',String(open));return;}
  const sc=event.target.closest('[data-streams-collapse]');if(sc){streamsCollapsed=!streamsCollapsed;try{localStorage.setItem(STREAMS_COLLAPSED_KEY,String(streamsCollapsed));}catch{}render();return;}
 });
