@@ -489,6 +489,20 @@ body.hide-prop-check :is(.bl-check,.ep-check,.story-check,.gantt-story-check,.wo
 body.hide-prop-epic :is(.bl-epic,.story-epic),
 body.hide-prop-desc .board-card .card-description,
 body.hide-prop-dates .board-card .card-dates{display:none!important}
+/* Hide or show the plan-wide rows with one click. */
+.row-toggle{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;margin:0 4px 0 -4px;padding:0;border:0;border-radius:6px;background:transparent;color:inherit;cursor:pointer;flex:none}
+.row-toggle:hover{background:#E2E8F0;color:#0F172A}
+.row-toggle .icon{width:16px;height:16px}
+.row-toggle:hover .icon{opacity:.35}
+.row-toggle:hover::after{content:'×';position:absolute;font-size:15px;font-weight:700;line-height:1;color:#0F172A}
+.row-toggle{position:relative}
+.row-hidden-strip{display:flex;min-height:28px;border-bottom:1px solid #EEF2F6;background:#FAFBFC}
+.row-hidden-inner{position:sticky;left:0;display:flex;align-items:center;gap:6px;padding:3px 10px}
+.row-show{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border:1px dashed #CBD5E1;border-radius:999px;background:#fff;font:inherit;font-size:12px;color:#475569;cursor:pointer;white-space:nowrap}
+.row-show:hover{border-style:solid;border-color:#94A3B8;color:#0F172A}
+.row-show .icon{width:13px;height:13px}
+.row-show span{color:#94A3B8}
+.row-show:hover span{color:#4F46E5}
 /* Custom item icons. */
 .item-icon{display:inline-block;flex:none;width:16px;height:16px;object-fit:contain;vertical-align:-3px;margin-right:5px;border-radius:3px;pointer-events:none;user-select:none}
 .bar-content>.item-icon{margin-right:0}
@@ -3282,6 +3296,13 @@ function addEpicStories(epicId,text,increment=''){
  commit(p=>{for(const x of items)p.stories.push({id:uid(),title:x.title,epic:epicId,increment:increment||'',status:'planned',points:x.points,owner:'',description:'',checklist:[]});},items.length>1?`${items.length} stories added`:'Story added');
 }
 function editStory(id,change,label){commit(p=>{const s=p.stories.find(x=>x.id===id);if(!s)throw Error('This story is no longer in the plan.');change(s);},label);}
+// Plan-wide Increments and Milestones rows: hide one with a click on its icon; bring it back from the strip.
+function rowToggleHTML(row){const name=row==='increments'?'Increments':'Milestones';return `<button type="button" class="row-toggle" data-row-toggle="${row}" title="Hide the ${name} row" aria-label="Hide the ${name} row">${icon(row==='increments'?'layers':'flag')}</button>`;}
+function hiddenRowsStrip(){
+ const rows=[state.showIncrements&&!state.showIncrementRow?['increments','layers','Increments']:null,state.showMilestones&&!state.showMilestoneRow?['milestones','flag','Milestones']:null].filter(Boolean);
+ if(!rows.length)return '';
+ return `<div class="row-hidden-strip"><div class="row-hidden-inner">${rows.map(([k,ic,l])=>`<button type="button" class="row-show" data-row-toggle="${k}" title="Show the ${l} row">${icon(ic)}${l}<span>show</span></button>`).join('')}</div></div>`;
+}
 function workCounts(t){const ss=storiesOf(t.id),list=t.checklist||[];return {stories:ss.length,storiesDone:ss.filter(s=>s.status==='done').length,items:list.length,itemsDone:checklistDone(list)};}
 function workTitle(w){return [w.stories?`${w.storiesDone} of ${w.stories} stories done`:'',w.items?`Checklist: ${w.itemsDone} of ${w.items} done`:''].filter(Boolean).join(' · ');}
 // One compact badge: stories when the epic has any, otherwise its checklist.
@@ -4206,6 +4227,8 @@ document.addEventListener('click',event=>{
 });
 document.addEventListener('click',event=>{const path=event.composedPath();if(!event.target.closest('.export-wrap'))hideExport();if(!event.target.closest('.filter-wrap')&&!path.some(n=>n.classList?.contains('filter-wrap')))hideFilters();handleClick(event);});
 $('#detailForm').addEventListener('submit',saveDetail);$('#settingsForm').addEventListener('submit',saveSettings);
+document.addEventListener('click',event=>{const b=event.target.closest?.('[data-row-toggle]');if(!b)return;event.preventDefault();event.stopPropagation();RoadmapCanvas.cancel?.();if(b.dataset.rowToggle==='increments')setIncrementRowVisibility(!state.showIncrementRow);else setMilestoneRowVisibility(!state.showMilestoneRow);},true);
+document.addEventListener('pointerdown',event=>{if(event.target.closest?.('[data-row-toggle]'))event.stopPropagation();},true);
 // Display menu.
 document.addEventListener('click',event=>{
  const ly=event.target.closest?.('[data-disp-layout]');if(ly){backlogLayout=ly.dataset.dispLayout;try{localStorage.setItem(BL_LAYOUT_KEY,backlogLayout);}catch{}render();return;}
@@ -4580,13 +4603,13 @@ function swimlaneMilestones(r,lane=''){
  const markers=layout.placed.map(p=>canvasMilestoneMarker(p.milestone,r,0,true,null,p)).join('');
  if(lane)return ms.length?`<div class="swimlane-lane-milestones swimlane-milestone-track" data-canvas-track="milestone" data-lane-id="${esc(lane)}">${gridHTML(r)}${markers}</div>`:'';
  const height=ms.length?54:42;
- return `<div class="swimlane-milestone-band" style="min-height:${height}px"><div class="swimlane-milestone-label"><span>${icon('flag')}Milestones</span><button class="icon-btn swimlane-milestone-add" data-action="new-milestone" aria-label="Add milestone">${icon('plus')}</button></div><div class="swimlane-milestone-track" data-canvas-track="milestone">${gridHTML(r)}${markers||'<button class="canvas-empty-prompt" data-action="new-milestone">'+icon('plus')+'Add milestone</button>'}</div></div>`;
+ return `<div class="swimlane-milestone-band" style="min-height:${height}px"><div class="swimlane-milestone-label"><span>${rowToggleHTML('milestones')}Milestones</span><button class="icon-btn swimlane-milestone-add" data-action="new-milestone" aria-label="Add milestone">${icon('plus')}</button></div><div class="swimlane-milestone-track" data-canvas-track="milestone">${gridHTML(r)}${markers||'<button class="canvas-empty-prompt" data-action="new-milestone">'+icon('plus')+'Add milestone</button>'}</div></div>`;
 }
 function swimlaneBar(t,r,c){return canvasInitiativeBar(t,r,c,true);}
 function renderSwimlanes(){
  const r=timelineRange(),all=filteredTasks(),tasks=all.filter(t=>day(t.end)>=r.start&&day(t.start)<r.end);
  const streams=state.plan.workstreams.filter(s=>(state.stream==='all'||state.stream===s.id)&&(!(state.query||state.status!=='all'||state.outcome)||tasks.some(t=>t.stream===s.id)));
- let html=`<div class="swimlane-axis-row"><div class="swimlane-axis-label" title="Workstreams">STREAMS <span>${streams.length}</span><button type="button" class="streams-collapse" data-streams-collapse aria-pressed="${streamsCollapsed}" aria-label="${streamsCollapsed?'Show workstream names':'Collapse the workstream column'}" title="${streamsCollapsed?'Show workstream names':'Collapse the workstream column'}">${icon(streamsCollapsed?'right':'left')}</button><span class="freeze-locks"><button type="button" class="freeze-lock" data-freeze-toggle aria-pressed="false" aria-label="Keep dates and tools visible while scrolling" title="Keep dates and tools visible while scrolling">${icon('pin')}</button>${dateLockHTML()}</span></div><div class="swimlane-axis">${swimlaneAxis(r)}</div></div>${(state.showIncrementRow?canvasIncrementBand(r,true,''):'')}${state.showMilestoneRow&&state.showMilestones?swimlaneMilestones(r,''):''}`;
+ let html=`<div class="swimlane-axis-row"><div class="swimlane-axis-label" title="Workstreams">STREAMS <span>${streams.length}</span><button type="button" class="streams-collapse" data-streams-collapse aria-pressed="${streamsCollapsed}" aria-label="${streamsCollapsed?'Show workstream names':'Collapse the workstream column'}" title="${streamsCollapsed?'Show workstream names':'Collapse the workstream column'}">${icon(streamsCollapsed?'right':'left')}</button><span class="freeze-locks"><button type="button" class="freeze-lock" data-freeze-toggle aria-pressed="false" aria-label="Keep dates and tools visible while scrolling" title="Keep dates and tools visible while scrolling">${icon('pin')}</button>${dateLockHTML()}</span></div><div class="swimlane-axis">${swimlaneAxis(r)}</div></div>${hiddenRowsStrip()}${(state.showIncrementRow?canvasIncrementBand(r,true,''):'')}${state.showMilestoneRow&&state.showMilestones?swimlaneMilestones(r,''):''}`;
  for(const s of streams){
   const items=tasks.filter(t=>t.stream===s.id),rows=packSwimlaneTasks(items,r),collapsed=false,c=swimlaneColor(s);
   const laneRows=canvasIncrementBand(r,true,s.id)+swimlaneMilestones(r,s.id),laneCount=laneItemCount(s.id);
@@ -4716,7 +4739,7 @@ function canvasIncrementBand(r,swimlane=false,lane='',onlyId=''){
  if(!state.showIncrements)return '';
  const context=canvasOutcomeContext(),visibleMilestone=m=>day(m.date)>=r.start&&day(m.date)<r.end&&milestoneOnIncrement(m);
  const increments=context.increments.filter(x=>inLane(x,lane)&&(!onlyId||x.id===onlyId)&&(day(x.end)>=r.start&&day(x.start)<r.end||context.milestones.some(m=>m.increment===x.id&&visibleMilestone(m)))).slice().sort((a,b)=>a.start.localeCompare(b.start)||a.id.localeCompare(b.id));
- const label=`<div class="canvas-increment-label"><span>${icon('layers')}Increments</span><button class="icon-btn" data-action="new-increment" aria-label="Add increment">${icon('plus')}</button></div>`;
+ const label=`<div class="canvas-increment-label"><span>${rowToggleHTML('increments')}Increments</span><button class="icon-btn" data-action="new-increment" aria-label="Add increment">${icon('plus')}</button></div>`;
  let tracks;
  if(increments.length){
   // Pack increments like initiatives: ones that don't overlap (bar plus its
@@ -4758,7 +4781,7 @@ function renderTimeline(){
  const milestones=canvasOutcomeContext().milestones.filter(m=>inLane(m,'')&&!milestoneOnIncrement(m)&&day(m.date)>=r.start&&day(m.date)<r.end),layout=canvasFlatMilestoneLayout(milestones,r);
  const markers=layout.placed.map(p=>canvasMilestoneMarker(p.milestone,r,0,false,null,p)).join('');
  const markerHeight=milestones.length?54:42;
- let rows=`<div class="timeline-header"><div class="lane-heading">${itemLabel(true).toUpperCase()} <span>${n}</span><span class="freeze-locks"><button type="button" class="freeze-lock" data-freeze-toggle aria-pressed="false" aria-label="Keep dates and tools visible while scrolling" title="Keep dates and tools visible while scrolling">${icon('pin')}</button>${dateLockHTML()}</span></div><div class="time-axis">${axis}</div></div>${(state.showIncrementRow?canvasIncrementBand(r,false,''):'')}${state.showMilestoneRow&&state.showMilestones?`<div class="milestone-row" style="height:${markerHeight}px"><div class="lane-label">${icon('flag')}<span>Milestones</span><button class="icon-btn" data-action="new-milestone" aria-label="Add milestone">${icon('plus')}</button></div><div class="milestone-track" data-canvas-track="milestone" style="height:${markerHeight}px">${gridHTML(r)}${markers||'<button class="canvas-empty-prompt" data-action="new-milestone">'+icon('plus')+'Add milestone</button>'}</div></div>`:''}`;
+ let rows=`<div class="timeline-header"><div class="lane-heading">${itemLabel(true).toUpperCase()} <span>${n}</span><span class="freeze-locks"><button type="button" class="freeze-lock" data-freeze-toggle aria-pressed="false" aria-label="Keep dates and tools visible while scrolling" title="Keep dates and tools visible while scrolling">${icon('pin')}</button>${dateLockHTML()}</span></div><div class="time-axis">${axis}</div></div>${hiddenRowsStrip()}${(state.showIncrementRow?canvasIncrementBand(r,false,''):'')}${state.showMilestoneRow&&state.showMilestones?`<div class="milestone-row" style="height:${markerHeight}px"><div class="lane-label">${rowToggleHTML('milestones')}<span>Milestones</span><button class="icon-btn" data-action="new-milestone" aria-label="Add milestone">${icon('plus')}</button></div><div class="milestone-track" data-canvas-track="milestone" style="height:${markerHeight}px">${gridHTML(r)}${markers||'<button class="canvas-empty-prompt" data-action="new-milestone">'+icon('plus')+'Add milestone</button>'}</div></div>`:''}`;
  for(const s of state.plan.workstreams.filter(s=>state.stream==='all'||state.stream===s.id)){
   // The saved initiative order owns each row; date edits must not move rows.
   const st=tasks.filter(t=>t.stream===s.id);if(!st.length&&(state.query||state.status!=='all'||state.outcome))continue;const collapsed=state.collapsed.has(s.id),c=RoadmapColors.streamPalette(s);
