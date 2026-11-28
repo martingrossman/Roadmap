@@ -470,6 +470,25 @@ button.bl-group-name:hover{color:#4F46E5;text-decoration:underline}
 .bl-add select{flex:none;max-width:190px;height:34px;padding:0 24px 0 10px;border:1px solid #E2E8F0;border-radius:8px;background-color:#fff;font:inherit;font-size:12.5px}
 .bl-add input{flex:1;min-width:0;height:34px;padding:0 12px;border:1.5px solid #818CF8;border-radius:8px;font:inherit;font-size:13px;outline:0;box-shadow:0 0 0 3px #EEF2FF}
 @media (max-width:640px){.bl-head{flex-wrap:wrap}.bl-load{min-width:0}.bl-row{padding-left:24px}.bl-group{padding-left:20px}.bl-add,.bl-add-btn{padding-left:24px}.bl-epic{display:none}}
+/* Display menu. */
+.display-menu{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #EEF2F6}
+.display-menu .filters-popover-header{margin:0}
+.dm-row{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12.5px;color:#475569}
+.dm-row select{height:30px;max-width:150px;padding:0 24px 0 8px;border:1px solid #E2E8F0;border-radius:8px;background-color:#fff;font:inherit;font-size:12.5px;color:#0F172A}
+.dm-seg button{padding:4px 9px;font-size:12px}
+.dm-dir{width:30px;height:30px;margin-left:4px;border:1px solid #E2E8F0;border-radius:8px;background:#fff;cursor:pointer}
+.dm-row-props{flex-direction:column;align-items:flex-start}
+.dm-props{display:flex;flex-wrap:wrap;gap:5px}
+.dm-prop{display:inline-flex;align-items:center;padding:3px 9px;border:1px solid #E2E8F0;border-radius:999px;font-size:12px;color:#64748B;cursor:pointer;user-select:none}
+.dm-prop input{position:absolute;opacity:0;pointer-events:none}
+.dm-prop.is-on{background:#0F172A;border-color:#0F172A;color:#fff}
+.dm-prop:focus-within{outline:2px solid #4F46E5;outline-offset:1px}
+body.hide-prop-points :is(.bl-pts,.ep-pts,.story-points,.gantt-story-points,.card-story-points),
+body.hide-prop-owner :is(.bl-owner,.ep-owner,.story-owner,.board-card .avatar),
+body.hide-prop-check :is(.bl-check,.ep-check,.story-check,.gantt-story-check,.work-chip.is-check),
+body.hide-prop-epic :is(.bl-epic,.story-epic),
+body.hide-prop-desc .board-card .card-description,
+body.hide-prop-dates .board-card .card-dates{display:none!important}
 /* Custom item icons. */
 .item-icon{display:inline-block;flex:none;width:16px;height:16px;object-fit:contain;vertical-align:-3px;margin-right:5px;border-radius:3px;pointer-events:none;user-select:none}
 .bar-content>.item-icon{margin-right:0}
@@ -1639,8 +1658,9 @@ body.bar-style-solid .canvas-item.canvas-increment{border-radius:6px;box-shadow:
               <div class="detail-switch" id="detailSwitch" role="group" aria-label="Detail: what the views show" title="Detail: what the views show" hidden><button type="button" data-detail="epics" aria-pressed="true">Epics</button><button type="button" data-detail="both" aria-pressed="false">Epics + stories</button><button type="button" data-detail="stories" aria-pressed="false">Stories</button></div>
               <div class="search-box"><span data-icon="search"></span><input id="searchInput" type="search" placeholder="Search…" aria-label="Search initiatives" autocomplete="off"><kbd>/</kbd></div>
               <div class="filter-wrap">
-                <button class="btn secondary small" id="filtersBtn" type="button" aria-label="Show or hide" aria-expanded="false" aria-controls="filtersPopover"><span data-icon="filter"></span><span>Show/hide</span><span id="filtersCount" class="filters-count" hidden=""></span></button>
+                <button class="btn secondary small" id="filtersBtn" type="button" aria-label="Show or hide" aria-expanded="false" aria-controls="filtersPopover"><span data-icon="filter"></span><span>Display</span><span id="filtersCount" class="filters-count" hidden=""></span></button>
                 <div class="filters-popover" id="filtersPopover" role="group" aria-label="Roadmap filters" hidden="">
+                  <div class="display-menu" id="displayMenu"></div>
                   <div class="filters-popover-header"><strong>Filters</strong><button type="button" class="text-button" id="clearFiltersBtn">Clear</button></div>
                   <label class="filter-field" for="workstreamFilter"><span>Workstream</span><div class="select-wrap"><select id="workstreamFilter" aria-label="Filter by workstream"><option value="all">All workstreams</option></select></div></label>
                   <label class="filter-field" for="statusFilter"><span>Status</span><div class="select-wrap"><select id="statusFilter" aria-label="Filter by status"><option value="all">All statuses</option><option value="planned">Planned</option><option value="discovery">Discovery</option><option value="building">Building</option><option value="review">In review</option><option value="done">Done</option></select></div></label>
@@ -3149,7 +3169,7 @@ function renderEpicsGrid(){
 }
 function epicStoryCardHTML(s){
  const inc=getIncrement(s.increment),n=s.checklist.length,d=checklistDone(s.checklist),open=epicOpenStory===s.id,group=Object.entries(EPIC_GROUPS).find(([,g])=>g.statuses.includes(s.status))?.[0],exact=s.status!==EPIC_GROUPS[group]?.drop;
- const meta=[exact?`<span class="ep-tag" data-status="${s.status}">${STATUS[s.status]}</span>`:'',epicMode==='sprint'?'':`<span class="${inc?'':'ep-muted'}">${inc?esc(inc.title):'Not planned'}</span>`,s.owner?`<span>${esc(s.owner)}</span>`:'',n?`<span class="ep-check${d===n?' is-complete':''}">${icon('checklist')}${d}/${n}</span>`:''].filter(Boolean).join('');
+ const meta=[exact?`<span class="ep-tag" data-status="${s.status}">${STATUS[s.status]}</span>`:'',epicMode==='sprint'?'':`<span class="${inc?'':'ep-muted'}">${inc?esc(inc.title):'Not planned'}</span>`,s.owner?`<span class="ep-owner">${esc(s.owner)}</span>`:'',n?`<span class="ep-check${d===n?' is-complete':''}">${icon('checklist')}${d}/${n}</span>`:''].filter(Boolean).join('');
  let more='';
  if(open){
   const incs=[...state.plan.increments].sort((a,b)=>a.start.localeCompare(b.start));
@@ -3193,7 +3213,7 @@ function blGroups(list){
 }
 function blRowHTML(s){
  const n=s.checklist.length,d=checklistDone(s.checklist),t=backlogGroup==='epic'?null:getTask(s.epic);
- return `<div class="bl-row" data-story-card="${esc(s.id)}" tabindex="0" role="button" aria-label="Story: ${esc(s.title)}"><span class="status-dot" data-status="${s.status}" title="${esc(STATUS[s.status])}"></span><span class="bl-title">${esc(s.title)}</span>${t?`<span class="bl-epic" style="${RoadmapColors.style(palette(t.stream))}">${esc(t.title)}</span>`:''}${n?`<span class="bl-meta${d===n?' is-complete':''}">${icon('checklist')}${d}/${n}</span>`:''}${s.owner&&backlogGroup!=='owner'?`<span class="bl-meta">${esc(s.owner)}</span>`:''}<span class="bl-pts${s.points==null?' is-empty':''}">${s.points!=null?fmtPoints(s.points):'–'}</span></div>`;
+ return `<div class="bl-row" data-story-card="${esc(s.id)}" tabindex="0" role="button" aria-label="Story: ${esc(s.title)}"><span class="status-dot" data-status="${s.status}" title="${esc(STATUS[s.status])}"></span><span class="bl-title">${esc(s.title)}</span>${t?`<span class="bl-epic" style="${RoadmapColors.style(palette(t.stream))}">${esc(t.title)}</span>`:''}${n?`<span class="bl-meta bl-check${d===n?' is-complete':''}">${icon('checklist')}${d}/${n}</span>`:''}${s.owner&&backlogGroup!=='owner'?`<span class="bl-meta bl-owner">${esc(s.owner)}</span>`:''}<span class="bl-pts${s.points==null?' is-empty':''}">${s.points!=null?fmtPoints(s.points):'–'}</span></div>`;
 }
 function blSectionHTML(inc,stories){
  const id=inc?.id||'',pts=stories.reduce((n,x)=>n+(x.points||0),0),all=inc?state.plan.stories.filter(x=>x.increment===inc.id).reduce((n,x)=>n+(x.points||0),0):pts,cap=inc?.capacity;
@@ -3218,7 +3238,29 @@ function renderBacklogList(){
 function blToolbarHTML(all){
  const epics=orderedEpics().filter(t=>all.some(s=>s.epic===t.id)||blEpicFilter.has(t.id));
  const chip=t=>`<button type="button" class="bl-chip${blEpicFilter.has(t.id)?' is-on':''}" data-bl-epic="${esc(t.id)}" aria-pressed="${blEpicFilter.has(t.id)}"><span class="eg-dot" style="background:${palette(t.stream).solid}"></span>${esc(t.title)}</button>`;
- return `<div class="bl-toolbar"><div class="bl-chips" role="group" aria-label="Filter by ${itemLabel(false,true)}"><button type="button" class="bl-chip${blEpicFilter.size?'':' is-on'}" data-bl-epic="" aria-pressed="${!blEpicFilter.size}">All ${itemLabel(true,true)}</button>${epics.map(chip).join('')}</div><div class="bl-tools"><label class="bl-group-select"><span>Group</span><select data-bl-group aria-label="Group stories by">${[['epic',itemLabel()],['workstream','Workstream'],['owner','Owner'],['status','Status'],['none','None']].map(([k,v])=>`<option value="${k}"${k===backlogGroup?' selected':''}>${v}</option>`).join('')}</select></label><div class="ep-mode" role="group" aria-label="Backlog layout"><button type="button" data-bl-layout="list" aria-pressed="${backlogLayout==='list'}">List</button><button type="button" data-bl-layout="columns" aria-pressed="${backlogLayout==='columns'}">Columns</button></div></div></div>`;
+ return `<div class="bl-toolbar"><div class="bl-chips" role="group" aria-label="Filter by ${itemLabel(false,true)}"><button type="button" class="bl-chip${blEpicFilter.size?'':' is-on'}" data-bl-epic="" aria-pressed="${!blEpicFilter.size}">All ${itemLabel(true,true)}</button>${epics.map(chip).join('')}</div></div>`;
+}
+// ---- Display menu: one place for how the current view is arranged and what cards show. It lives at the top of
+// the Display popover (formerly Show/hide), above the filters. Card details are hidden with body classes.
+const DISPLAY_PROPS_KEY='roadmap.view.hiddenProps',DISPLAY_PROPS=[['points','Points'],['owner','Owner'],['check','Checklist'],['epic','Epic label'],['desc','Description'],['dates','Dates']];
+let hiddenProps=new Set();try{hiddenProps=new Set(JSON.parse(localStorage.getItem(DISPLAY_PROPS_KEY)||'[]'));}catch{}
+function applyHiddenProps(){DISPLAY_PROPS.forEach(([k])=>document.body.classList.toggle('hide-prop-'+k,hiddenProps.has(k)));}
+function renderDisplayMenu(){
+ const host=$('#displayMenu');if(!host)return;
+ const seg=(attr,current,opts)=>`<div class="ep-mode dm-seg" role="group">${opts.map(([v,l])=>`<button type="button" ${attr}="${v}" aria-pressed="${v===current}">${l}</button>`).join('')}</div>`;
+ const row=(label,control)=>`<div class="dm-row"><span>${label}</span>${control}</div>`;
+ let rows='';
+ if(state.section==='backlog'){
+  rows+=row('Layout',seg('data-disp-layout',backlogLayout,[['list','List'],['columns','Columns']]));
+  if(backlogLayout==='list')rows+=row('Group by',`<select data-disp-group aria-label="Group stories by">${[['epic',itemLabel()],['workstream','Workstream'],['owner','Owner'],['status','Status'],['none','None']].map(([k,v])=>`<option value="${k}"${k===backlogGroup?' selected':''}>${v}</option>`).join('')}</select>`);
+ }else if(state.section==='roadmap'&&state.plan.stories.length){
+  rows+=row('Show',seg('data-detail',storyDetail,[['epics',itemLabel(true)],['both','+ stories'],['stories','Stories']]));
+ }
+ if(state.section==='initiatives'||state.section==='roadmap'&&state.view==='table'){
+  rows+=row('Order by',`<select data-disp-order aria-label="Order rows by">${[['order','Your order'],['title','Name'],['priority','Priority'],['start','Start date'],['end','End date'],['progress','Progress']].map(([k,v])=>`<option value="${k}"${k===state.sort.field?' selected':''}>${v}</option>`).join('')}</select>${state.sort.field==='order'?'':`<button type="button" class="dm-dir" data-disp-dir title="${state.sort.dir===1?'Ascending':'Descending'}" aria-label="Reverse order">${state.sort.dir===1?'↑':'↓'}</button>`}`);
+ }
+ const props=`<div class="dm-props">${DISPLAY_PROPS.map(([k,l])=>`<label class="dm-prop${hiddenProps.has(k)?'':' is-on'}"><input type="checkbox" data-disp-prop="${k}" ${hiddenProps.has(k)?'':'checked'}>${l}</label>`).join('')}</div>`;
+ host.innerHTML=`<div class="filters-popover-header"><strong>Display</strong></div>${rows}<div class="dm-row dm-row-props"><span>On cards</span>${props}</div>`;
 }
 function renderEpicPage(){
  const all=orderedEpics();let t=getTask(state.epicId)||all[0];
@@ -3244,7 +3286,7 @@ function workCounts(t){const ss=storiesOf(t.id),list=t.checklist||[];return {sto
 function workTitle(w){return [w.stories?`${w.storiesDone} of ${w.stories} stories done`:'',w.items?`Checklist: ${w.itemsDone} of ${w.items} done`:''].filter(Boolean).join(' · ');}
 // One compact badge: stories when the epic has any, otherwise its checklist.
 function workBadgeHTML(t,cls='bar-work'){const w=workCounts(t);if(!w.stories&&!w.items)return '';const [a,b]=w.stories?[w.storiesDone,w.stories]:[w.itemsDone,w.items],toggle=w.stories&&cls==='bar-work'?` data-epic-toggle="${esc(t.id)}" role="button" tabindex="0" aria-expanded="${showsStories(t)}"`:'',tip=workTitle(w)+(toggle?(showsStories(t)?' · click to hide stories':' · click to show stories'):'');return `<span class="${cls}${a===b?' is-complete':''}${toggle&&showsStories(t)?' is-open':''}"${toggle} title="${esc(tip)}" aria-label="${esc(tip)}">${icon(w.stories?'layers':'checklist')}${a}/${b}</span>`;}
-function workChipsHTML(t){const w=workCounts(t);if(!w.stories&&!w.items)return '';return `<div class="card-work">${w.items?`<span class="work-chip${w.itemsDone===w.items?' is-complete':''}" title="Checklist: ${w.itemsDone} of ${w.items} done">${icon('checklist')}Checklist ${w.itemsDone}/${w.items}</span>`:''}${w.stories?`<button type="button" class="work-chip is-link${w.storiesDone===w.stories?' is-complete':''}" data-epic-page="${esc(t.id)}" title="${w.storiesDone} of ${w.stories} stories done · open to plan them">${icon('layers')}Stories ${w.storiesDone}/${w.stories}</button>`:''}</div>`;}
+function workChipsHTML(t){const w=workCounts(t);if(!w.stories&&!w.items)return '';return `<div class="card-work">${w.items?`<span class="work-chip is-check${w.itemsDone===w.items?' is-complete':''}" title="Checklist: ${w.itemsDone} of ${w.items} done">${icon('checklist')}Checklist ${w.itemsDone}/${w.items}</span>`:''}${w.stories?`<button type="button" class="work-chip is-link${w.storiesDone===w.stories?' is-complete':''}" data-epic-page="${esc(t.id)}" title="${w.storiesDone} of ${w.stories} stories done · open to plan them">${icon('layers')}Stories ${w.storiesDone}/${w.stories}</button>`:''}</div>`;}
 // The checklist in the small details panel: every tick, edit or new item is saved right away (and can be undone).
 function canvasChecklistHTML(item){return `<section class="canvas-checklist" data-canvas-checklist="${esc(item.id)}" aria-label="Checklist"><div class="canvas-checklist-head"></div><div class="checklist canvas-checklist-list"></div><div class="checklist-add"><input type="text" class="checklist-new" data-cl-new maxlength="200" placeholder="Add a checklist item and press Enter" aria-label="New checklist item"></div></section>`;}
 function refreshCanvasChecklist(host,item){
@@ -3615,7 +3657,7 @@ function render(){
  $$('#nav .nav-item').forEach(b=>{const on=b.dataset.section===state.section||state.section==='epic'&&b.dataset.section==='epics';b.classList.toggle('active',on);if(on)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
  const heads={roadmap:['Roadmap','','New '+itemLabel(false,true)],initiatives:[itemLabel(true),'','New '+itemLabel(false,true)],epics:[itemLabel(true),'Every '+itemLabel(false,true)+' with its progress. Open one to plan its stories.','New '+itemLabel(false,true)],epic:['','','New story'],backlog:['Backlog','Plan stories into sprints: drag a story into a sprint, or back to Not planned.','New story'],outcomes:['Outcomes','Measure the results your work should achieve.','New outcome'],milestones:['Milestones','Releases, decisions and checkpoints.','New milestone']};
  const h=heads[state.section];$('#pageTitle').textContent=h[0];$('#pageDescription').textContent=h[1];$('#primaryAddLabel').textContent=h[2];$('#sectionHeading').hidden=['roadmap','initiatives','epic'].includes(state.section);{const en=document.querySelector('#nav [data-section="epics"]');if(en){en.title=itemLabel(true);en.setAttribute('aria-label',itemLabel(true));en.querySelector('.nav-label').textContent=itemLabel(true);}}
- const planning=state.section==='roadmap'||state.section==='initiatives';$('#planningControls').hidden=!planning&&!['backlog','epics'].includes(state.section);$('#roadmapTools').hidden=!planning;$('.view-tabs').hidden=state.section!=='roadmap';renderOutcomeFocus();
+ const planning=state.section==='roadmap'||state.section==='initiatives';$('#planningControls').hidden=!planning&&!['backlog','epics'].includes(state.section);$('#roadmapTools').hidden=!planning&&!['backlog','epics'].includes(state.section);$('.view-tabs').hidden=state.section!=='roadmap';renderOutcomeFocus();
  $$('.view-tab').forEach(b=>{const active=b.dataset.view===state.view;b.classList.toggle('active',active);b.setAttribute('aria-selected',String(active));});
  $('#searchInput').value=state.query;$('#statusFilter').value=state.status;
  const workstreamOptions='<option value="all">All workstreams</option>'+p.workstreams.map(s=>`<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');
@@ -3632,7 +3674,7 @@ function render(){
  $('#dependenciesBtn').classList.toggle('is-active',state.dependencies);$('#dependenciesBtn').setAttribute('aria-pressed',String(state.dependencies));$('#dependenciesBtn').title=state.dependencies?'Hide dependencies':'Show dependencies';$('#dependenciesBtn').setAttribute('aria-label',$('#dependenciesBtn').title);
  if(state.section==='outcomes')renderOutcomes();else if(state.section==='milestones')renderMilestones();else if(state.section==='backlog')renderBacklog();else if(state.section==='epics')renderEpicsGrid();else if(state.section==='epic')renderEpicPage();else if(state.section==='initiatives'||state.view==='table')renderTable();else if(state.view==='board')(storyDetail==='stories'&&state.plan.stories.length?renderStoryBoard:renderBoard)();else if(state.view==='swimlane')renderSwimlanes();else renderTimeline();
  $('#undoBtn').disabled=!state.undo.length;$('#redoBtn').disabled=!state.redo.length;
- document.title=`${p.name} — Roadmap`;document.body.classList.toggle('dates-locked',datesLocked);detailSwitchSync();document.body.classList.toggle('streams-collapsed',streamsCollapsed);document.body.classList.toggle('swimlane-mode',state.section==='roadmap'&&state.view==='swimlane');document.body.classList.toggle('bar-style-tinted',state.barStyle!=='solid');document.body.classList.toggle('bar-style-solid',state.barStyle==='solid');$$('[data-bar-style]').forEach(b=>{const on=b.dataset.barStyle===state.barStyle;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));});hydrateIcons();RoadmapCanvas.afterRender();layoutMilestoneLabels();requestAnimationFrame(drawDependencies);
+ document.title=`${p.name} — Roadmap`;applyHiddenProps();renderDisplayMenu();document.body.classList.toggle('dates-locked',datesLocked);detailSwitchSync();document.body.classList.toggle('streams-collapsed',streamsCollapsed);document.body.classList.toggle('swimlane-mode',state.section==='roadmap'&&state.view==='swimlane');document.body.classList.toggle('bar-style-tinted',state.barStyle!=='solid');document.body.classList.toggle('bar-style-solid',state.barStyle==='solid');$$('[data-bar-style]').forEach(b=>{const on=b.dataset.barStyle===state.barStyle;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));});hydrateIcons();RoadmapCanvas.afterRender();layoutMilestoneLabels();requestAnimationFrame(drawDependencies);
  scrollState.forEach(s=>{const el=$(s.selector);if(el){el.scrollLeft=s.left;el.scrollTop=s.top;}});
  const onTimeline=state.section==='roadmap'&&['swimlane','timeline'].includes(state.view);
  if(pendingFitScroll&&onTimeline&&scrollToFit()){pendingFitScroll=false;pendingTodayScroll=false;}
@@ -4162,8 +4204,19 @@ document.addEventListener('click',event=>{
  const opts=event.target.closest('#timeOptionsBtn');if(opts){const open=$('#timeBar').classList.toggle('options-open');opts.setAttribute('aria-expanded',String(open));return;}
  const sc=event.target.closest('[data-streams-collapse]');if(sc){streamsCollapsed=!streamsCollapsed;try{localStorage.setItem(STREAMS_COLLAPSED_KEY,String(streamsCollapsed));}catch{}render();return;}
 });
-document.addEventListener('click',event=>{if(!event.target.closest('.export-wrap'))hideExport();if(!event.target.closest('.filter-wrap'))hideFilters();handleClick(event);});
+document.addEventListener('click',event=>{const path=event.composedPath();if(!event.target.closest('.export-wrap'))hideExport();if(!event.target.closest('.filter-wrap')&&!path.some(n=>n.classList?.contains('filter-wrap')))hideFilters();handleClick(event);});
 $('#detailForm').addEventListener('submit',saveDetail);$('#settingsForm').addEventListener('submit',saveSettings);
+// Display menu.
+document.addEventListener('click',event=>{
+ const ly=event.target.closest?.('[data-disp-layout]');if(ly){backlogLayout=ly.dataset.dispLayout;try{localStorage.setItem(BL_LAYOUT_KEY,backlogLayout);}catch{}render();return;}
+ if(event.target.closest?.('[data-disp-dir]')){state.sort={field:state.sort.field,dir:-state.sort.dir};render();}
+});
+document.addEventListener('change',event=>{
+ const t=event.target;
+ if(t.matches?.('[data-disp-prop]')){const k=t.dataset.dispProp;if(t.checked)hiddenProps.delete(k);else hiddenProps.add(k);try{localStorage.setItem(DISPLAY_PROPS_KEY,JSON.stringify([...hiddenProps]));}catch{}applyHiddenProps();t.closest('.dm-prop')?.classList.toggle('is-on',t.checked);return;}
+ if(t.matches?.('[data-disp-group]')){backlogGroup=t.value;try{localStorage.setItem(BL_GROUP_KEY,backlogGroup);}catch{}render();return;}
+ if(t.matches?.('[data-disp-order]')){state.sort={field:t.value,dir:1};render();}
+});
 // Backlog list: collapse sections, filter by epic, group, switch layout, add stories in place.
 document.addEventListener('click',event=>{
  if(state.section!=='backlog')return;
