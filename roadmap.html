@@ -285,6 +285,111 @@ body.streams-collapsed .swimlane-milestone-label>span,body.streams-collapsed .ca
 .date-lock .icon{width:15px;height:15px}
 .date-lock.is-locked{color:#B45309;background:#FEF3C7}
 body.dates-locked .canvas-item [data-resize],body.dates-locked .resize-handle{display:none!important}
+/* Epics grid. */
+.eg-wrap{display:flex;flex-direction:column;gap:26px;padding-bottom:24px}
+.eg-head{display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:15px;font-weight:650;color:#1E293B}
+.eg-dot{width:10px;height:10px;border-radius:50%;flex:none}
+.eg-count{font-size:12px;font-weight:500;color:#64748B;background:#F1F5F9;border-radius:10px;padding:1px 8px}
+.eg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.eg-card{display:flex;flex-direction:column;gap:10px;min-height:150px;padding:16px 16px 14px;border:1px solid #E2E8F0;border-top:4px solid var(--item-fill,#94A3B8);border-radius:14px;background:#fff;font:inherit;text-align:left;color:#1E293B;cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s;box-shadow:0 1px 2px #0f172a0a}
+.eg-card:hover{transform:translateY(-2px);box-shadow:0 10px 24px -12px #0f172a40;border-color:#CBD5E1;border-top-color:var(--item-fill,#94A3B8)}
+.eg-card:focus-visible{outline:2px solid #4F46E5;outline-offset:2px}
+.eg-top{display:flex;align-items:center;gap:8px;font-size:11.5px;color:#64748B}
+.eg-status{display:inline-flex;align-items:center;gap:5px;font-weight:600;color:#334155}
+.eg-dates{margin-left:auto;white-space:nowrap}
+.eg-title{display:flex;align-items:center;gap:6px;font-size:15.5px;font-weight:650;line-height:1.3}
+.eg-body{display:flex;align-items:center;gap:12px;margin-top:auto}
+.eg-ring{flex:none;color:#1E293B}
+.eg-stats{display:flex;flex-direction:column;gap:3px;min-width:0;font-size:12.5px;color:#334155}
+.eg-stat{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.eg-stat .icon{width:12px;height:12px}
+.eg-muted,.ep-muted{color:#94A3B8}
+.eg-new{align-items:center;justify-content:center;border:1.5px dashed #CBD5E1;border-top:1.5px dashed #CBD5E1;background:transparent;color:#64748B;font-weight:600;box-shadow:none}
+.eg-new:hover{color:#4F46E5;border-color:#A5B4FC;background:#F8FAFF;transform:none;box-shadow:none}
+.eg-new .icon{width:20px;height:20px}
+/* Epic page. */
+.ep-layout{display:grid;grid-template-columns:210px minmax(0,1fr) 270px;gap:18px;align-items:start;padding-bottom:24px}
+.ep-rail{position:sticky;top:12px;display:flex;flex-direction:column;gap:12px;max-height:calc(100vh - 140px);overflow:auto;padding-right:4px}
+.ep-rail-all{display:inline-flex;align-items:center;gap:4px;align-self:flex-start;border:0;background:transparent;padding:4px 6px;border-radius:7px;font:inherit;font-size:13px;font-weight:600;color:#4F46E5;cursor:pointer}
+.ep-rail-all:hover{background:#EEF2FF}
+.ep-rail-all .icon{width:14px;height:14px}
+.ep-rail-head{display:flex;align-items:center;gap:7px;margin:0 0 4px 6px;font-size:11.5px;font-weight:700;letter-spacing:.3px;color:#64748B;text-transform:uppercase}
+.ep-rail-head .eg-dot{width:8px;height:8px}
+.ep-rail-item{display:flex;align-items:center;gap:8px;width:100%;padding:7px 10px;border:0;border-radius:9px;background:transparent;font:inherit;font-size:13px;color:#334155;text-align:left;cursor:pointer}
+.ep-rail-item:hover{background:#F1F5F9}
+.ep-rail-item.is-active{background:color-mix(in srgb,var(--item-fill,#4F46E5) 12%,#fff);color:#0F172A;font-weight:600;box-shadow:inset 3px 0 0 var(--item-fill,#4F46E5)}
+.ep-rail-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ep-rail-count{flex:none;font-size:11px;color:#64748B}
+.ep-main{min-width:0;display:flex;flex-direction:column;gap:14px}
+.ep-head{padding:18px 20px;border:1px solid #E2E8F0;border-radius:16px;background:linear-gradient(180deg,color-mix(in srgb,var(--item-fill,#94A3B8) 9%,#fff),#fff 70%)}
+.ep-head-top{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
+.ep-chip{padding:3px 10px;border-radius:999px;background:var(--item-fill,#94A3B8);color:var(--item-ink,#fff);font-size:12px;font-weight:600}
+.ep-meta{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:#475569}
+.ep-nav{margin-left:auto;display:inline-flex;gap:4px}
+.ep-nav .icon-btn{width:32px;height:32px;border:1px solid #E2E8F0;border-radius:9px;background:#fff}
+.ep-nav .icon-btn:disabled{opacity:.35;cursor:default}
+.ep-title{display:flex;align-items:center;gap:8px;margin:12px 0 12px;font-size:24px;font-weight:700;letter-spacing:-.2px;color:#0F172A}
+.ep-title .item-icon{width:24px;height:24px}
+.ep-progress{display:flex;align-items:center;gap:14px}
+.ep-track{flex:1;height:8px;border-radius:4px;background:#E2E8F0;overflow:hidden}
+.ep-track span{display:block;height:100%;border-radius:4px;background:var(--item-fill,#1D9E75);transition:width .3s}
+.ep-progress-text{font-size:13px;color:#475569;white-space:nowrap}
+.ep-progress-text b{color:#0F172A}
+.ep-head-actions{display:flex;gap:6px;margin-top:12px}
+.ep-head-actions .icon{width:14px;height:14px}
+.ep-add{display:flex;align-items:center;gap:10px;padding:4px 6px 4px 14px;border:1.5px solid #E2E8F0;border-radius:12px;background:#fff;transition:border-color .15s,box-shadow .15s}
+.ep-add:focus-within{border-color:#818CF8;box-shadow:0 0 0 4px #EEF2FF}
+.ep-add>.icon{width:18px;height:18px;color:#6366F1;flex:none}
+.ep-add input{flex:1;min-width:0;border:0;outline:0;background:transparent;padding:10px 0;font:inherit;font-size:14px;color:#0F172A}
+.ep-add input::placeholder{color:#94A3B8}
+.ep-board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:start}
+.ep-col{display:flex;flex-direction:column;min-height:260px;padding:10px;border-radius:14px;background:#F1F5F9}
+.ep-col-doing{background:#EEF2FF}
+.ep-col-done{background:#ECFDF5}
+.ep-col-head{display:flex;align-items:center;gap:8px;margin:2px 4px 10px}
+.ep-col-title{font-size:13px;font-weight:700;color:#1E293B}
+.ep-col-count{font-size:11.5px;font-weight:600;color:#64748B;background:#fff;border-radius:9px;padding:0 7px}
+.ep-col-pts{margin-left:auto;font-size:11.5px;color:#64748B}
+.ep-col-body{display:flex;flex-direction:column;gap:8px;min-height:200px;flex:1}
+.ep-empty{margin:8px 6px;color:#94A3B8;font-size:12.5px}
+.ep-card{padding:10px 12px;border:1px solid #E2E8F0;border-radius:11px;background:#fff;cursor:pointer;box-shadow:0 1px 2px #0f172a0d;transition:box-shadow .15s,border-color .15s;touch-action:pan-y;user-select:none}
+.ep-card:hover{border-color:#CBD5E1;box-shadow:0 6px 16px -10px #0f172a40}
+.ep-card.is-open{border-color:#A5B4FC;box-shadow:0 0 0 3px #EEF2FF;cursor:default;user-select:text}
+.ep-card.is-dragging{opacity:.4}
+.ep-card-top{display:flex;align-items:baseline;gap:8px}
+.ep-card-top .status-dot{transform:translateY(-1px)}
+.ep-card-title{flex:1;min-width:0;font-size:13.5px;font-weight:600;line-height:1.35;color:#0F172A}
+.ep-col-done .ep-card-title{color:#475569}
+.ep-pts{flex:none;min-width:22px;padding:1px 7px;border-radius:10px;background:#EEF2F6;color:#334155;font-size:11px;font-weight:700;text-align:center}
+.ep-card-meta{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:6px;font-size:11.5px;color:#64748B}
+.ep-tag{padding:0 6px;border-radius:5px;background:#F1F5F9;color:#334155;font-weight:600}
+.ep-check{display:inline-flex;align-items:center;gap:3px}
+.ep-check.is-complete{color:#15803D}
+.ep-check .icon{width:11px;height:11px}
+.ep-card-more{margin-top:10px;padding-top:10px;border-top:1px solid #EEF2F6;display:flex;flex-direction:column;gap:10px;cursor:auto}
+.ep-cl{display:flex;flex-direction:column;gap:3px}
+.ep-cl-row{display:flex;align-items:center;gap:8px;font-size:13px;color:#1E293B;cursor:pointer}
+.ep-cl-row input{width:15px;height:15px;accent-color:#4F46E5}
+.ep-cl-row input:checked+span{color:#94A3B8;text-decoration:line-through}
+.ep-cl-new{width:100%;box-sizing:border-box;min-width:0;margin-top:2px;padding:6px 9px;border:1px solid #E2E8F0;border-radius:8px;font:inherit;font-size:12.5px}
+.ep-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;min-width:0}
+.ep-fields label{display:flex;flex-direction:column;gap:3px;font-size:11px;font-weight:600;color:#64748B}
+.ep-fields select,.ep-fields input{width:100%;max-width:100%;box-sizing:border-box;min-width:0!important;height:32px;padding:0 8px;border:1px solid #E2E8F0;border-radius:8px;background:#fff;font:inherit;font-size:12.5px;color:#0F172A}
+.ep-card-actions{display:flex;gap:6px}
+.ep-card-actions .icon{width:13px;height:13px}
+.ep-delete{margin-left:auto;color:#B91C1C}
+.ep-side{display:flex;flex-direction:column;gap:12px;position:sticky;top:12px}
+.ep-side-card{padding:14px 16px;border:1px solid #E2E8F0;border-radius:14px;background:#fff}
+.ep-side-card h4{margin:0 0 6px;font-size:13px;font-weight:700;color:#1E293B}
+.ep-side-card p{margin:0;font-size:13px;line-height:1.5;color:#334155}
+.ep-side-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.ep-side-chip{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:7px;background:#F1F5F9;font-size:12px;color:#334155}
+.ep-side-chip .icon{width:12px;height:12px}
+.ep-side .canvas-checklist{margin:0;padding:0;border:0}
+.work-chip.is-link{border:0;font:inherit;font-size:11.5px;cursor:pointer}
+.work-chip.is-link:hover{background:#E0E7FF;color:#3730A3}
+@media (max-width:1180px){.ep-layout{grid-template-columns:190px minmax(0,1fr)}.ep-side{grid-column:2;position:static}}
+@media (max-width:760px){.ep-layout{grid-template-columns:minmax(0,1fr)}.ep-rail{position:static;max-height:none;flex-direction:row;overflow-x:auto}.ep-rail-group{display:none}.ep-side{grid-column:1}.ep-board{grid-template-columns:minmax(0,1fr)}.ep-title{font-size:20px}}
 /* Custom item icons. */
 .item-icon{display:inline-block;flex:none;width:16px;height:16px;object-fit:contain;vertical-align:-3px;margin-right:5px;border-radius:3px;pointer-events:none;user-select:none}
 .bar-content>.item-icon{margin-right:0}
@@ -1422,6 +1527,7 @@ body.bar-style-solid .canvas-item.canvas-increment{border-radius:6px;box-shadow:
     <div class="brand" title="Roadmap product planning"><span class="brand-mark" aria-hidden="true"><svg width="32" height="32" viewBox="0 0 32 32" fill="none"><path d="M5 26 15.8 5 27 26h-7.6l-3.6-7.6L12 26H5Z" fill="currentColor"></path><path d="m15.8 5 4.4 8.4-4.4 5-4.3-5L15.8 5Z" fill="#9FDEC6"></path></svg></span><span class="brand-name">roadmap.</span></div>
     <nav id="nav" aria-label="Workspace sections">
       <button class="nav-item active" data-section="roadmap" aria-label="Roadmap" title="Roadmap"><span data-icon="roadmap"></span><span class="nav-label">Roadmap</span></button>
+      <button class="nav-item" data-section="epics" aria-label="Epics" title="Epics"><span data-icon="board"></span><span class="nav-label">Epics</span></button>
       <button class="nav-item" data-section="backlog" aria-label="Backlog" title="Backlog"><span data-icon="checklist"></span><span class="nav-label">Backlog</span></button>
       <button class="nav-item" data-section="outcomes" aria-label="Outcomes" title="Outcomes"><span data-icon="target"></span><span class="nav-label">Outcomes</span></button>
       <button class="nav-item" data-section="milestones" aria-label="Milestones" title="Milestones"><span data-icon="flag"></span><span class="nav-label">Milestones</span></button>
@@ -2914,7 +3020,7 @@ function boardStoryPreview(t){
  if(!showsStories(t))return '';
  const list=visibleStoriesOf(t);if(!list.length)return '';
  const shown=list.slice(0,3);
- return `<div class="card-stories">${shown.map(s=>`<button type="button" class="card-story" data-story-open="${esc(s.id)}" title="${esc(s.title)} · ${esc(STATUS[s.status])}"><span class="status-dot" data-status="${s.status}"></span><span class="card-story-title">${esc(s.title)}</span>${s.points!=null?`<span class="card-story-points">${fmtPoints(s.points)}</span>`:''}</button>`).join('')}${list.length>3?`<button type="button" class="card-story-more" data-epic-details="${esc(t.id)}">+${list.length-3} more</button>`:''}</div>`;
+ return `<div class="card-stories">${shown.map(s=>`<button type="button" class="card-story" data-story-open="${esc(s.id)}" title="${esc(s.title)} · ${esc(STATUS[s.status])}"><span class="status-dot" data-status="${s.status}"></span><span class="card-story-title">${esc(s.title)}</span>${s.points!=null?`<span class="card-story-points">${fmtPoints(s.points)}</span>`:''}</button>`).join('')}${list.length>3?`<button type="button" class="card-story-more" data-epic-page="${esc(t.id)}">+${list.length-3} more</button>`:''}</div>`;
 }
 // Roadmap: a thin strip under a lane row with the stories of its open epics. Each story sits on its increment's
 // dates; an epic's backlog stories share one "Backlog n" pill at the epic's start. Pills that would overlap stack.
@@ -2930,7 +3036,7 @@ function roadmapStoryStrip(row,r){
    const a=Math.max(pos(day(inc.start)),0),b=Math.min(pos(day(inc.end)+1),100);
    pills.push({left:a,width:Math.max(b-a,pct(26)),need:pct(Math.min(150,34+s.title.length*6)),html:w=>`<button type="button" class="story-pill" data-story-open="${esc(s.id)}" data-status="${s.status}" style="left:${a}%;width:${w}%;${RoadmapColors.style(c)}" title="${esc(`${s.title} · ${STATUS[s.status]}${s.points!=null?' · '+fmtPoints(s.points)+' pt':''} · ${inc.title}${s.checklist.length?` · checklist ${checklistDone(s.checklist)}/${s.checklist.length}`:''}`)}"><span class="status-dot" data-status="${s.status}"></span><span class="story-pill-name">${esc(s.title)}</span></button>`});
   }
-  if(backlog.length){const a=Math.max(pos(day(t.start)),0),label=`Backlog ${backlog.length}`;pills.push({left:a,width:pct(80),need:pct(80),html:w=>`<button type="button" class="story-pill is-backlog" data-epic-details="${esc(t.id)}" style="left:${a}%;width:${w}%" title="${esc(`${t.title}: in the backlog or outside this period · `+backlog.map(s=>s.title).join(', '))}">${label}</button>`});}
+  if(backlog.length){const a=Math.max(pos(day(t.start)),0),one=backlog.length===1?backlog[0]:null,noInc=!state.plan.increments.length,label=one?esc(one.title):`${backlog.length} stories${noInc?'':' not planned'}`,tip=one?`${one.title} · not planned into an increment yet`:`${t.title}: ${backlog.length} stories not planned into an increment yet · `+backlog.map(s=>s.title).join(', ');pills.push({left:a,width:pct(one?Math.min(170,40+one.title.length*6):120),need:pct(one?Math.min(170,40+one.title.length*6):120),html:w=>`<button type="button" class="story-pill is-backlog" ${one?`data-story-open="${esc(one.id)}"`:`data-epic-page="${esc(t.id)}"`} style="left:${a}%;width:${w}%" title="${esc(tip+(one?'':' · open the '+itemLabel(false,true)+' to plan them'))}">${one?`<span class="status-dot" data-status="${one.status}"></span><span class="story-pill-name">${label}</span>`:label}</button>`});}
  }
  // Stack: a pill goes on the first sub-row where it does not overlap (its label width counts, so names stay readable).
  pills.sort((x,y)=>x.left-y.left);const ends=[];let out='';
@@ -2939,11 +3045,63 @@ function roadmapStoryStrip(row,r){
 }
 // About how many pixels wide the date part of the timeline is (bars are placed in percent).
 function timelineAxisPx(r){const g=state.view==='timeline';return Math.max(timelineMinWidth(r,g),document.getElementById('content')?.clientWidth||0)-(g?240:250);}
+// ---- Epics grid and the Epic page: the big plan, one epic's plan, and quick story entry.
+const EPIC_GROUPS={todo:{label:'To do',statuses:['planned','discovery'],drop:'planned'},doing:{label:'Doing',statuses:['building','review'],drop:'building'},done:{label:'Done',statuses:['done'],drop:'done'}};
+let epicOpenStory=null;
+function openEpicPage(id){state.epicId=id;epicOpenStory=null;changeSection('epic');}
+// Epics in the order people see them: by workstream, then plan order.
+function orderedEpics(list=state.plan.initiatives){return state.plan.workstreams.flatMap(s=>list.filter(t=>t.stream===s.id));}
+function progressRing(pct,size=44){const r=(size-6)/2,c=2*Math.PI*r,off=c*(1-Math.max(0,Math.min(100,pct))/100);return `<svg class="eg-ring" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" aria-hidden="true"><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="var(--ring-track,#E2E8F0)" stroke-width="5"/><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="var(--item-fill,#1D9E75)" stroke-width="5" stroke-linecap="round" stroke-dasharray="${c.toFixed(2)}" stroke-dashoffset="${off.toFixed(2)}" transform="rotate(-90 ${size/2} ${size/2})"/><text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" font-size="${size>40?11:9.5}" font-weight="600" fill="currentColor">${Math.round(pct)}%</text></svg>`;}
+function renderEpicsGrid(){
+ const ts=filteredTasks(),l=itemLabel(false,true);
+ if(!state.plan.initiatives.length){$('#content').innerHTML=`<div class="empty-state">${icon('board')}<h3>Start with your first ${l}.</h3><p>${itemLabel(true)} are the big pieces of your plan. Split each one into stories.</p><button class="btn" data-new-epic="${esc(state.plan.workstreams[0]?.id||'')}">${icon('plus')}New ${l}</button></div>`;return;}
+ const groups=state.plan.workstreams.filter(s=>state.stream==='all'||s.id===state.stream).map(s=>{
+  const list=ts.filter(t=>t.stream===s.id),c=palette(s.id);
+  if(!list.length&&(state.query||state.status!=='all'||state.outcome))return '';
+  const cards=list.map(t=>{
+   const w=workCounts(t),r=epicRollup(t,storiesOf(t.id)),pct=t.status==='done'?100:r.source==='manual'?t.progress:r.progress,pts=storiesOf(t.id).reduce((n,x)=>n+(x.points||0),0);
+   const next=storiesOf(t.id).filter(x=>x.status!=='done'&&x.increment).map(x=>getIncrement(x.increment)).filter(Boolean).sort((a,b)=>a.start.localeCompare(b.start))[0];
+   return `<button type="button" class="eg-card" data-epic-page="${esc(t.id)}" style="${RoadmapColors.style(c)}" aria-label="Open ${esc(t.title)}"><span class="eg-top"><span class="eg-status" data-status="${t.status}"><span class="status-dot" data-status="${t.status}"></span>${STATUS[t.status]}</span><span class="eg-dates">${fmtDate(t.start)} – ${fmtDate(t.end)}</span></span><span class="eg-title">${itemIcon(t)}${esc(t.title)}</span><span class="eg-body">${progressRing(pct)}<span class="eg-stats">${w.stories?`<span class="eg-stat"><b>${w.storiesDone}/${w.stories}</b> stories${pts?` · ${fmtPoints(pts)} pt`:''}</span>`:''}${w.items?`<span class="eg-stat">${icon('checklist')}${w.itemsDone}/${w.items} checklist</span>`:''}<span class="eg-stat eg-muted">${next?'Next: '+esc(next.title):w.stories?(w.storiesDone===w.stories?'All stories done':'Stories not planned yet'):'No stories yet · open to add'}</span></span></span></button>`;
+  }).join('');
+  return `<section class="eg-group"><h3 class="eg-head"><span class="eg-dot" style="background:${c.solid}"></span>${esc(s.name)}<span class="eg-count">${list.length}</span></h3><div class="eg-grid">${cards}<button type="button" class="eg-card eg-new" data-new-epic="${esc(s.id)}">${icon('plus')}<span>New ${l}</span></button></div></section>`;
+ }).join('');
+ $('#content').innerHTML=`<div class="eg-wrap">${groups||emptyHTML()}</div>`;
+}
+function epicStoryCardHTML(s){
+ const inc=getIncrement(s.increment),n=s.checklist.length,d=checklistDone(s.checklist),open=epicOpenStory===s.id,group=Object.entries(EPIC_GROUPS).find(([,g])=>g.statuses.includes(s.status))?.[0],exact=s.status!==EPIC_GROUPS[group]?.drop;
+ const meta=[exact?`<span class="ep-tag" data-status="${s.status}">${STATUS[s.status]}</span>`:'',`<span class="${inc?'':'ep-muted'}">${inc?esc(inc.title):'Not planned'}</span>`,s.owner?`<span>${esc(s.owner)}</span>`:'',n?`<span class="ep-check${d===n?' is-complete':''}">${icon('checklist')}${d}/${n}</span>`:''].filter(Boolean).join('');
+ let more='';
+ if(open){
+  const incs=[...state.plan.increments].sort((a,b)=>a.start.localeCompare(b.start));
+  more=`<div class="ep-card-more"><div class="ep-cl">${s.checklist.map((x,i)=>`<label class="ep-cl-row"><input type="checkbox" data-ep-cl-done="${esc(s.id)}:${i}" ${x.done?'checked':''}><span>${esc(x.text)}</span></label>`).join('')}<input type="text" class="ep-cl-new" data-ep-cl-new="${esc(s.id)}" maxlength="200" placeholder="Add a checklist item and press Enter" aria-label="New checklist item"></div><div class="ep-fields"><label><span>Status</span><select data-ep-field="status" data-sid="${esc(s.id)}">${options(STATUS,s.status)}</select></label><label><span>Increment</span><select data-ep-field="increment" data-sid="${esc(s.id)}"><option value="">Not planned</option>${incs.map(x=>`<option value="${esc(x.id)}"${x.id===s.increment?' selected':''}>${esc(x.title)}</option>`).join('')}</select></label><label><span>Points</span><input type="number" min="0" max="1000" step="any" data-ep-field="points" data-sid="${esc(s.id)}" value="${s.points??''}" placeholder="–"></label><label><span>Owner</span><input type="text" maxlength="80" data-ep-field="owner" data-sid="${esc(s.id)}" value="${esc(s.owner||'')}" placeholder="Unassigned"></label></div><div class="ep-card-actions"><button type="button" class="btn ghost small" data-story-open="${esc(s.id)}">${icon('edit')}More details</button><button type="button" class="btn ghost small ep-delete" data-ep-delete="${esc(s.id)}">${icon('trash')}Delete</button></div></div>`;
+ }
+ return `<article class="ep-card${open?' is-open':''}" data-story-card="${esc(s.id)}" data-ep-card="${esc(s.id)}" tabindex="0" aria-expanded="${open}"><div class="ep-card-top"><span class="status-dot" data-status="${s.status}"></span><span class="ep-card-title">${esc(s.title)}</span>${s.points!=null?`<span class="ep-pts">${fmtPoints(s.points)}</span>`:''}</div><div class="ep-card-meta">${meta}</div>${more}</article>`;
+}
+function renderEpicPage(){
+ const all=orderedEpics();let t=getTask(state.epicId)||all[0];
+ if(!t){state.section='epics';renderEpicsGrid();return;}
+ state.epicId=t.id;
+ const focusSel=(()=>{const a=document.activeElement;if(!a||!$('#content').contains(a))return null;if(a.id)return '#'+a.id;if(a.matches('[data-cl-new]'))return '[data-cl-new]';if(a.dataset.epClNew)return `[data-ep-cl-new="${a.dataset.epClNew}"]`;return null;})();
+ const i=all.indexOf(t),prev=all[i-1],next=all[i+1],c=palette(t.stream),list=storiesOf(t.id),w=workCounts(t),r=epicRollup(t,list),pct=t.status==='done'?100:r.source==='manual'?t.progress:r.progress,pts=list.reduce((n,x)=>n+(x.points||0),0),donePts=list.filter(x=>x.status==='done').reduce((n,x)=>n+(x.points||0),0);
+ const rail=state.plan.workstreams.map(s=>{const es=all.filter(x=>x.stream===s.id);if(!es.length)return '';const sc=palette(s.id);return `<div class="ep-rail-group"><div class="ep-rail-head"><span class="eg-dot" style="background:${sc.solid}"></span>${esc(s.name)}</div>${es.map(x=>{const ww=workCounts(x);return `<button type="button" class="ep-rail-item${x.id===t.id?' is-active':''}" data-epic-page="${esc(x.id)}" style="${RoadmapColors.style(sc)}"><span class="ep-rail-title">${esc(x.title)}</span>${ww.stories?`<span class="ep-rail-count">${ww.storiesDone}/${ww.stories}</span>`:''}</button>`;}).join('')}</div>`;}).join('');
+ const outcome=getOutcome(t.outcome),inc=getIncrement(t.increment);
+ const cols=Object.entries(EPIC_GROUPS).map(([key,g])=>{const ss=list.filter(s=>g.statuses.includes(s.status)),p=ss.reduce((n,x)=>n+(x.points||0),0);return `<section class="ep-col ep-col-${key}"><header class="ep-col-head"><span class="ep-col-title">${g.label}</span><span class="ep-col-count">${ss.length}</span>${p?`<span class="ep-col-pts">${fmtPoints(p)} pt</span>`:''}</header><div class="column-body ep-col-body" data-story-drop="group:${key}">${ss.map(epicStoryCardHTML).join('')||`<p class="ep-empty">${key==='todo'?(list.length?'Nothing waiting.':'Add the first story above.'):key==='doing'?'Drag a story here when work starts.':'Finished stories land here.'}</p>`}</div></section>`;}).join('');
+ $('#content').innerHTML=`<div class="ep-layout"><nav class="ep-rail" aria-label="${itemLabel(true)}"><button type="button" class="ep-rail-all" data-section-go="epics">${icon('left')}All ${itemLabel(true,true)}</button>${rail}</nav><div class="ep-main"><header class="ep-head" style="${RoadmapColors.style(c)}"><div class="ep-head-top"><span class="ep-chip">${esc(streamName(t.stream))}</span><span class="ep-meta">${fmtDate(t.start,true)} – ${fmtDate(t.end,true)}</span><span class="ep-meta"><span class="status-dot" data-status="${t.status}"></span>${STATUS[t.status]}</span>${t.owner?`<span class="ep-meta">${esc(t.owner)}</span>`:''}<span class="ep-nav"><button type="button" class="icon-btn" ${prev?`data-epic-page="${esc(prev.id)}" title="Previous: ${esc(prev.title)}"`:'disabled'} aria-label="Previous ${itemLabel(false,true)}">${icon('left')}</button><button type="button" class="icon-btn" ${next?`data-epic-page="${esc(next.id)}" title="Next: ${esc(next.title)}"`:'disabled'} aria-label="Next ${itemLabel(false,true)}">${icon('right')}</button></span></div><h2 class="ep-title">${itemIcon(t)}${esc(t.title)}</h2><div class="ep-progress"><div class="ep-track"><span style="width:${pct}%"></span></div><span class="ep-progress-text"><b>${pct}%</b>${w.stories?` · ${w.storiesDone} of ${w.stories} stories done`:''}${pts?` · ${fmtPoints(donePts)} of ${fmtPoints(pts)} points`:''}</span></div><div class="ep-head-actions"><button type="button" class="btn ghost small" data-epic-details="${esc(t.id)}">${icon('edit')}Details</button><button type="button" class="btn ghost small" data-epic-roadmap="${esc(t.id)}">${icon('roadmap')}Show on roadmap</button></div></header><div class="ep-add">${icon('plus')}<input type="text" id="epicQuickAdd" maxlength="2000" placeholder="Add a story and press Enter · “Login form 3” gives it 3 points · paste several lines to add several" aria-label="Add a story to ${esc(t.title)}"></div><div class="ep-board">${cols}</div></div><aside class="ep-side"><section class="ep-side-card"><h4>About this ${itemLabel(false,true)}</h4><p class="${t.description?'':'ep-muted'}">${esc(t.description||'No description yet. Add one in Details.')}</p>${outcome||inc?`<div class="ep-side-chips">${outcome?`<span class="ep-side-chip">${icon('target')}${esc(outcome.title)}</span>`:''}${inc?`<span class="ep-side-chip">${icon('layers')}${esc(inc.title)}</span>`:''}</div>`:''}</section><section class="ep-side-card">${canvasChecklistHTML(t)}</section></aside></div>`;
+ refreshCanvasChecklist($('#content'),t);
+ if(focusSel)document.querySelector(focusSel)?.focus();
+}
+// "Login form 3" → title "Login form", 3 points. One story per line.
+function addEpicStories(epicId,text){
+ const items=String(text||'').split(/\r?\n/).map(l=>l.trim()).filter(Boolean).map(l=>{const m=l.match(/^(.*\S)\s+(\d{1,4}(?:[.,]\d+)?)$/);const points=m?Number(m[2].replace(',','.')):null;return {title:(m&&points<=1000?m[1]:l).slice(0,160),points:m&&points<=1000?points:null};}).filter(x=>x.title);
+ if(!items.length)return;if(state.plan.stories.length+items.length>5000){toast('A plan holds up to 5,000 stories.',true);return;}
+ commit(p=>{for(const x of items)p.stories.push({id:uid(),title:x.title,epic:epicId,increment:'',status:'planned',points:x.points,owner:'',description:'',checklist:[]});},items.length>1?`${items.length} stories added`:'Story added');
+}
+function editStory(id,change,label){commit(p=>{const s=p.stories.find(x=>x.id===id);if(!s)throw Error('This story is no longer in the plan.');change(s);},label);}
 function workCounts(t){const ss=storiesOf(t.id),list=t.checklist||[];return {stories:ss.length,storiesDone:ss.filter(s=>s.status==='done').length,items:list.length,itemsDone:checklistDone(list)};}
 function workTitle(w){return [w.stories?`${w.storiesDone} of ${w.stories} stories done`:'',w.items?`Checklist: ${w.itemsDone} of ${w.items} done`:''].filter(Boolean).join(' · ');}
 // One compact badge: stories when the epic has any, otherwise its checklist.
 function workBadgeHTML(t,cls='bar-work'){const w=workCounts(t);if(!w.stories&&!w.items)return '';const [a,b]=w.stories?[w.storiesDone,w.stories]:[w.itemsDone,w.items],toggle=w.stories&&cls==='bar-work'?` data-epic-toggle="${esc(t.id)}" role="button" tabindex="0" aria-expanded="${showsStories(t)}"`:'',tip=workTitle(w)+(toggle?(showsStories(t)?' · click to hide stories':' · click to show stories'):'');return `<span class="${cls}${a===b?' is-complete':''}${toggle&&showsStories(t)?' is-open':''}"${toggle} title="${esc(tip)}" aria-label="${esc(tip)}">${icon(w.stories?'layers':'checklist')}${a}/${b}</span>`;}
-function workChipsHTML(t){const w=workCounts(t);if(!w.stories&&!w.items)return '';return `<div class="card-work">${w.items?`<span class="work-chip${w.itemsDone===w.items?' is-complete':''}" title="Checklist: ${w.itemsDone} of ${w.items} done">${icon('checklist')}Checklist ${w.itemsDone}/${w.items}</span>`:''}${w.stories?`<span class="work-chip${w.storiesDone===w.stories?' is-complete':''}" title="${w.storiesDone} of ${w.stories} stories done">${icon('layers')}Stories ${w.storiesDone}/${w.stories}</span>`:''}</div>`;}
+function workChipsHTML(t){const w=workCounts(t);if(!w.stories&&!w.items)return '';return `<div class="card-work">${w.items?`<span class="work-chip${w.itemsDone===w.items?' is-complete':''}" title="Checklist: ${w.itemsDone} of ${w.items} done">${icon('checklist')}Checklist ${w.itemsDone}/${w.items}</span>`:''}${w.stories?`<button type="button" class="work-chip is-link${w.storiesDone===w.stories?' is-complete':''}" data-epic-page="${esc(t.id)}" title="${w.storiesDone} of ${w.stories} stories done · open to plan them">${icon('layers')}Stories ${w.storiesDone}/${w.stories}</button>`:''}</div>`;}
 // The checklist in the small details panel: every tick, edit or new item is saved right away (and can be undone).
 function canvasChecklistHTML(item){return `<section class="canvas-checklist" data-canvas-checklist="${esc(item.id)}" aria-label="Checklist"><div class="canvas-checklist-head"></div><div class="checklist canvas-checklist-list"></div><div class="checklist-add"><input type="text" class="checklist-new" data-cl-new maxlength="200" placeholder="Add a checklist item and press Enter" aria-label="New checklist item"></div></section>`;}
 function refreshCanvasChecklist(host,item){
@@ -3045,7 +3203,9 @@ function renderBacklog(){
 // puts the story just before it, which is how stories are ranked.
 function moveStory(id,target,beforeId){
  const s=state.plan.stories.find(x=>x.id===id);if(!s)return;
- const [kind,value]=[target.slice(0,target.indexOf(':')),target.slice(target.indexOf(':')+1)];
+ let [kind,value]=[target.slice(0,target.indexOf(':')),target.slice(target.indexOf(':')+1)];
+ // Epic page columns: To do / Doing / Done keep a status that already belongs to the column.
+ if(kind==='group'){const g=EPIC_GROUPS[value];if(!g)return;kind='status';value=g.statuses.includes(s.status)?s.status:g.drop;}
  const changes=kind==='status'?s.status!==value:s.increment!==value,reorder=beforeId&&beforeId!==id;
  if(!changes&&!reorder)return;
  const label=kind==='status'?(changes?`Story moved to ${STATUS[value]}`:'Story moved'):changes?(value?`Story planned into ${getIncrement(value)?.title||'the increment'}`:'Story moved to the backlog'):'Story moved';
@@ -3147,7 +3307,7 @@ const STREAMS_COLLAPSED_KEY='roadmap.view.streamsCollapsed';
 // Date lock: bars and milestones keep their dates when dragged (they can still change lane); no resizing or arrow-key nudges.
 const DATES_LOCKED_KEY='roadmap.view.datesLocked';
 let datesLocked=false;try{datesLocked=localStorage.getItem(DATES_LOCKED_KEY)==='true';}catch{}
-function dateLockHTML(){const tip=datesLocked?'Dates are locked: dragging keeps start and end dates. Click to unlock':'Lock dates: dragging keeps start and end dates';return `<button type="button" class="freeze-lock date-lock${datesLocked?' is-locked':''}" data-dates-lock aria-pressed="${datesLocked}" aria-label="${tip}" title="${tip}">${icon(datesLocked?'dateLock':'dateUnlock')}</button>`;}
+function dateLockHTML(){const tip=datesLocked?'Dates are locked: dragging keeps start and end dates. Click to unlock':'Lock dates: dragging keeps start and end dates';return `<button type="button" class="freeze-lock date-lock${datesLocked?' is-locked':''}" data-dates-lock aria-pressed="${datesLocked}" aria-label="${tip}" title="${tip}">${icon(datesLocked?'lock':'unlock')}</button>`;}
 let streamsCollapsed=false;try{streamsCollapsed=localStorage.getItem(STREAMS_COLLAPSED_KEY)==='true';}catch{}
 // Time scale of the roadmap and Gantt: how wide a day is. The period (year, quarter, custom) does not change;
 // a wider timeline scrolls sideways. Months is the original scale.
@@ -3303,10 +3463,10 @@ function render(){
  cleanFilters();const p=state.plan;
  $('#planName').textContent=p.name;$('#planName').title=p.name;$('#exampleBadge').hidden=!p.example;
  $('#printPlanName').textContent=p.name;$('#printPeriod').textContent=periodText();
- $$('#nav .nav-item').forEach(b=>{b.classList.toggle('active',b.dataset.section===state.section);if(b.dataset.section===state.section)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
- const heads={roadmap:['Roadmap','','New '+itemLabel(false,true)],initiatives:[itemLabel(true),'','New '+itemLabel(false,true)],backlog:['Backlog','Plan stories into increments: drag a story onto an increment, or back to the backlog.','New story'],outcomes:['Outcomes','Measure the results your work should achieve.','New outcome'],milestones:['Milestones','Releases, decisions and checkpoints.','New milestone']};
- const h=heads[state.section];$('#pageTitle').textContent=h[0];$('#pageDescription').textContent=h[1];$('#primaryAddLabel').textContent=h[2];$('#sectionHeading').hidden=['roadmap','initiatives'].includes(state.section);
- const planning=state.section==='roadmap'||state.section==='initiatives';$('#planningControls').hidden=!planning&&state.section!=='backlog';$('#roadmapTools').hidden=!planning;$('.view-tabs').hidden=state.section!=='roadmap';renderOutcomeFocus();
+ $$('#nav .nav-item').forEach(b=>{const on=b.dataset.section===state.section||state.section==='epic'&&b.dataset.section==='epics';b.classList.toggle('active',on);if(on)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
+ const heads={roadmap:['Roadmap','','New '+itemLabel(false,true)],initiatives:[itemLabel(true),'','New '+itemLabel(false,true)],epics:[itemLabel(true),'Every '+itemLabel(false,true)+' with its progress. Open one to plan its stories.','New '+itemLabel(false,true)],epic:['','','New story'],backlog:['Backlog','Plan stories into increments: drag a story onto an increment, or back to the backlog.','New story'],outcomes:['Outcomes','Measure the results your work should achieve.','New outcome'],milestones:['Milestones','Releases, decisions and checkpoints.','New milestone']};
+ const h=heads[state.section];$('#pageTitle').textContent=h[0];$('#pageDescription').textContent=h[1];$('#primaryAddLabel').textContent=h[2];$('#sectionHeading').hidden=['roadmap','initiatives','epic'].includes(state.section);{const en=document.querySelector('#nav [data-section="epics"]');if(en){en.title=itemLabel(true);en.setAttribute('aria-label',itemLabel(true));en.querySelector('.nav-label').textContent=itemLabel(true);}}
+ const planning=state.section==='roadmap'||state.section==='initiatives';$('#planningControls').hidden=!planning&&!['backlog','epics'].includes(state.section);$('#roadmapTools').hidden=!planning;$('.view-tabs').hidden=state.section!=='roadmap';renderOutcomeFocus();
  $$('.view-tab').forEach(b=>{const active=b.dataset.view===state.view;b.classList.toggle('active',active);b.setAttribute('aria-selected',String(active));});
  $('#searchInput').value=state.query;$('#statusFilter').value=state.status;
  const workstreamOptions='<option value="all">All workstreams</option>'+p.workstreams.map(s=>`<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');
@@ -3321,7 +3481,7 @@ function render(){
  $('#prevPeriod').disabled=state.year<=2000;$('#nextPeriod').disabled=state.year>=2099;
  $('#zoomScale').hidden=state.section!=='roadmap'||!['timeline','swimlane'].includes(state.view);$('#zoomLabel').textContent=ZOOM_LABELS[timeZoom==='fit'?['years','months','weeks','days'].reduce((b,k)=>Math.abs(Math.log(ZOOM_DAYS[k]/visibleDays()))<Math.abs(Math.log(ZOOM_DAYS[b]/visibleDays()))?k:b,'years'):timeZoom];$('#zoomLabel').title=timeZoom==='fit'?'Fitted to all items':'';$('#zoomOutBtn').disabled=timeZoom==='years'||timeZoom==='fit'&&visibleDays()>=ZOOM_DAYS.years;$('#zoomInBtn').disabled=timeZoom==='days'||timeZoom==='fit'&&visibleDays()<=ZOOM_DAYS.days;$('#zoomFitBtn').classList.toggle('is-active',timeZoom==='fit');$('#zoomFitBtn').setAttribute('aria-pressed',String(timeZoom==='fit'));
  $('#dependenciesBtn').classList.toggle('is-active',state.dependencies);$('#dependenciesBtn').setAttribute('aria-pressed',String(state.dependencies));$('#dependenciesBtn').title=state.dependencies?'Hide dependencies':'Show dependencies';$('#dependenciesBtn').setAttribute('aria-label',$('#dependenciesBtn').title);
- if(state.section==='outcomes')renderOutcomes();else if(state.section==='milestones')renderMilestones();else if(state.section==='backlog')renderBacklog();else if(state.section==='initiatives'||state.view==='table')renderTable();else if(state.view==='board')(storyDetail==='stories'&&state.plan.stories.length?renderStoryBoard:renderBoard)();else if(state.view==='swimlane')renderSwimlanes();else renderTimeline();
+ if(state.section==='outcomes')renderOutcomes();else if(state.section==='milestones')renderMilestones();else if(state.section==='backlog')renderBacklog();else if(state.section==='epics')renderEpicsGrid();else if(state.section==='epic')renderEpicPage();else if(state.section==='initiatives'||state.view==='table')renderTable();else if(state.view==='board')(storyDetail==='stories'&&state.plan.stories.length?renderStoryBoard:renderBoard)();else if(state.view==='swimlane')renderSwimlanes();else renderTimeline();
  $('#undoBtn').disabled=!state.undo.length;$('#redoBtn').disabled=!state.redo.length;
  document.title=`${p.name} — Roadmap`;document.body.classList.toggle('dates-locked',datesLocked);detailSwitchSync();document.body.classList.toggle('streams-collapsed',streamsCollapsed);document.body.classList.toggle('swimlane-mode',state.section==='roadmap'&&state.view==='swimlane');document.body.classList.toggle('bar-style-tinted',state.barStyle!=='solid');document.body.classList.toggle('bar-style-solid',state.barStyle==='solid');$$('[data-bar-style]').forEach(b=>{const on=b.dataset.barStyle===state.barStyle;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));});hydrateIcons();RoadmapCanvas.afterRender();layoutMilestoneLabels();requestAnimationFrame(drawDependencies);
  scrollState.forEach(s=>{const el=$(s.selector);if(el){el.scrollLeft=s.left;el.scrollTop=s.top;}});
@@ -3852,6 +4012,31 @@ document.addEventListener('click',event=>{
 });
 document.addEventListener('click',event=>{if(!event.target.closest('.export-wrap'))hideExport();if(!event.target.closest('.filter-wrap'))hideFilters();handleClick(event);});
 $('#detailForm').addEventListener('submit',saveDetail);$('#settingsForm').addEventListener('submit',saveSettings);
+// Epics grid and Epic page: navigation, quick add, expanding cards and editing them in place.
+document.addEventListener('click',event=>{
+ const go=event.target.closest?.('[data-epic-page]');if(go){event.preventDefault();event.stopPropagation();if(!state.presentation||state.section!=='epic')openEpicPage(go.dataset.epicPage);return;}
+ const sec=event.target.closest?.('[data-section-go]');if(sec){event.preventDefault();changeSection(sec.dataset.sectionGo);return;}
+ const ne=event.target.closest?.('[data-new-epic]');if(ne){event.preventDefault();event.stopPropagation();openDetail('initiative',null,{stream:ne.dataset.newEpic||undefined});return;}
+ const rm=event.target.closest?.('[data-epic-roadmap]');if(rm){event.preventDefault();const t=getTask(rm.dataset.epicRoadmap);state.view=['swimlane','timeline'].includes(state.view)?state.view:'swimlane';changeSection('roadmap');if(t){const r=timelineRange();if(state.range!=='rolling'&&(day(t.start)<r.start||day(t.end)>=r.end)){state.range='rolling';render();}requestAnimationFrame(()=>{scrollToDay(Math.max(timelineRange().start,day(t.start)-14));const bar=document.querySelector(`[data-bar="${CSS.escape(t.id)}"]`);bar?.scrollIntoView({block:'center'});bar?.focus({preventScroll:true});});}return;}
+ const del=event.target.closest?.('[data-ep-delete]');if(del){event.preventDefault();event.stopPropagation();const s=state.plan.stories.find(x=>x.id===del.dataset.epDelete);if(s)confirmDialog('Delete story?',`“${s.title}” will be removed. You can undo this change.`,()=>{epicOpenStory=null;commit(p=>{p.stories=p.stories.filter(x=>x.id!==s.id);},'Story deleted');},'Delete',true);return;}
+ // A card on the Epic page opens in place (its controls work as usual).
+ const card=event.target.closest?.('[data-ep-card]');
+ if(card&&!event.target.closest('input,select,button,label,a')){event.preventDefault();event.stopPropagation();if(performance.now()<storyClickBlock)return;epicOpenStory=epicOpenStory===card.dataset.epCard?null:card.dataset.epCard;render();return;}
+ if(card)event.stopPropagation();
+},true);
+document.addEventListener('change',event=>{
+ const t=event.target;
+ if(t.matches?.('[data-ep-field]')){const id=t.dataset.sid,f=t.dataset.epField,v=t.value.trim();editStory(id,s=>{if(f==='points')s.points=v===''?null:Number(v);else if(f==='owner')s.owner=v.slice(0,80);else s[f]=v;},'Story updated');return;}
+ if(t.matches?.('[data-ep-cl-done]')){const [id,i]=t.dataset.epClDone.split(':'),on=t.checked;editStory(id,s=>{if(s.checklist[+i])s.checklist[+i].done=on;},on?'Checklist item done':'Checklist item reopened');const s=state.plan.stories.find(x=>x.id===id);if(on&&s&&s.checklist.length&&s.checklist.every(x=>x.done)&&s.status!=='done')toast('Every checklist item is done. Set the status to Done when the story is finished.');}
+});
+document.addEventListener('keydown',event=>{
+ const t=event.target;
+ if(t.id==='epicQuickAdd'&&event.key==='Enter'){event.preventDefault();event.stopPropagation();const v=t.value;t.value='';addEpicStories(state.epicId,v);$('#epicQuickAdd')?.focus();return;}
+ if(t.matches?.('[data-ep-cl-new]')&&event.key==='Enter'){event.preventDefault();event.stopPropagation();const id=t.dataset.epClNew,items=checklistFromText(t.value);t.value='';if(items.length)editStory(id,s=>{s.checklist.push(...items.slice(0,50-s.checklist.length));},'Checklist item added');document.querySelector(`[data-ep-cl-new="${CSS.escape(id)}"]`)?.focus();return;}
+ if(t.matches?.('#epicQuickAdd,[data-ep-cl-new],[data-ep-field]'))event.stopPropagation();
+ if(event.key==='Escape'&&state.section==='epic'&&epicOpenStory&&!t.matches?.('input,select,textarea')){epicOpenStory=null;render();}
+},true);
+document.addEventListener('paste',event=>{const t=event.target;if(t.id!=='epicQuickAdd')return;const text=event.clipboardData?.getData('text/plain')||'';if(!/\n/.test(text.trim()))return;event.preventDefault();addEpicStories(state.epicId,text);$('#epicQuickAdd')?.focus();});
 // Detail switch, epic chevrons and story links in the views. Capture phase, so selecting or dragging the
 // epic underneath does not also happen.
 document.addEventListener('click',event=>{
@@ -3934,7 +4119,7 @@ function storyDragMove(event){
 function storyDragUp(event){if(storyDrag&&event.pointerId===storyDrag.pointerId)storyDragEnd(true);}
 function storyDragCancel(event){if(storyDrag&&event.pointerId===storyDrag.pointerId)storyDragEnd(false);}
 document.addEventListener('pointerdown',event=>{
- const card=event.target.closest?.('[data-story-card]');if(!card||event.button!==0||state.presentation||storyDrag)return;
+ const card=event.target.closest?.('[data-story-card]');if(!card||event.button!==0||state.presentation||storyDrag||event.target.closest('input,select,textarea,button,label'))return;
  storyDrag={id:card.dataset.storyCard,card,pointerId:event.pointerId,x:event.clientX,y:event.clientY,px:event.clientX,active:false,zone:null,before:null};
  document.addEventListener('pointermove',storyDragMove,{passive:false});document.addEventListener('pointerup',storyDragUp);document.addEventListener('pointercancel',storyDragCancel);
 });
@@ -4170,7 +4355,7 @@ function swimlaneBar(t,r,c){return canvasInitiativeBar(t,r,c,true);}
 function renderSwimlanes(){
  const r=timelineRange(),all=filteredTasks(),tasks=all.filter(t=>day(t.end)>=r.start&&day(t.start)<r.end);
  const streams=state.plan.workstreams.filter(s=>(state.stream==='all'||state.stream===s.id)&&(!(state.query||state.status!=='all'||state.outcome)||tasks.some(t=>t.stream===s.id)));
- let html=`<div class="swimlane-axis-row"><div class="swimlane-axis-label" title="Workstreams">STREAMS <span>${streams.length}</span><button type="button" class="streams-collapse" data-streams-collapse aria-pressed="${streamsCollapsed}" aria-label="${streamsCollapsed?'Show workstream names':'Collapse the workstream column'}" title="${streamsCollapsed?'Show workstream names':'Collapse the workstream column'}">${icon(streamsCollapsed?'right':'left')}</button><span class="freeze-locks"><button type="button" class="freeze-lock" data-freeze-toggle aria-pressed="false" aria-label="Keep dates and tools visible while scrolling" title="Keep dates and tools visible while scrolling">${icon('unlock')}</button>${dateLockHTML()}</span></div><div class="swimlane-axis">${swimlaneAxis(r)}</div></div>${(state.showIncrementRow?canvasIncrementBand(r,true,''):'')}${state.showMilestoneRow&&state.showMilestones?swimlaneMilestones(r,''):''}`;
+ let html=`<div class="swimlane-axis-row"><div class="swimlane-axis-label" title="Workstreams">STREAMS <span>${streams.length}</span><button type="button" class="streams-collapse" data-streams-collapse aria-pressed="${streamsCollapsed}" aria-label="${streamsCollapsed?'Show workstream names':'Collapse the workstream column'}" title="${streamsCollapsed?'Show workstream names':'Collapse the workstream column'}">${icon(streamsCollapsed?'right':'left')}</button><span class="freeze-locks"><button type="button" class="freeze-lock" data-freeze-toggle aria-pressed="false" aria-label="Keep dates and tools visible while scrolling" title="Keep dates and tools visible while scrolling">${icon('pin')}</button>${dateLockHTML()}</span></div><div class="swimlane-axis">${swimlaneAxis(r)}</div></div>${(state.showIncrementRow?canvasIncrementBand(r,true,''):'')}${state.showMilestoneRow&&state.showMilestones?swimlaneMilestones(r,''):''}`;
  for(const s of streams){
   const items=tasks.filter(t=>t.stream===s.id),rows=packSwimlaneTasks(items,r),collapsed=false,c=swimlaneColor(s);
   const laneRows=canvasIncrementBand(r,true,s.id)+swimlaneMilestones(r,s.id),laneCount=laneItemCount(s.id);
@@ -4342,7 +4527,7 @@ function renderTimeline(){
  const milestones=canvasOutcomeContext().milestones.filter(m=>inLane(m,'')&&!milestoneOnIncrement(m)&&day(m.date)>=r.start&&day(m.date)<r.end),layout=canvasFlatMilestoneLayout(milestones,r);
  const markers=layout.placed.map(p=>canvasMilestoneMarker(p.milestone,r,0,false,null,p)).join('');
  const markerHeight=milestones.length?54:42;
- let rows=`<div class="timeline-header"><div class="lane-heading">${itemLabel(true).toUpperCase()} <span>${n}</span><span class="freeze-locks"><button type="button" class="freeze-lock" data-freeze-toggle aria-pressed="false" aria-label="Keep dates and tools visible while scrolling" title="Keep dates and tools visible while scrolling">${icon('unlock')}</button>${dateLockHTML()}</span></div><div class="time-axis">${axis}</div></div>${(state.showIncrementRow?canvasIncrementBand(r,false,''):'')}${state.showMilestoneRow&&state.showMilestones?`<div class="milestone-row" style="height:${markerHeight}px"><div class="lane-label">${icon('flag')}<span>Milestones</span><button class="icon-btn" data-action="new-milestone" aria-label="Add milestone">${icon('plus')}</button></div><div class="milestone-track" data-canvas-track="milestone" style="height:${markerHeight}px">${gridHTML(r)}${markers||'<button class="canvas-empty-prompt" data-action="new-milestone">'+icon('plus')+'Add milestone</button>'}</div></div>`:''}`;
+ let rows=`<div class="timeline-header"><div class="lane-heading">${itemLabel(true).toUpperCase()} <span>${n}</span><span class="freeze-locks"><button type="button" class="freeze-lock" data-freeze-toggle aria-pressed="false" aria-label="Keep dates and tools visible while scrolling" title="Keep dates and tools visible while scrolling">${icon('pin')}</button>${dateLockHTML()}</span></div><div class="time-axis">${axis}</div></div>${(state.showIncrementRow?canvasIncrementBand(r,false,''):'')}${state.showMilestoneRow&&state.showMilestones?`<div class="milestone-row" style="height:${markerHeight}px"><div class="lane-label">${icon('flag')}<span>Milestones</span><button class="icon-btn" data-action="new-milestone" aria-label="Add milestone">${icon('plus')}</button></div><div class="milestone-track" data-canvas-track="milestone" style="height:${markerHeight}px">${gridHTML(r)}${markers||'<button class="canvas-empty-prompt" data-action="new-milestone">'+icon('plus')+'Add milestone</button>'}</div></div>`:''}`;
  for(const s of state.plan.workstreams.filter(s=>state.stream==='all'||state.stream===s.id)){
   // The saved initiative order owns each row; date edits must not move rows.
   const st=tasks.filter(t=>t.stream===s.id);if(!st.length&&(state.query||state.status!=='all'||state.outcome))continue;const collapsed=state.collapsed.has(s.id),c=RoadmapColors.streamPalette(s);
@@ -4875,7 +5060,7 @@ const RoadmapCanvas=(()=>{
    fields+=`<span class="canvas-increment-explainer">${item.stream?'A delivery period shown in the '+esc(streamName(item.stream))+' lane.':'A delivery period that groups work across lanes.'}</span>`;
   }
   fields+=`<div class="canvas-inline-field canvas-icon-field"><span>Icon</span>${iconPickerHTML(type,item)}</div>`;
-  host.innerHTML=`<section class="canvas-inspector" aria-label="Selected ${type} controls"><div class="canvas-inspector-header"><span class="canvas-selection-type">${names[type]}</span><input type="text" class="canvas-selected-name" data-inline-field="title" maxlength="200" aria-label="${names[type]} name" title="Rename ${type}" value="${esc(item.title)}" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}else if(event.key==='Escape'){event.preventDefault();event.stopPropagation();this.value=this.defaultValue;this.blur();}"><div class="canvas-inspector-actions">${actionButton('details','Details','dots')}${actionButton('duplicate','Duplicate','duplicate')}${actionButton('delete','Delete','trash','danger')}<button type="button" class="icon-btn" data-canvas-action="close" aria-label="Close selected item controls" title="Close controls">${icon('close')}</button></div></div><div class="canvas-inline-fields">${fields}</div>${purpose}${type==='milestone'?`<p class="canvas-milestone-placement-note">${esc(milestonePlacementNote(item))}</p>`:''}${type==='increment'?`<section class="canvas-increment-members" aria-label="Included work in ${esc(item.title)}"></section>`:''}</section>`;
+  host.innerHTML=`<section class="canvas-inspector" aria-label="Selected ${type} controls"><div class="canvas-inspector-header"><span class="canvas-selection-type">${names[type]}</span><input type="text" class="canvas-selected-name" data-inline-field="title" maxlength="200" aria-label="${names[type]} name" title="Rename ${type}" value="${esc(item.title)}" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}else if(event.key==='Escape'){event.preventDefault();event.stopPropagation();this.value=this.defaultValue;this.blur();}"><div class="canvas-inspector-actions">${type==='initiative'?actionButton('epic-page','Plan stories','board'):''}${actionButton('details','Details','dots')}${actionButton('duplicate','Duplicate','duplicate')}${actionButton('delete','Delete','trash','danger')}<button type="button" class="icon-btn" data-canvas-action="close" aria-label="Close selected item controls" title="Close controls">${icon('close')}</button></div></div><div class="canvas-inline-fields">${fields}</div>${purpose}${type==='milestone'?`<p class="canvas-milestone-placement-note">${esc(milestonePlacementNote(item))}</p>`:''}${type==='increment'?`<section class="canvas-increment-members" aria-label="Included work in ${esc(item.title)}"></section>`:''}</section>`;
   host.dataset.selectionKey=selectionKey;
   if(type==='initiative'){refreshPurposeSummary(host,item);refreshCanvasChecklist(host,item);}
   if(type==='increment')refreshMemberList(host,item);
@@ -5073,7 +5258,7 @@ const RoadmapCanvas=(()=>{
    const a=action.dataset.canvasAction;
    if(a==='close')clearSelection();else if(a==='rename'&&selection)rename(selection.type,selection.id);else if(a==='details'&&selection){finishEditor(true);const {type,id}=selection;
     // Full details replace the small panel: closing them returns to the roadmap, not to the panel.
-    hideInspector();itemElement(type,id)?.focus({preventScroll:true});openDetail(type,id);}else if(a==='delete')removeSelected();else if(a==='duplicate')duplicateSelected();else if(a==='add-in-increment'&&selection?.type==='increment'){const increment=selected();state.section='roadmap';if(!['timeline','swimlane'].includes(state.view))state.view='timeline';showRecordPeriod(increment);render();quickAdd('initiative',{increment:increment.id,start:increment.start,end:increment.end});}
+    hideInspector();itemElement(type,id)?.focus({preventScroll:true});openDetail(type,id);}else if(a==='epic-page'&&selection?.type==='initiative'){const id=selection.id;hideInspector();openEpicPage(id);}else if(a==='delete')removeSelected();else if(a==='duplicate')duplicateSelected();else if(a==='add-in-increment'&&selection?.type==='increment'){const increment=selected();state.section='roadmap';if(!['timeline','swimlane'].includes(state.view))state.view='timeline';showRecordPeriod(increment);render();quickAdd('initiative',{increment:increment.id,start:increment.start,end:increment.end});}
    else if(a==='add-milestone-in-increment'){const increment=find('increment',action.dataset.incrementId||(selection?.type==='increment'?selection.id:''));if(increment){state.section='roadmap';if(!['timeline','swimlane'].includes(state.view))state.view='swimlane';showRecordPeriod({date:increment.end});render();quickAdd('milestone',{increment:increment.id,date:increment.end,lane:laneOf(increment)});}}
    return true;
   }
@@ -5085,7 +5270,7 @@ const RoadmapCanvas=(()=>{
    if(add.dataset.addStatus){quickAdd('initiative',{status:add.dataset.addStatus});return true;}
    if(add.id==='milestoneQuickBtn'||add.dataset.action==='new-milestone'){quickAdd('milestone');return true;}
    if(add.id==='incrementQuickBtn'||add.dataset.action==='new-increment'){quickAdd('increment');return true;}
-   if(add.id==='primaryAdd'&&state.section==='backlog'){newStory();return true;}if(add.dataset.action==='new-initiative'||add.id==='primaryAdd'&&state.section!=='outcomes'){quickAdd(state.section==='milestones'?'milestone':'initiative');return true;}
+   if(add.id==='primaryAdd'&&state.section==='backlog'){newStory();return true;}if(add.id==='primaryAdd'&&state.section==='epics'){openDetail('initiative');return true;}if(add.id==='primaryAdd'&&state.section==='epic'){$('#epicQuickAdd')?.focus();return true;}if(add.dataset.action==='new-initiative'||add.id==='primaryAdd'&&state.section!=='outcomes'){quickAdd(state.section==='milestones'?'milestone':'initiative');return true;}
   }
   const target=recordTarget(event.target);
   if(target){
@@ -5322,7 +5507,7 @@ const RoadmapCanvas=(()=>{
   const dx=event.clientX-d.x,dy=event.clientY-d.y+window.scrollY-(d.windowScrollY||0);
   d.verticalOnly=['initiative','milestone'].includes(d.type)&&d.kind==='move'&&Math.abs(dy)>10&&Math.abs(dx)<Math.max(12,Math.abs(dy)*.35);
   if(d.scroll&&!d.verticalOnly&&!finishing){const b=d.scroll.getBoundingClientRect();if(event.clientX>b.right-30)d.scroll.scrollLeft+=12;else if(event.clientX<b.left+30)d.scroll.scrollLeft-=12;}
-  const pixels=dx+((d.scroll?.scrollLeft||0)-d.scrollLeft),delta=d.verticalOnly||d.dateLocked?0:Math.round(pixels/Math.max(d.width,1)*(d.r.end-d.r.start));
+  const pixels=dx+((d.scroll?.scrollLeft||0)-d.scrollLeft),delta=d.verticalOnly||d.dateLocked?(d.dateLocked&&!d.lockNotified&&Math.abs(dx)>16&&(d.lockNotified=true,toast('Dates are locked. Unlock them with the lock on the date row.')),0):Math.round(pixels/Math.max(d.width,1)*(d.r.end-d.r.start));
   let start=d.start,end=d.end;
   if(d.kind==='move'){const shift=clamp(delta,Math.max(day('2000-01-01')-d.start,d.r.start-d.end),Math.min(day('2099-12-31')-d.end,d.r.end-1-d.start));start+=shift;end+=shift;}
   else if(d.kind==='start')start=clamp(d.start+delta,day('2000-01-01'),Math.min(d.end,d.r.end-1));
@@ -5626,7 +5811,7 @@ const RoadmapFreeze=(()=>{
   // The lock in the date-row corner replaces the toolbar button (kept hidden for its state).
   const lockLabel=enabled?'Unlock: let dates and tools scroll away':'Lock dates and tools in view while scrolling';
   document.body.classList.toggle('freeze-names',namesFrozen);
-  document.querySelectorAll('[data-freeze-toggle]').forEach(b=>{b.classList.toggle('is-active',enabled);b.setAttribute('aria-pressed',String(enabled));b.title=lockLabel;b.setAttribute('aria-label',lockLabel);b.innerHTML=icon(enabled?'lock':'unlock');});button.querySelector('.freeze-label').textContent=enabled?'Frozen':'Freeze';
+  document.querySelectorAll('[data-freeze-toggle]').forEach(b=>{b.classList.toggle('is-active',enabled);b.setAttribute('aria-pressed',String(enabled));b.title=lockLabel;b.setAttribute('aria-label',lockLabel);b.innerHTML=icon('pin');});button.querySelector('.freeze-label').textContent=enabled?'Frozen':'Freeze';
   button.title=enabled?'Unfreeze timeline and tools':'Keep timeline and tools visible while scrolling';
   document.body.classList.toggle('freeze-roadmap',active());
   dock.hidden=true;observer?.disconnect();observer?.observe(document.querySelector('.topbar'));observer?.observe(tools);
